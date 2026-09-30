@@ -1,0 +1,19 @@
+identidad:
+  nombre: ONCOSAVI
+  sede: San Vicente
+  logo: public/images/oncosavi.png
+contacto:
+  correo: oncosavi@gmail.com
+  telefono: '+503 2393 0239'
+  whatsapp: '50323930239'
+  direccion: 'Calle 1 de Julio #23, Bo. San Francisco, San Vicente, El Salvador. Esquina opuesta a la Procuraduría.'
+paleta:
+  marino: '#090B3B'
+  celeste: '#64ABC6'
+  rojo: '#E32737'
+  blanco: '#FFFFFF'
+reportes:
+  marca_de_agua: 'Texto diagonal ONCOSAVI, sin logo'
+  conservar_documentos_clinicos: true
+  conservar_firmas_y_sellos_personales: true
+  sello_institucional: null

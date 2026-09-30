@@ -1,0 +1,972 @@
+{
+  "areas": [
+    {
+      "nombre": "BACTERIOLOGÍA",
+      "precio": null,
+      "examenes": [
+        {
+          "nombre": "BACILOSCOPIA-BAAR",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "COLORACIÓN DE GRAM",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "COLORACION GRAM (FROTIS VAGINAL)",
+          "precio": "20.00"
+        },
+        {
+          "nombre": "COPROCULTIVO",
+          "precio": "12.00"
+        },
+        {
+          "nombre": "CULTIVO DE HONGOS",
+          "precio": "20.00"
+        },
+        {
+          "nombre": "CULTIVO DE SECRECIONES",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "DIRECTO KOH",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "ESPERMOGRAMA",
+          "precio": "20.00"
+        },
+        {
+          "nombre": "UROCULTIVO",
+          "precio": "10.00"
+        }
+      ]
+    },
+    {
+      "nombre": "CARDIOVASCULAR",
+      "precio": null,
+      "examenes": [
+        {
+          "nombre": "PROBNP",
+          "precio": "50.00"
+        },
+        {
+          "nombre": "TROPONINA I (CTNI)",
+          "precio": "35.00"
+        }
+      ]
+    },
+    {
+      "nombre": "COAGULACIÓN",
+      "precio": null,
+      "examenes": [
+        {
+          "nombre": "ANTICOAGULANTE LUPICO (CUALITATIVO)",
+          "precio": "40.00"
+        },
+        {
+          "nombre": "DIMERO-D",
+          "precio": "50.00"
+        },
+        {
+          "nombre": "FIBRINÓGENO",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "RETRACCIÓN DE COAGULO",
+          "precio": "20.00"
+        },
+        {
+          "nombre": "TIEMPO DE COAGULACIÓN",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "TIEMPO DE SANGRAMIENTO",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "TIEMPO DE TROMB. PARCIAL ACT.",
+          "precio": "12.00"
+        },
+        {
+          "nombre": "TIEMPO DE TROMBINA",
+          "precio": "12.00"
+        },
+        {
+          "nombre": "TIEMPO Y VALOR DE PROTROMBINA",
+          "precio": "10.00"
+        }
+      ]
+    },
+    {
+      "nombre": "COPROLOGÍA",
+      "precio": null,
+      "examenes": [
+        {
+          "nombre": "AG. SALMONELLA TYPHI",
+          "precio": "20.00"
+        },
+        {
+          "nombre": "AZUL DE METILENO",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "CONCENTRADO EN HECES",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "GENERAL DE HECES",
+          "precio": "2.00"
+        },
+        {
+          "nombre": "HELICOBACTER PYLORI-AG",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "IGM TIFOIDEA (SALMONELLA TYPHI - SALMONELLA PARATYPHI)",
+          "precio": "30.00"
+        },
+        {
+          "nombre": "PH EN HECES",
+          "precio": "20.00"
+        },
+        {
+          "nombre": "ROTAVIRUS EN HECES",
+          "precio": "25.00"
+        },
+        {
+          "nombre": "SANGRE OCULTA",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "SUSTANCIA REDUCTORA",
+          "precio": "20.00"
+        }
+      ]
+    },
+    {
+      "nombre": "ELECTROLITOS",
+      "precio": null,
+      "examenes": [
+        {
+          "nombre": "CALCIO",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "CLORO",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "FÓSFORO",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "MAGNESIO",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "POTASIO",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "SODIO",
+          "precio": "8.00"
+        }
+      ]
+    },
+    {
+      "nombre": "ENDOCRINOLOGÍA",
+      "precio": null,
+      "examenes": [
+        {
+          "nombre": "AC. ANTITIROGLOBULINICOS (ATT)",
+          "precio": "40.00"
+        },
+        {
+          "nombre": "ACTH (HORMONA ADRENOCORTICOTROPICA)",
+          "precio": "50.00"
+        },
+        {
+          "nombre": "ANTI CCP (PÉPTIDO CÍCLICO CITRULINADO)",
+          "precio": "80.00"
+        },
+        {
+          "nombre": "B-HCG-CUANT",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "CORTISOL AM",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "CORTISOL PM",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "ESTRADIOL (E2)",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "FSH (HORMONA FOLÍCULO ESTIMULANTE)",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "HORMONA DE CRECIMIENTO",
+          "precio": "50.00"
+        },
+        {
+          "nombre": "HORMONA PARATIROIDEA PHT",
+          "precio": "50.00"
+        },
+        {
+          "nombre": "INSULINA",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "INSULINA POST-PRANDIAL",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "LH",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "LH (HORMONA LUTEINIZANTE)",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "PROGESTERONA",
+          "precio": "50.00"
+        },
+        {
+          "nombre": "PROLACTINA",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "T3 LIBRE",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "T3 TOTAL",
+          "precio": "12.00"
+        },
+        {
+          "nombre": "T4 LIBRE",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "T4 TOTAL",
+          "precio": "12.00"
+        },
+        {
+          "nombre": "TESTOSTERONA",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "TIROGLOBULINAS",
+          "precio": "70.00"
+        },
+        {
+          "nombre": "TSH 3RA GENERACION",
+          "precio": "15.00"
+        }
+      ]
+    },
+    {
+      "nombre": "HEMATOLOGÍA",
+      "precio": null,
+      "examenes": [
+        {
+          "nombre": "CÉLULAS L.E.",
+          "precio": "25.00"
+        },
+        {
+          "nombre": "CONCENTRADO STRAUT (T.CRUZI)",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "EOSINÓFILOS EN SANGRE",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "EOSINÓFILOS NASALES",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "ERITROSEDIMENTACIÓN",
+          "precio": "6.00"
+        },
+        {
+          "nombre": "FROTIS DE SANGRE PERIFÉRICA",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "HB Y HT",
+          "precio": "5.00"
+        },
+        {
+          "nombre": "HEMOGRAMA",
+          "precio": "5.00"
+        },
+        {
+          "nombre": "LEUCOGRAMA",
+          "precio": "5.00"
+        },
+        {
+          "nombre": "PLAQUETAS",
+          "precio": "5.00"
+        },
+        {
+          "nombre": "PLASMODIUM (GOTA GRUESA)",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "RETICULOCITOS",
+          "precio": "10.00"
+        }
+      ]
+    },
+    {
+      "nombre": "HEMOCULTIVO",
+      "precio": null,
+      "examenes": [
+        {
+          "nombre": "HEMOCULTIVO",
+          "precio": "25.00"
+        },
+        {
+          "nombre": "HEMOCULTIVO",
+          "precio": "25.00"
+        }
+      ]
+    },
+    {
+      "nombre": "INMUNOLOGÍA",
+      "precio": null,
+      "examenes": [
+        {
+          "nombre": "AC. ANTI- TRYPANOSOMA CRUZI TOTALES (CHAGAS)",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "AC. ANTI-TIROIDEOPEROXIDADA",
+          "precio": "50.00"
+        },
+        {
+          "nombre": "AC. ANTICITRULINADOS",
+          "precio": "50.00"
+        },
+        {
+          "nombre": "ANTI-CARDIOLIPINASIGM",
+          "precio": "60.00"
+        },
+        {
+          "nombre": "ANTI-MULLERIANA",
+          "precio": "150.00"
+        },
+        {
+          "nombre": "ANTIESTREPTOLISINA O (ASO)",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "ANTIGENO COVID-19",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "ANTÍGENOS FEBRILES",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "ANTIMIOTICONDRIALESIGG",
+          "precio": "60.00"
+        },
+        {
+          "nombre": "ANTINUCLEARES AC (ANA)",
+          "precio": "40.00"
+        },
+        {
+          "nombre": "CHLAMYDIA TRACHOMATIS – AG",
+          "precio": "25.00"
+        },
+        {
+          "nombre": "DEHIDROEPIANDROSTERONA SULFATO (DHEA-SO4)",
+          "precio": "110.00"
+        },
+        {
+          "nombre": "DENGUE IGG/IGM+AG(DUO)",
+          "precio": "25.00"
+        },
+        {
+          "nombre": "FACTOR REUMATOIDEO (LATEX RA)",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "FTA - ABS (TREPONEMA)",
+          "precio": "130.00"
+        },
+        {
+          "nombre": "GONORREA – AG.",
+          "precio": "25.00"
+        },
+        {
+          "nombre": "HELICOBACTER PYLORI AC. IGG",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "HEPATITIS A AC. IGM",
+          "precio": "40.00"
+        },
+        {
+          "nombre": "HEPATITIS B AG. DE SUPERFICIE",
+          "precio": "40.00"
+        },
+        {
+          "nombre": "HEPATITIS C AC",
+          "precio": "40.00"
+        },
+        {
+          "nombre": "HERPES IGM (TIPO II)",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "IGE TOTAL",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "INMUNOGLOBULINASIGA (MICROSOMAL)",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "INMUNOGLOBULINASIGE",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "INMUNOGLOBULINASIGG (MICROSOMAL)",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "INMUNOGLOBULINASIGM (MICROSOMAL)",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "MONOTEST",
+          "precio": "25.00"
+        },
+        {
+          "nombre": "PROCALCITONINA",
+          "precio": "80.00"
+        },
+        {
+          "nombre": "PROTEÍNA C REACTIVA",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "PRUEBA DE EMBARAZO SANGRE",
+          "precio": "7.00"
+        },
+        {
+          "nombre": "TIPEO SANGUÍNEO Y FACTOR RH",
+          "precio": "5.00"
+        },
+        {
+          "nombre": "TOXOPLASMA GONDII IGG",
+          "precio": "25.00"
+        },
+        {
+          "nombre": "TOXOPLASMA GONDII IGM",
+          "precio": "25.00"
+        },
+        {
+          "nombre": "VDRL (PRUEBA DE SIFILIS)",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "VIH AC. (3A GENERACIÓN)",
+          "precio": "30.00"
+        },
+        {
+          "nombre": "VIH PRUEBA RAPIDA",
+          "precio": "10.00"
+        }
+      ]
+    },
+    {
+      "nombre": "MARCADORES TUMORALES",
+      "precio": null,
+      "examenes": [
+        {
+          "nombre": "ALFA FETO PROTEINA",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "CA 125",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "CA 15-3",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "CA 19-9",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "CEA AG. CARCIOEMBRIONARIO",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "PSA LIBRE",
+          "precio": "35.00"
+        },
+        {
+          "nombre": "PSA TOTAL",
+          "precio": "25.00"
+        },
+        {
+          "nombre": "RELACIÓN PSA TOTAL/LIBRE",
+          "precio": "60.00"
+        }
+      ]
+    },
+    {
+      "nombre": "MINERALES",
+      "precio": null,
+      "examenes": [
+        {
+          "nombre": "VITAMINA D",
+          "precio": "50.00"
+        }
+      ]
+    },
+    {
+      "nombre": "QUÍMICA SANGUÍNEA",
+      "precio": null,
+      "examenes": [
+        {
+          "nombre": "ACIDO ÚRICO",
+          "precio": "4.00"
+        },
+        {
+          "nombre": "ALBUMINA",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "AMILASA",
+          "precio": "12.00"
+        },
+        {
+          "nombre": "BILIRRUBINA DIRECTA",
+          "precio": "6.00"
+        },
+        {
+          "nombre": "BILIRRUBINA INDIRECTA",
+          "precio": "6.00"
+        },
+        {
+          "nombre": "BILIRRUBINA TOTAL",
+          "precio": "6.00"
+        },
+        {
+          "nombre": "CITOMEGALOVIRUS IGM",
+          "precio": "30.00"
+        },
+        {
+          "nombre": "COLESTEROL ALTA DENSIDAD - HDL",
+          "precio": "6.00"
+        },
+        {
+          "nombre": "COLESTEROL BAJA DENSIDAD - LDL",
+          "precio": "6.00"
+        },
+        {
+          "nombre": "COLESTEROL MUY BAJA DENSIDAD (VLDL CALCULADO)",
+          "precio": "12.00"
+        },
+        {
+          "nombre": "COLESTEROL TOTAL",
+          "precio": "4.00"
+        },
+        {
+          "nombre": "CREATIN FOSFOKINASA (CPK)",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "CREATIN FOSFOKINASA (CPKMB)",
+          "precio": "20.00"
+        },
+        {
+          "nombre": "CREATININA",
+          "precio": "4.00"
+        },
+        {
+          "nombre": "DESHIDROGENASA LACTIDA (LDH)",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "FERRITINA",
+          "precio": "30.00"
+        },
+        {
+          "nombre": "FILTRADO GLOMERULAR",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "FOSFATASA ACIDA",
+          "precio": "12.00"
+        },
+        {
+          "nombre": "FOSFATASA ALCALINA",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "GAMMA GLUTAMIL (GCT)",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "GLUCOSA",
+          "precio": "3.00"
+        },
+        {
+          "nombre": "GLUCOSA POST PRANDIAL",
+          "precio": "3.00"
+        },
+        {
+          "nombre": "GLUCOSA TOLERANCIA 2 HORAS",
+          "precio": "20.00"
+        },
+        {
+          "nombre": "GLUCOSA TOLERANCIA 3 HORAS",
+          "precio": "25.00"
+        },
+        {
+          "nombre": "GLUCOSA TOLERANCIA 5 HORAS",
+          "precio": "40.00"
+        },
+        {
+          "nombre": "HEMOGLOBINA GLICOSILADA AIC",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "HIERRO CAPACIDAD DE FIJACIÓN",
+          "precio": "20.00"
+        },
+        {
+          "nombre": "HIERRO SÉRICO",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "LIPASA",
+          "precio": "20.00"
+        },
+        {
+          "nombre": "NITRÓGENO UREICO",
+          "precio": "4.00"
+        },
+        {
+          "nombre": "PROTEÍNA C REACTIVA CARDIACA",
+          "precio": "30.00"
+        },
+        {
+          "nombre": "PROTEINA TOTALES Y DIF",
+          "precio": "12.00"
+        },
+        {
+          "nombre": "TEST O' SULLIVAN",
+          "precio": "20.00"
+        },
+        {
+          "nombre": "TRANSAMINASA OXALACÉTICA",
+          "precio": "6.00"
+        },
+        {
+          "nombre": "TRANSAMINASA PIRÚVICA",
+          "precio": "6.00"
+        },
+        {
+          "nombre": "TRIGLICÉRIDOS",
+          "precio": "4.00"
+        }
+      ]
+    },
+    {
+      "nombre": "QUÍMICA URINARIA",
+      "precio": null,
+      "examenes": [
+        {
+          "nombre": "ACIDO ÚRICO ORINA 24H",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "CALCIO ORINA DE 24H",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "CLORO ORINA DE 24H",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "CREATININA EN ORINA AL AZAR",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "DEPURACIÓN DE CREATININA 24H",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "FÓSFORO ORINA 24H",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "NITRÓGENO UREICO ORINA DE 24H",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "POTASIO ORINA DE 24H",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "PROTEÍNAS EN ORINA DE 24H",
+          "precio": "15.00"
+        }
+      ]
+    },
+    {
+      "nombre": "UROANÁLISIS",
+      "precio": null,
+      "examenes": [
+        {
+          "nombre": "ALBUMINA EN ORINA AL AZAR",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "GENERAL DE ORINA",
+          "precio": "2.00"
+        },
+        {
+          "nombre": "MICROALBUMINA EN ORINA AL AZAR",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "PROTEINA EN ORINA AL AZAR",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "PROTEINAS EN ORINA DE 24 HORAS",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "PRUEBA DE EMBARAZO EN ORINA",
+          "precio": "5.00"
+        },
+        {
+          "nombre": "RELACION ALBUMINA/ CREATININA EN ORINA AL AZAR",
+          "precio": "20.00"
+        }
+      ]
+    }
+  ],
+  "perfiles": [
+    {
+      "nombre": "PERFIL DE RUTINA",
+      "precio": "25.00",
+      "examenes": [
+        {
+          "nombre": "ACIDO ÚRICO",
+          "precio": "4.00"
+        },
+        {
+          "nombre": "COLESTEROL TOTAL",
+          "precio": "4.00"
+        },
+        {
+          "nombre": "CREATININA",
+          "precio": "4.00"
+        },
+        {
+          "nombre": "GENERAL DE HECES",
+          "precio": "2.00"
+        },
+        {
+          "nombre": "GENERAL DE ORINA",
+          "precio": "2.00"
+        },
+        {
+          "nombre": "GLUCOSA",
+          "precio": "3.00"
+        },
+        {
+          "nombre": "HEMOGRAMA",
+          "precio": "5.00"
+        },
+        {
+          "nombre": "NITRÓGENO UREICO",
+          "precio": "4.00"
+        },
+        {
+          "nombre": "TRIGLICÉRIDOS",
+          "precio": "4.00"
+        }
+      ]
+    },
+    {
+      "nombre": "PERFIL ELECTROLITOS",
+      "precio": "48.00",
+      "examenes": [
+        {
+          "nombre": "CALCIO",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "CLORO",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "FÓSFORO",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "MAGNESIO",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "POTASIO",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "SODIO",
+          "precio": "8.00"
+        }
+      ]
+    },
+    {
+      "nombre": "PERFIL HEPÁTICO",
+      "precio": "35.00",
+      "examenes": [
+        {
+          "nombre": "BILIRRUBINA DIRECTA",
+          "precio": "6.00"
+        },
+        {
+          "nombre": "BILIRRUBINA TOTAL",
+          "precio": "6.00"
+        },
+        {
+          "nombre": "FOSFATASA ALCALINA",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "TRANSAMINASA OXALACÉTICA",
+          "precio": "6.00"
+        },
+        {
+          "nombre": "TRANSAMINASA PIRÚVICA",
+          "precio": "6.00"
+        }
+      ]
+    },
+    {
+      "nombre": "PERFIL PRENATAL",
+      "precio": "50.00",
+      "examenes": [
+        {
+          "nombre": "GENERAL DE ORINA",
+          "precio": "2.00"
+        },
+        {
+          "nombre": "GLUCOSA",
+          "precio": "3.00"
+        },
+        {
+          "nombre": "HEMOGRAMA",
+          "precio": "5.00"
+        },
+        {
+          "nombre": "TIPEO SANGUÍNEO Y FACTOR RH",
+          "precio": "5.00"
+        },
+        {
+          "nombre": "TOXOPLASMA GONDII IGM",
+          "precio": "25.00"
+        },
+        {
+          "nombre": "VDRL (PRUEBA DE SIFILIS)",
+          "precio": "10.00"
+        },
+        {
+          "nombre": "VIH PRUEBA RAPIDA",
+          "precio": "10.00"
+        }
+      ]
+    },
+    {
+      "nombre": "PERFIL RENAL",
+      "precio": "30.00",
+      "examenes": [
+        {
+          "nombre": "ACIDO ÚRICO",
+          "precio": "4.00"
+        },
+        {
+          "nombre": "CREATININA",
+          "precio": "4.00"
+        },
+        {
+          "nombre": "GENERAL DE ORINA",
+          "precio": "2.00"
+        },
+        {
+          "nombre": "HEMOGRAMA",
+          "precio": "5.00"
+        },
+        {
+          "nombre": "NITRÓGENO UREICO",
+          "precio": "4.00"
+        },
+        {
+          "nombre": "POTASIO",
+          "precio": "8.00"
+        },
+        {
+          "nombre": "SODIO",
+          "precio": "8.00"
+        }
+      ]
+    },
+    {
+      "nombre": "PERFIL TIROIDEO LIBRE",
+      "precio": "35.00",
+      "examenes": [
+        {
+          "nombre": "T3 LIBRE",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "T4 LIBRE",
+          "precio": "15.00"
+        },
+        {
+          "nombre": "TSH 3RA GENERACION",
+          "precio": "15.00"
+        }
+      ]
+    },
+    {
+      "nombre": "PERFIL TIROIDEO TOTAL",
+      "precio": "25.00",
+      "examenes": [
+        {
+          "nombre": "T3 TOTAL",
+          "precio": "12.00"
+        },
+        {
+          "nombre": "T4 TOTAL",
+          "precio": "12.00"
+        },
+        {
+          "nombre": "TSH 3RA GENERACION",
+          "precio": "15.00"
+        }
+      ]
+    }
+  ]
+}

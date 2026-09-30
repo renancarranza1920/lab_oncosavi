@@ -1,0 +1,73 @@
+<?php
+
+namespace App\Filament\Pages;
+
+use App\Models\Perfil;
+use App\Models\TipoExamen;
+use App\Services\CatalogoExamenesPdf;
+use Filament\Actions\Action;
+use Filament\Pages\Page;
+use Filament\Notifications\Notification;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class ReporteExamenes extends Page
+{
+    protected static ?string $navigationIcon = 'heroicon-o-document-chart-bar';
+    protected static ?string $navigationGroup = 'Reportes';
+    protected static ?string $navigationLabel = 'Reporte de Exámenes';
+    protected static ?int $navigationSort = 1;
+    protected static ?string $title = 'Reporte de Exámenes';
+    protected static string $view = 'filament.pages.reporte-examenes';
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('descargarPdf')
+                ->label('Descargar PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('primary')
+                ->action(fn () => $this->descargarPdf()),
+        ];
+    }
+
+    public function descargarPdf(): ?StreamedResponse
+    {
+        $areas = TipoExamen::query()
+            ->where('estado', 1)
+            ->with(['examenes' => function ($query) {
+                $query->where('estado', 1)
+                    ->orderBy('nombre');
+            }])
+            ->orderBy('nombre')
+            ->get()
+            ->filter(fn (TipoExamen $area) => $area->examenes->isNotEmpty())
+            ->values();
+
+        $perfiles = Perfil::query()
+            ->where('estado', 1)
+            ->with(['examenes' => function ($query) {
+                $query->where('estado', 1)
+                    ->orderBy('nombre');
+            }])
+            ->orderBy('nombre')
+            ->get();
+
+        try {
+            $pdf = app(CatalogoExamenesPdf::class)->generar($areas, $perfiles);
+        } catch (ValidationException $exception) {
+            Notification::make()
+                ->title('El catálogo no cabe en dos páginas A4')
+                ->body($exception->validator->errors()->first())
+                ->danger()
+                ->send();
+
+            return null;
+        }
+
+        return response()->streamDownload(
+            fn () => print($pdf->output()),
+            'reporte-examenes-oncosavi-a4.pdf'
+        );
+    }
+}
