@@ -949,7 +949,7 @@ public static function getOrdenStep(): array
 
                             return new \Illuminate\Support\HtmlString(
 
-                                "<div class='text-sm text-green-600 font-bold'>Cupón {$livewire->codigoAplicado->codigo} aplicado. Descuento: " . Number::currency($livewire->descuento, 'USD') . "</div>"
+                                "<div class='text-sm ui-text-success font-bold'>Cupón {$livewire->codigoAplicado->codigo} aplicado. Descuento: " . Number::currency($livewire->descuento, 'USD') . "</div>"
 
                             );
 
@@ -1024,7 +1024,7 @@ public static function getOrdenStep(): array
                         TextColumn::make('cliente.telefono')
     ->label('Teléfono')
     ->icon('heroicon-o-phone')
-    ->color('success')
+    ->color('gray')
     ->searchable()
     ->sortable(),
 
@@ -1532,7 +1532,7 @@ public static function getOrdenStep(): array
 
                     ->iconButton()
 
-                    ->color('danger')
+                    ->color('warning')
 
                     ->visible(fn(Orden $record): bool => $record->estado === 'en proceso' &&
 
@@ -2238,7 +2238,7 @@ $record->update([
 
                 ->iconButton()
 
-                ->color('success')
+                ->color('gray')
 
                 ->visible(function (Orden $record) {
                     return $record->estado === 'finalizado' && $record->reporteGuardadoExists();
@@ -2336,7 +2336,7 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
     ->iconButton()
 
-    ->color('blue')
+    ->color('primary')
 
     ->visible(function (Orden $record) {
 
@@ -2450,7 +2450,7 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
                     ->button()
 
-                    ->color('success'),
+                    ->color('gray'),
 
                 
 

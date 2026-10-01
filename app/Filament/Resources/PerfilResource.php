@@ -109,24 +109,24 @@ class PerfilResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('nombre')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('precio')->money('USD')
-                    ->color('success')->extraAttributes(['class' => 'text-lg font-bold']),
+                    ->extraAttributes(['class' => 'text-lg font-bold']),
 
                 Tables\Columns\TextColumn::make('estado')
                     ->label('Estado')
                     ->formatStateUsing(function ($state) {
                         return $state
-                            ? '✅ Activo'
-                            : '❌ Inactivo';
+                            ? 'Activo'
+                            : 'Inactivo';
                     })
                     ->badge() 
-                    ->color(fn($state) => $state ? 'success' : 'danger'),
+                    ->color(fn($state) => $state ? 'success' : 'gray'),
             ])
             ->filters([
                 //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\ViewAction::make(),
+                Tables\Actions\ViewAction::make()->color('gray'),
                 
                 // --- ACCIÓN PARA DAR DE ALTA/BAJA ---
                 Tables\Actions\Action::make('toggleEstado')
@@ -135,9 +135,9 @@ class PerfilResource extends Resource
                     
                     // --- LÓGICA DE COLOR (SEMÁFORO) ---
                     ->color(function ($record) {
-                        // Si está activo (true), la acción es "Dar de baja" -> Rojo
+                        // Dar de baja es una acción reversible.
                         if ($record->estado) {
-                            return 'danger';
+                            return 'warning';
                         }
                         
                         // Si está inactivo (false), la acción es "Dar de alta".
@@ -244,13 +244,14 @@ class PerfilResource extends Resource
                 ->label('Precio')
                 ->getStateUsing(fn($record) => $record->precio)
                 ->money('USD')
-                ->color('success')
+                ->color('gray')
                 ->extraAttributes(['class' => 'text-lg font-bold']),
             
             IconEntry::make('estado_perfil')
                 ->label('Estado')
                 ->getStateUsing(fn($record) => $record->estado)
-                ->boolean(),
+                ->boolean()
+                ->falseColor('gray'),
             
             ViewEntry::make('examenes')
                 ->view('filament.resources.perfil-resource.partials.examenes')

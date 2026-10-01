@@ -68,11 +68,11 @@ protected static ?int $navigationSort = 1;
                     
                     ->formatStateUsing(function ($state) {
                         return $state
-                            ? '✅ Activo'
-                            : '❌ Inactivo';
+                            ? 'Activo'
+                            : 'Inactivo';
                     })
                     ->badge() // opcional para que se vea como etiqueta
-                    ->color(fn($state) => $state ? 'success' : 'danger'),
+                    ->color(fn($state) => $state ? 'success' : 'gray'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')
@@ -102,7 +102,7 @@ protected static ?int $navigationSort = 1;
                 Action::make('toggleEstado')
                     ->label(fn($record) => $record->estado ? 'Dar de baja' : 'Dar de alta')
                     ->icon(fn($record) => $record->estado ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
-                    ->color(fn($record) => $record->estado ? 'danger' : 'success')
+                    ->color(fn($record) => $record->estado ? 'warning' : 'success')
                     ->visible(fn () => auth()->user()->can('cambiar_estado_tipo_examenes')) // 🔒 VALIDACIÓN
                     ->tooltip(fn($record) => $record->estado ? 'Dar de baja' : 'Dar de alta')
                     ->action(function ($record) {

@@ -165,7 +165,7 @@ class ClientesResource extends Resource
                             ->label('Estado')
                             ->inline(false)
                             ->onColor('success')
-                            ->offColor('danger')
+                            ->offColor('gray')
                             ->onIcon('heroicon-o-check')
                             ->offIcon('heroicon-o-x-mark')
                             ->default('Activo')
@@ -222,11 +222,7 @@ class ClientesResource extends Resource
                                 TextEntry::make('genero')
                                     ->label('Género')
                                     ->badge()
-                                    ->color(fn (string $state): string => match ($state) {
-                                        'Masculino' => 'info',
-                                        'Femenino' => 'pink', // O 'danger' si no tienes pink configurado
-                                        default => 'gray',
-                                    }),
+                                    ->color('gray'),
     
                                 TextEntry::make('grupo_etario') // Asegúrate de tener la relación o el campo
                                     ->label('Grupo Etario')
@@ -237,7 +233,7 @@ class ClientesResource extends Resource
                                 TextEntry::make('estado')
                                     ->label('Estado Actual')
                                     ->badge()
-                                    ->color(fn ($state) => $state === 'Activo' ? 'success' : 'danger'),
+                                    ->color(fn ($state) => $state === 'Activo' ? 'success' : 'gray'),
                             ]),
                         ])->from('md'), // En móviles se apila, en escritorio se divide
                     ]),
@@ -317,7 +313,7 @@ class ClientesResource extends Resource
                 /* ESTADO COMO TEXTO */
                 Tables\Columns\TextColumn::make('estado')
                     ->badge()
-                    ->color(fn ($state) => $state === 'Activo' ? 'success' : 'danger'),
+                    ->color(fn ($state) => $state === 'Activo' ? 'success' : 'gray'),
             ])
             ->filters([
                 /* FILTRO USANDO TEXTO */
@@ -346,7 +342,7 @@ class ClientesResource extends Resource
                 Action::make('cambiar_estado')
                     ->label(fn($record) => $record->estado === 'Activo' ? 'Dar de baja' : 'Dar de alta')
                     ->icon(fn($record) => $record->estado === 'Activo' ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
-                    ->color(fn($record) => $record->estado === 'Activo' ? 'danger' : 'success')
+                    ->color(fn($record) => $record->estado === 'Activo' ? 'warning' : 'success')
                     ->visible(fn () => auth()->user()->can('cambiar_estado_clientes'))
                     ->tooltip(fn($record) => $record->estado === 'Activo' ? 'Dar de baja' : 'Dar de alta')
                     ->requiresConfirmation()

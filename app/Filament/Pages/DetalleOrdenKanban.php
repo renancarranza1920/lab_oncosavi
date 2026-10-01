@@ -127,7 +127,7 @@ class DetalleOrdenKanban extends KanbanBoard
                 ->label('Generar Etiquetas ZPL')
                 ->icon('heroicon-o-printer')
                 ->visible(fn() => auth()->user()->can('imprimir_etiquetas_kanban'))
-                ->color('warning')
+                ->color('gray')
                 ->action(fn() => $this->printAll()),
 
             Action::make('Volver a Ordenes')

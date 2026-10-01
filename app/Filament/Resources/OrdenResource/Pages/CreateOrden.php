@@ -347,7 +347,7 @@ protected function getCreatedNotification(): ?Notification
             NotificationAction::make('imprimir')
                 ->label('Imprimir Boleta')
                 ->icon('heroicon-o-printer')
-                ->color('success')
+                ->color('gray')
                 ->url(route('orden.boleta.pdf', ['orden' => $this->record->id]))
                 ->openUrlInNewTab(),
         ]);

@@ -125,7 +125,7 @@ class Expediente extends Page implements HasTable
                     ->tooltip('Ver Reporte Guardado')
                     ->icon('heroicon-o-document-text')
                     ->iconButton()
-                    ->color('success')
+                    ->color('gray')
                     ->visible(fn (Orden $record): bool => $record->estado === 'finalizado' && $record->reporteGuardadoExists())
                     ->modalHeading(fn (Orden $record): string => "Reporte guardado de la orden #{$record->id}")
                     ->modalWidth('7xl')
@@ -142,7 +142,7 @@ class Expediente extends Page implements HasTable
                     ->tooltip('Descargar Reporte Guardado')
                     ->icon('heroicon-o-arrow-down-tray') // Icono de descarga
                     ->iconButton()
-                    ->color('success') // Verde para diferenciar
+                    ->color('primary') // Descarga de documentos
                     // Solo visible si el archivo EXISTE en el disco
                     ->visible(function (Orden $record) {
                         return $record->estado === 'finalizado' && $record->reporteGuardadoExists();

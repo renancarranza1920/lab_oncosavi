@@ -36,7 +36,7 @@
     <div class="mt-6">
         <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             Resultados 
-            <span class="inline-flex items-center justify-center w-6 h-6 ms-2 text-xs font-semibold text-blue-800 bg-blue-200 rounded-full">
+            <span class="inline-flex items-center justify-center w-6 h-6 ms-2 text-xs font-semibold estado-gray rounded-full">
                 {{ count($resultados) }}
             </span>
         </h3>
@@ -72,8 +72,8 @@
                             {{-- Badge de Estado --}}
                             @php
                                 $estadoColor = match($cliente->estado) {
-                                    'Activo' => 'text-green-700 bg-green-50 ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/20',
-                                    default => 'text-red-700 bg-red-50 ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/20',
+                                    'Activo' => 'estado-success',
+                                    default => 'estado-gray',
                                 };
                             @endphp
                             <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ $estadoColor }}">

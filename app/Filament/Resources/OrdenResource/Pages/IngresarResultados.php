@@ -472,12 +472,14 @@ if (!$valorRef && $grupoTodasEdades) {
     Action::make('generar_pdf_parcial')
         ->label('Generar PDF')
         ->icon('heroicon-o-printer')
+        ->color('gray')
         ->visible(fn() => $this->tieneExamenesParaParcial())
         ->action(fn() => $this->generarPdfParcial()),
 
     Action::make('enviar_pdf_parcial')
     ->label('Enviar')
     ->icon('heroicon-o-paper-airplane')
+    ->color('primary')
     ->visible(function () {
         $nombreCliente = \Illuminate\Support\Str::slug(
             $this->record->cliente->nombre . ' ' . $this->record->cliente->apellido
@@ -589,12 +591,14 @@ if (!$valorRef && $grupoTodasEdades) {
     Action::make('generar_pdf_parcial')
         ->label('Generar PDF')
         ->icon('heroicon-o-printer')
+        ->color('gray')
         ->visible(fn() => $this->tieneExamenesParaParcial())
         ->action(fn() => $this->generarPdfParcial()),
 
     Action::make('enviar_pdf_parcial')
     ->label('Enviar')
     ->icon('heroicon-o-paper-airplane')
+    ->color('primary')
     ->visible(function () {
         $nombreCliente = \Illuminate\Support\Str::slug(
             $this->record->cliente->nombre . ' ' . $this->record->cliente->apellido
@@ -1192,7 +1196,7 @@ public function enviarPdfParcial()
                 ->label('WhatsApp')
                 ->url($linkWhatsapp, shouldOpenInNewTab: true)
                 ->button()
-                ->color('success')
+                ->color('gray')
                 ->visible(fn() => $linkWhatsapp !== null),
 
             \Filament\Notifications\Actions\Action::make('email')

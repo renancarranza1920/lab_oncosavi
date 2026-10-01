@@ -43,20 +43,12 @@ class AdminPanelProvider extends PanelProvider
         
         $panel->brandName(config('laboratorio.nombre'));
         $panel->colors([
-            'primary' => config('laboratorio.colores.marino'),
-            'primary-light' => config('laboratorio.colores.celeste'),
-            'primary-dark' => config('laboratorio.colores.marino'),
-            'secondary' => config('laboratorio.colores.celeste'),
-            'secondary-light' => '#A5D1DF',
-            'secondary-dark' => '#32768C',
+            'primary' => config('ui.primary'),
+            'gray' => Color::Gray,
             'info' => config('estados.info.base'),
             'success' => config('estados.success.base'),
-            'success-light' => config('estados.success.fondo'),
-            'success-dark' => config('estados.success.texto'),
             'warning' => config('estados.warning.base'),
             'danger' => config('estados.danger.base'),
-            'dark' => config('laboratorio.colores.marino'),
-            'accent' => config('laboratorio.colores.blanco'),
         ]);
         $panel->renderHook('panels::head.end', fn () => view('partials.tema-oncosavi'));
         $panel->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources');

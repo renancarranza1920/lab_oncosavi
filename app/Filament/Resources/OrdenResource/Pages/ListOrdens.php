@@ -57,7 +57,7 @@ protected $listeners = [
                ->badge(fn () => $count->en_proceso)
                ->modifyQueryUsing(fn ($query) => $query->where('estado', 'en proceso')),
             'pausada' => Tab::make('Pausadas')
-                ->badgeColor('danger')
+                ->badgeColor('warning')
                 ->badgeIcon('heroicon-o-pause-circle')
                 ->badge(fn () => $count->pausada)
                 ->modifyQueryUsing(fn ($query) => $query->where('estado', 'pausada')),

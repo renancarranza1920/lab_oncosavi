@@ -6,7 +6,7 @@
             <div class="flex justify-between items-center mb-2">
                 <h3 class="text-lg font-semibold">Exámenes Disponibles</h3>
                 <button type="button" wire:click="toggleDisponibles"
-                    class="text-sm text-blue-600 hover:underline">-</button>
+                    class="text-sm ui-text-primary hover:underline focus-visible:underline">-</button>
             </div>
 
             <input type="text" wire:model.live.debounce.300ms="busquedaDisponible" placeholder="Buscar..."
@@ -42,7 +42,7 @@
                 
                 {{-- Spinner controlado por Alpine --}}
                 <div x-show="loading" style="display: none;">
-                    <svg class="animate-spin h-4 w-4 text-gray-800 dark:text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -63,7 +63,7 @@
             <div class="flex justify-between items-center mb-2">
                 <h3 class="text-lg font-semibold">Exámenes Seleccionados</h3>
                 <button type="button" wire:click="toggleSeleccionados"
-                    class="text-sm text-blue-600 hover:underline">-</button>
+                    class="text-sm ui-text-primary hover:underline focus-visible:underline">-</button>
             </div>
 
             <input type="text" wire:model.live.debounce.300ms="busquedaSeleccionado" placeholder="Buscar..."
@@ -89,7 +89,7 @@
                 <span class="flex-grow">{{ $examen['nombre'] }}</span>
                 
                 <div x-show="loading" style="display: none;">
-                    <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -106,42 +106,4 @@
         </div>
     </div>
 
-    @once
-        <style>
-            .examen-tag,
-            .examen-tag-selected {
-                cursor: pointer;
-                padding: 0.25rem 0.75rem;
-                font-size: 0.875rem;
-                border-radius: 9999px;
-                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-                transition: all 0.2s ease;
-            }
-
-            .examen-tag {
-                background-color: white;
-            }
-
-            .dark .examen-tag {
-                background-color: #4b5563;
-                /* bg-gray-600 */
-            }
-
-            .examen-tag:hover {
-                background-color: #22c55e !important;
-                /* bg-success-500 */
-                color: white !important;
-            }
-
-            .examen-tag-selected {
-                background-color: #22c55e;
-                color: white;
-            }
-
-            .examen-tag-selected:hover {
-                background-color: #ef4444;
-                /* bg-red-500 */
-            }
-        </style>
-    @endonce
 </div>

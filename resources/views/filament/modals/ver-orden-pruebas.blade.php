@@ -6,7 +6,7 @@
     @if($examenes && $examenes->count() > 0)
         @foreach ($examenes as $examen)
             <div class="space-y-2">
-                <h3 class="text-lg font-bold text-[#090B3B] dark:text-blue-400">
+                <h3 class="text-lg font-bold ui-text-primary">
                     Examen: {{ $examen->nombre }}
                 </h3>
                 
@@ -47,7 +47,7 @@
                                         <td class="p-3 border border-gray-200 dark:border-gray-700 text-center">
                                             @if($estaCompleto)
                                                 <div class="flex justify-center" title="Completado">
-                                                    <x-heroicon-s-check-circle class="h-6 w-6 text-green-500"/>
+                                                    <x-heroicon-s-check-circle class="h-6 w-6 ui-text-success"/>
                                                 </div>
                                             @else
                                                 <div class="flex justify-center" title="Pendiente">

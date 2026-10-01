@@ -114,7 +114,7 @@ class CreateCotizacion extends ResourcePage implements HasForms
                         FormAction::make('enviarWhatsApp')
                             ->label('WhatsApp y Descargar PDF')
                             ->icon('heroicon-o-paper-airplane')
-                            ->color('success')
+                            ->color('gray')
                             ->action(function (Get $get) {
                                 $numero = '503' . preg_replace('/[^0-9]/', '', $get('whatsapp'));
                                 $mensaje = urlencode(
@@ -134,7 +134,7 @@ class CreateCotizacion extends ResourcePage implements HasForms
                         FormAction::make('enviarEmail')
                             ->label('Gmail y Descargar PDF')
                             ->icon('heroicon-o-envelope')
-                            ->color('info')
+                            ->color('gray')
                             ->action(function (Get $get) {
                                 $email = $get('email');
                                 if (empty($email)) {

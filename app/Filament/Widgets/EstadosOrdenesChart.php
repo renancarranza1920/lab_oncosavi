@@ -26,7 +26,7 @@ class EstadosOrdenesChart extends ChartWidget
                 [
                     'data' => $data->pluck('total')->toArray(),
                     'backgroundColor' => $data->pluck('estado')->map(
-                        fn ($estado) => \App\Support\EstadoVisual::fondo($estado)
+                        fn ($estado) => config('estados.' . \App\Support\EstadoVisual::color($estado) . '.base')
                     )->toArray(),
                     'borderWidth' => 0,
                 ],

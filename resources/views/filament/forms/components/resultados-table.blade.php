@@ -6,15 +6,14 @@
 <style>
     /* Estilos para la tabla de resultados */
     .results-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
-    .results-table th, .results-table td { border: 1px solid #e5e7eb; padding: 0.75rem; text-align: left; font-size: 0.875rem; vertical-align: top; }
-    .results-table th { background-color: #f9fafb; font-weight: 600; }
-    .results-table input[type="text"] { width: 100%; border-radius: 0.375rem; border: 1px solid #d1d5db; padding: 0.5rem 0.75rem; }
-    .results-table input[disabled] { background-color: #f3f4f6; cursor: not-allowed; }
-    .examen-header { font-size: 1.125rem; font-weight: bold; color: #090B3B; margin-bottom: 0.5rem; padding-top: 1rem; }
-     .action-button {
-        background: none; border: none; cursor: pointer; padding: 0.25rem;
-    }
-    .action-button:hover svg { color: #ef4444; /* text-red-500 */ }
+    .results-table th, .results-table td { border: 1px solid var(--ui-border); padding: 0.75rem; text-align: left; font-size: 0.875rem; vertical-align: top; }
+    .results-table th { background-color: var(--ui-subtle); font-weight: 600; }
+    .results-table input[type="text"] { width: 100%; border-radius: 0.375rem; border: 1px solid var(--ui-border); padding: 0.5rem 0.75rem; }
+    .examen-header { font-size: 1.125rem; font-weight: bold; color: var(--ui-heading); margin-bottom: 0.5rem; padding-top: 1rem; }
+    .results-table { color: var(--ui-text); }
+    .results-table input[type="text"] { background: var(--ui-surface); color: var(--ui-text); }
+    .results-table input[disabled] { background-color: var(--ui-subtle); cursor: not-allowed; }
+    .results-table input[type="text"]:focus-visible { outline: 2px solid rgb(var(--primary-500)); outline-offset: 1px; }
 </style>
 
 <div>
@@ -23,7 +22,7 @@
         {{-- Usamos la clave 'examen_nombre' para el título --}}
         <h3 class="examen-header">{{ $examenData['examen_nombre'] }}</h3>
 
-        <div class="rounded-lg border border-gray-200 overflow-hidden">
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <table class="results-table">
                 <thead>
                     <tr>
@@ -62,15 +61,14 @@
                             <td>
     {{-- El botón solo aparece si ya existe un resultado guardado --}}
     @if ($prueba['resultado_id'])
-        <button
-            type="button"
-            class="action-button text-gray-400"
+        <x-filament::icon-button
+            color="danger"
+            icon="heroicon-s-trash"
+            label="Eliminar resultado"
             wire:click="deleteResultado({{ $prueba['resultado_id'] }})"
+            wire:target="deleteResultado({{ $prueba['resultado_id'] }})"
             wire:confirm="¿Estás seguro de que quieres eliminar este resultado? Esta acción es irreversible."
-            title="Eliminar Resultado"
-        >
-            <x-heroicon-s-trash class="h-5 w-5"/>
-        </button>
+        />
     @endif
 </td>
                         </tr>
