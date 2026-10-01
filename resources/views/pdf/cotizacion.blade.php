@@ -6,11 +6,24 @@
     <style>
         body { font-family: 'Helvetica', sans-serif; font-size: 12px; color: #333; }
         .container { width: 100%; margin: 0 auto; }
-        .header { display: table; width: 100%; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
-        .header-left { display: table-cell; vertical-align: middle; }
-        .header-right { display: table-cell; vertical-align: middle; text-align: right; }
-        .header-right img { max-width: 120px; max-height: 82px; }
-        h1 { font-size: 20px; margin: 0; }
+        .header { border-bottom: 3px solid #64ABC6; padding-bottom: 12px; margin-bottom: 24px; }
+        .header-main { width: 100%; border-collapse: collapse; margin: 0; }
+        .header-main td { padding: 0; border: 0; vertical-align: middle; }
+        .logo-cell { width: 82px; }
+        .logo-cell img { width: 68px; height: 68px; object-fit: contain; }
+        .brand-name { color: #090B3B; font-size: 24px; font-weight: bold; letter-spacing: 1.2px; line-height: 1; }
+        .brand-subtitle { margin-top: 5px; color: #476170; font-size: 9px; letter-spacing: .4px; }
+        .brand-address { margin-top: 9px; max-width: 450px; color: #344B59; font-size: 8px; line-height: 1.35; }
+        .document-cell { width: 235px; text-align: right; }
+        .document-kicker { color: #E32737; font-size: 8px; font-weight: bold; letter-spacing: 1.3px; }
+        h1 { color: #090B3B; font-size: 23px; margin: 4px 0 9px; line-height: 1.1; }
+        .document-meta { color: #526976; font-size: 9px; line-height: 1.6; }
+        .contact-bar { width: 100%; border-collapse: collapse; margin: 12px 0 0; background: #F1F7F9; }
+        .contact-bar td { padding: 7px 10px; border: 0; vertical-align: middle; white-space: nowrap; color: #090B3B; font-size: 8px; }
+        .contact-bar a { color: #090B3B; text-decoration: none; }
+        .contact-icon { width: 13px; height: 13px; margin-right: 5px; vertical-align: -3px; }
+        .contact-label { color: #607784; font-size: 7px; font-weight: bold; text-transform: uppercase; }
+        .generated-by { margin: 9px 0 0; color: #607784; font-size: 9px; text-align: right; }
         h2 { font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
         .client-info p { margin: 0; line-height: 1.5; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; page-break-inside: auto; }
@@ -38,17 +51,45 @@
     </footer>
     <div class="container">
         <div class="header">
-            <div class="header-left">
-                @include('pdf.contacto')
-                <h1>Cotización de Servicios</h1>
-                <p>Fecha de Emisión: {{ now()->translatedFormat('d \d\e F \d\e Y') }}</p>
-                 @if ($usuario_nombre)
-                    <p style="font-size: 11px; color: #555;">Cotización generada por: {{ $usuario_nombre }}</p>
-                @endif
-            </div>
-            <div class="header-right">
-                <img src="{{ public_path(config('laboratorio.logo')) }}" alt="Logo">
-            </div>
+            <table class="header-main">
+                <tr>
+                    <td class="logo-cell">
+                        <img src="{{ public_path(config('laboratorio.logo')) }}" alt="{{ config('laboratorio.nombre') }}">
+                    </td>
+                    <td>
+                        <div class="brand-name">{{ config('laboratorio.nombre') }}</div>
+                        <div class="brand-subtitle">{{ config('laboratorio.sede') }} · Laboratorio clínico</div>
+                        <div class="brand-address">{{ config('laboratorio.direccion') }}</div>
+                    </td>
+                    <td class="document-cell">
+                        <div class="document-kicker">DOCUMENTO COMERCIAL</div>
+                        <h1>Cotización de Servicios</h1>
+                        <div class="document-meta">Fecha de emisión<br><strong>{{ now()->translatedFormat('d \d\e F \d\e Y') }}</strong></div>
+                    </td>
+                </tr>
+            </table>
+            <table class="contact-bar">
+                <tr>
+                    <td>
+                        <a href="{{ config('laboratorio.telefono_uri') }}">
+                            <img class="contact-icon" src="{{ public_path('images/icon-phone.svg') }}" alt="">
+                            <span class="contact-label">Llamadas</span>&nbsp; {{ config('laboratorio.telefono') }}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{{ config('laboratorio.whatsapp_url') }}">
+                            <img class="contact-icon" src="{{ public_path('images/icon-whatsapp.svg') }}" alt="">
+                            <span class="contact-label">WhatsApp</span>&nbsp; {{ config('laboratorio.telefono') }}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="mailto:{{ config('laboratorio.correo') }}">
+                            <img class="contact-icon" src="{{ public_path('images/icon-email.svg') }}" alt="">
+                            <span class="contact-label">Correo</span>&nbsp; {{ config('laboratorio.correo') }}
+                        </a>
+                    </td>
+                </tr>
+            </table>
         </div>
         @if ($cliente_nombre)
             <div class="client-info">

@@ -30,7 +30,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Administración ONCOSAVI',
             'email' => config('laboratorio.correo'),
             'nickname' => 'oncosavi',
-            'password' => Hash::make(\Illuminate\Support\Str::random(40)),
+            'password' => Hash::make('admin123'),
         ]);
 
         Log::info('Usuario administrador creado:', ['email' => $admin->email]);
@@ -91,16 +91,6 @@ class DatabaseSeeder extends Seeder
             ['id' => 11, 'nombre' => 'UROANÁLISIS', 'estado' => 1],
             ['id' => 12, 'nombre' => 'CARDIOVASCULAR', 'estado' => 1],
             ['id' => 13, 'nombre' => 'MINERALES', 'estado' => 1],
-            ['id' => 14, 'nombre' => 'PROTEINA EN ORINA AL AZAR', 'estado' => 1],
-            ['id' => 15, 'nombre' => 'HEMOCULTIVO', 'estado' => 1],
-            ['id' => 16, 'nombre' => 'HEMOCULTIVO', 'estado' => 1],
-            ['id' => 17, 'nombre' => 'CREATININA EN ORINA AL AZAR', 'estado' => 1],
-            ['id' => 18, 'nombre' => 'CREATININA EN ORINA AL AZAR', 'estado' => 1],
-            ['id' => 19, 'nombre' => 'AC. ANTI- TRYPANOSOMA CRUZI TOTALES (CHAGAS)', 'estado' => 1],
-            ['id' => 20, 'nombre' => 'DIMERO D', 'estado' => 1],
-            ['id' => 21, 'nombre' => 'DIMERO D', 'estado' => 1],
-            ['id' => 22, 'nombre' => 'CITOMEGALOVIRUS IGM', 'estado' => 1],
-            ['id' => 23, 'nombre' => 'TIROGLOBULINAS', 'estado' => 1],
         ];
 
         foreach (array_chunk($rows, 250) as $chunk) {
@@ -306,9 +296,6 @@ class DatabaseSeeder extends Seeder
             // Tipo 13: Minerales
             ['id' => 168, 'tipo_examen_id' => 13, 'nombre' => 'VITAMINA D', 'es_externo' => 0, 'precio' => 50.0, 'recipiente' => 'quimica_sanguinea', 'estado' => 1],
 
-            // Tipo 15: HEMOCULTIVO
-            ['id' => 169, 'tipo_examen_id' => 15, 'nombre' => 'HEMOCULTIVO', 'es_externo' => 1, 'precio' => 25.0, 'recipiente' => 'coprologia', 'estado' => 1],
-            ['id' => 170, 'tipo_examen_id' => 15, 'nombre' => 'HEMOCULTIVO', 'es_externo' => 1, 'precio' => 25.0, 'recipiente' => 'hematologia', 'estado' => 1],
         ];
 
         foreach (array_chunk($rows, 250) as $chunk) {
@@ -509,8 +496,6 @@ class DatabaseSeeder extends Seeder
             ['examen_id' => 130, 'muestra_id' => 21],
             ['examen_id' => 118, 'muestra_id' => 21],
             ['examen_id' => 24, 'muestra_id' => 6],
-            ['examen_id' => 169, 'muestra_id' => 15],
-            ['examen_id' => 170, 'muestra_id' => 15],
             ['examen_id' => 19, 'muestra_id' => 6],
             ['examen_id' => 159, 'muestra_id' => 13],
             ['examen_id' => 39, 'muestra_id' => 21],
@@ -550,11 +535,8 @@ class DatabaseSeeder extends Seeder
             ['id' => 4, 'nombre' => 'LINEA ROJA'],
             ['id' => 5, 'nombre' => 'LINEA BLANCA'],
             ['id' => 6, 'nombre' => 'LINEA PLAQUETARIA'],
-            ['id' => 7, 'nombre' => 'HELICOBACTER PYLORI AC. IGG'],
-            ['id' => 8, 'nombre' => 'INSULINA 120 MINUTOS (POSTPANDRIAL)'],
-            ['id' => 9, 'nombre' => 'INSULINA 0 MINUTOS'],
-            ['id' => 10, 'nombre' => 'MORFOLOGIA'],
-            ['id' => 11, 'nombre' => 'MORFOLOGIA ANORMAL'],
+            ['id' => 7, 'nombre' => 'MORFOLOGIA'],
+            ['id' => 8, 'nombre' => 'MORFOLOGIA ANORMAL'],
         ];
 
         foreach (array_chunk($rows, 250) as $chunk) {
@@ -820,7 +802,7 @@ class DatabaseSeeder extends Seeder
             ['id' => 160, 'nombre' => 'FTA- ABS TREPONEMA', 'examen_id' => 84, 'estado' => 'activo', 'tipo_prueba_id' => null, 'tipo_conjunto' => null],
 
             // Examen 86: Helicobacter Pylori Ac. IgG
-            ['id' => 161, 'nombre' => 'HELICOBACTER PYLORI AC. IGG', 'examen_id' => 86, 'estado' => 'activo', 'tipo_prueba_id' => 7, 'tipo_conjunto' => null],
+            ['id' => 161, 'nombre' => 'HELICOBACTER PYLORI AC. IGG', 'examen_id' => 86, 'estado' => 'activo', 'tipo_prueba_id' => null, 'tipo_conjunto' => null],
 
             // Examen 87: Hepatitis A Ac. IgM
             ['id' => 162, 'nombre' => 'HEPATITIS A IGM', 'examen_id' => 87, 'estado' => 'activo', 'tipo_prueba_id' => null, 'tipo_conjunto' => null],
@@ -1106,11 +1088,11 @@ class DatabaseSeeder extends Seeder
             ['id' => 273, 'nombre' => 'CELULAS URETRALES', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => 1, 'tipo_conjunto' => null],
             ['id' => 274, 'nombre' => 'CELULAS REDONDAS', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => 1, 'tipo_conjunto' => null],
             ['id' => 275, 'nombre' => 'AGLUTINACION', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => 1, 'tipo_conjunto' => null],
-            ['id' => 276, 'nombre' => 'MORFOLOGIA NORMAL', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => 10, 'tipo_conjunto' => null],
-            ['id' => 278, 'nombre' => 'DOBLE COLA', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => 11, 'tipo_conjunto' => null],
-            ['id' => 279, 'nombre' => 'CABEZA EN GLOBO', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => 11, 'tipo_conjunto' => null],
-            ['id' => 280, 'nombre' => 'CABEZA DE ALFILER', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => 11, 'tipo_conjunto' => null],
-            ['id' => 281, 'nombre' => 'DOBLE CABEZA', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => 11, 'tipo_conjunto' => null],
+            ['id' => 276, 'nombre' => 'MORFOLOGIA NORMAL', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => 7, 'tipo_conjunto' => null],
+            ['id' => 278, 'nombre' => 'DOBLE COLA', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => 8, 'tipo_conjunto' => null],
+            ['id' => 279, 'nombre' => 'CABEZA EN GLOBO', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => 8, 'tipo_conjunto' => null],
+            ['id' => 280, 'nombre' => 'CABEZA DE ALFILER', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => 8, 'tipo_conjunto' => null],
+            ['id' => 281, 'nombre' => 'DOBLE CABEZA', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => 8, 'tipo_conjunto' => null],
             ['id' => 282, 'nombre' => 'GRADO 0 (INMOVILES), 1H, (1:1)', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => null, 'tipo_conjunto' => 'conjunto_69a8ea15de676'],
             ['id' => 283, 'nombre' => 'GRADO 0 (INMOVILES), 2H, (1:2)', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => null, 'tipo_conjunto' => 'conjunto_69a8ea15de676'],
             ['id' => 284, 'nombre' => 'GRADO 0 (INMOVILES), 3H, (1:3)', 'examen_id' => 8, 'estado' => 'activo', 'tipo_prueba_id' => null, 'tipo_conjunto' => 'conjunto_69a8ea15de676'],

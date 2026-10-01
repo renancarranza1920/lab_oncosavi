@@ -65,12 +65,12 @@ public static function canAccess(): bool
 
                     TextInput::make('nombre')
                         ->label('Nombre')
-                        ->placeholder('Ej: Erick')
+                        ->placeholder('Ej: Manuel')
                         ->prefixIcon('heroicon-m-user'),
 
                     TextInput::make('apellido')
                         ->label('Apellido')
-                        ->placeholder('Ej: Alonzo')
+                        ->placeholder('Ej: Carranza')
                         ->prefixIcon('heroicon-m-user'),
 
                     // 2. Datos Demográficos

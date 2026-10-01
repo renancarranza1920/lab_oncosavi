@@ -17,9 +17,14 @@
         .subtitle { position: absolute; top: 24pt; left: 46pt; font-size: 7pt; letter-spacing: 0.4pt; }
         .document-title { position: absolute; right: 0; top: 3pt; font-size: 9pt; font-weight: bold; text-align: right; }
         .document-title small { display: block; font-size: 6pt; color: #476170; font-weight: normal; margin-top: 3pt; }
-        .contact { position: absolute; top: 41pt; font-size: 6.5pt; line-height: 8pt; }
+        .contact { position: absolute; top: 40pt; width: 559pt; font-size: 6.5pt; line-height: 8pt; }
         .contact a { color: #090B3B; text-decoration: none; }
-        .rule { position: absolute; top: 62pt; width: 559pt; border-top: 1.5pt solid #64ABC6; }
+        .contact-address { color: #344B59; margin-bottom: 1.5pt; }
+        .contact-items { border-collapse: collapse; }
+        .contact-items td { padding: 0 13pt 0 0; vertical-align: middle; white-space: nowrap; }
+        .contact-icon { width: 8pt; height: 8pt; vertical-align: -2pt; margin-right: 3pt; }
+        .contact-label { color: #607784; font-size: 5.5pt; font-weight: bold; text-transform: uppercase; }
+        .rule { position: absolute; top: 64pt; width: 559pt; border-top: 1.5pt solid #64ABC6; }
         .patient { position: absolute; top: 70pt; width: 559pt; font-size: 7pt; border-collapse: collapse; }
         .patient td { padding: 0 8pt 0 0; }
         .write-line { display: inline-block; height: 10pt; border-bottom: 0.6pt solid #85949E; }
@@ -48,10 +53,29 @@
         <div class="subtitle">{{ config('laboratorio.sede') }} · Laboratorio clínico</div>
         <div class="document-title">SOLICITUD DE EXÁMENES<small>Catálogo de exámenes y perfiles</small></div>
         <div class="contact">
-            {{ config('laboratorio.direccion') }}<br>
-            <a href="{{ config('laboratorio.telefono_uri') }}">Llamadas: {{ config('laboratorio.telefono') }}</a>
-            · <a href="{{ config('laboratorio.whatsapp_url') }}">WhatsApp: {{ config('laboratorio.telefono') }}</a>
-            · <a href="mailto:{{ config('laboratorio.correo') }}">{{ config('laboratorio.correo') }}</a>
+            <div class="contact-address">{{ config('laboratorio.direccion') }}</div>
+            <table class="contact-items">
+                <tr>
+                    <td>
+                        <a href="{{ config('laboratorio.telefono_uri') }}">
+                            <img class="contact-icon" src="{{ public_path('images/icon-phone.svg') }}" alt="">
+                            <span class="contact-label">Llamadas</span>&nbsp; {{ config('laboratorio.telefono') }}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{{ config('laboratorio.whatsapp_url') }}">
+                            <img class="contact-icon" src="{{ public_path('images/icon-whatsapp.svg') }}" alt="">
+                            <span class="contact-label">WhatsApp</span>&nbsp; {{ config('laboratorio.telefono') }}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="mailto:{{ config('laboratorio.correo') }}">
+                            <img class="contact-icon" src="{{ public_path('images/icon-email.svg') }}" alt="">
+                            <span class="contact-label">Correo</span>&nbsp; {{ config('laboratorio.correo') }}
+                        </a>
+                    </td>
+                </tr>
+            </table>
         </div>
         <div class="rule"></div>
         <table class="patient">
