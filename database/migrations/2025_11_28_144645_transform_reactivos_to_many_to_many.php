@@ -22,7 +22,7 @@ return new class extends Migration
         // Solo ejecutamos esto si existen las tablas y columnas
         if (Schema::hasColumn('reactivos', 'prueba_id')) {
             DB::statement('INSERT INTO prueba_reactivo (prueba_id, reactivo_id, created_at, updated_at) 
-                           SELECT prueba_id, id, NOW(), NOW() 
+                           SELECT prueba_id, id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                            FROM reactivos 
                            WHERE prueba_id IS NOT NULL');
         }

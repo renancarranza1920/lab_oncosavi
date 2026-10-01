@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Perfil;
+use App\Models\Examen;
 use App\Models\TipoExamen;
 use App\Services\CatalogoExamenesPdf;
 use Filament\Actions\Action;
@@ -17,7 +18,7 @@ class ReporteExamenes extends Page
     protected static ?string $navigationGroup = 'Reportes';
     protected static ?string $navigationLabel = 'Reporte de Exámenes';
     protected static ?int $navigationSort = 1;
-    protected static ?string $title = 'Reporte de Exámenes';
+    protected static ?string $title = 'Reporte de Exámenes y Perfiles';
     protected static string $view = 'filament.pages.reporte-examenes';
 
     protected function getHeaderActions(): array
@@ -28,6 +29,28 @@ class ReporteExamenes extends Page
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('primary')
                 ->action(fn () => $this->descargarPdf()),
+        ];
+    }
+
+    public function getResumenProperty(): array
+    {
+        $areas = TipoExamen::query()
+            ->where('estado', 1)
+            ->withCount(['examenes' => fn ($query) => $query->where('estado', 1)])
+            ->get()
+            ->where('examenes_count', '>', 0)
+            ->sortByDesc('examenes_count')
+            ->values();
+
+        $examenes = Examen::query()->where('estado', 1);
+
+        return [
+            'areas' => $areas,
+            'total_areas' => $areas->count(),
+            'total_examenes' => (clone $examenes)->count(),
+            'externos' => (clone $examenes)->where('es_externo', true)->count(),
+            'perfiles' => Perfil::query()->where('estado', 1)->count(),
+            'precio_promedio' => (float) ((clone $examenes)->avg('precio') ?? 0),
         ];
     }
 
