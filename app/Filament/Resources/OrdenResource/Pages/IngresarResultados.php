@@ -432,13 +432,27 @@ if (!$valorRef && $grupoTodasEdades) {
         ];
     }
 
-    public function removeExternalRow($detalleId, $index, $resultadoId = null)
+    public function removeExternalRow($detalleId, $index)
     {
-        if ($resultadoId) {
-            $this->deleteResultado($resultadoId);
+        abort_unless(auth()->user()?->can('ingresar_resultados_orden'), 403);
+        abort_unless($this->record->detalleOrden()->whereKey($detalleId)->exists(), 404);
+
+        $fila = $this->data['resultados_examenes'][$detalleId]['externos'][$index] ?? null;
+        if (!$fila) {
+            return;
+        }
+
+        if (!empty($fila['id'])) {
+            $resultado = $this->record->resultados()
+                ->where('resultados.id', $fila['id'])
+                ->where('detalle_orden_id', $detalleId)
+                ->where('es_externo', true)
+                ->firstOrFail();
+            $resultado->delete();
+            $this->eliminarPdfParcial();
         }
         unset($this->data['resultados_examenes'][$detalleId]['externos'][$index]);
-        $this->data['resultados_examenes'][$detalleId]['externos'] = array_values($this->data['resultados_examenes'][$detalleId]['externos']);
+        // Mantener los índices evita cambiar los enlaces wire:model de las filas restantes.
     }
 
     protected function getFormActions(): array

@@ -12,7 +12,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Wizard;
 use Filament\Forms\Components\Wizard\Step;
 use Filament\Forms\Get;
-use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page as ResourcePage;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -20,7 +19,6 @@ use Filament\Forms\Form;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CreateCotizacion extends ResourcePage implements HasForms
 {
@@ -61,22 +59,13 @@ class CreateCotizacion extends ResourcePage implements HasForms
             ->nullable(), // <--- Coma normal, NO cierres el esquema aquí
 
         // 2. WHATSAPP (Opcional)
-        TextInput::make('whatsapp')
-            ->label('Número de WhatsApp')
-            ->tel()
-            ->nullable() // Permite vacío
-            ->prefix('+503')
-            ->mask('9999-9999')
-            ->helperText('Opcional. Ingresar solo si el cliente lo proporciona.')
-            ->rule('min:8') // Solo valida si escriben algo
-            ->validationMessages([
-                'min' => 'Si ingresa un número, debe tener al menos 8 dígitos.',
-            ]), // <--- Coma normal
+        \App\Support\TelefonoCliente::campo('whatsapp', 'Número de WhatsApp'),
 
         // 3. EMAIL (Opcional)
         TextInput::make('email')
             ->label('Correo Electrónico (Opcional)')
-            ->email() // Esto ya valida que sea formato email
+            ->email()
+            ->live(onBlur: true)
             ->helperText('Ingrese el correo electrónico del cliente si desea enviar una copia.')
             ->nullable()
             ->validationMessages([
@@ -102,7 +91,7 @@ class CreateCotizacion extends ResourcePage implements HasForms
                 ->schema([
                     Placeholder::make('acciones_finales')
                         ->label('Acciones')
-                        ->content('Utilice los siguientes botones para descargar la cotización o compartirla.')
+                        ->content('Descargue el PDF y comparta el resumen por WhatsApp o Gmail. Para enviar el archivo, adjúntelo en la conversación o el correo antes de enviarlo.')
                         ->columnSpanFull(),
 
                     \Filament\Forms\Components\Actions::make([
@@ -112,57 +101,20 @@ class CreateCotizacion extends ResourcePage implements HasForms
                             ->action(fn() => $this->generatePdfPreview(true)),
 
                         FormAction::make('enviarWhatsApp')
-                            ->label('WhatsApp y Descargar PDF')
+                            ->label('Compartir por WhatsApp')
                             ->icon('heroicon-o-paper-airplane')
                             ->color('gray')
-                            ->action(function (Get $get) {
-                                $numero = '503' . preg_replace('/[^0-9]/', '', $get('whatsapp'));
-                                $mensaje = urlencode(
-                                    "¡Hola {$get('nombre_completo')}!\n\n" .
-                                    "Le saluda con gusto *" . config('laboratorio.nombre') . "*. \n\n" .
-                                    "Hemos preparado el resumen de su cotización y queremos compartirlo con usted:\n\n" .
-                                    $this->getTextSummary($get) . "\n\n" .
-                                    "Gracias por confiar en nosotros, estamos para servirle.\n" .
-                                    config('laboratorio.telefono') . ' · ' . config('laboratorio.correo')
-                                );
-                                $whatsappUrl = "https://wa.me/{$numero}?text={$mensaje}";
-                                $this->dispatch('open-url-in-new-tab', url: $whatsappUrl);
-                                return $this->generatePdfPreview(true);
-                            }),
+                            ->url(fn (Get $get) => $this->getWhatsAppUrl($get))
+                            ->openUrlInNewTab()
+                            ->disabled(fn (Get $get) => blank($get('whatsapp'))),
 
-                       
                         FormAction::make('enviarEmail')
-                            ->label('Gmail y Descargar PDF')
+                            ->label('Compartir por Gmail')
                             ->icon('heroicon-o-envelope')
                             ->color('gray')
-                            ->action(function (Get $get) {
-                                $email = $get('email');
-                                if (empty($email)) {
-                                    Notification::make()
-                                        ->title('Correo no especificado')
-                                        ->body('Por favor, ingrese un correo en el primer paso para usar esta función.')
-                                        ->warning()
-                                        ->send();
-                                    return; // Se usa 'return' para detener la acción
-                                }
-                                $subject = "Cotización de Servicios - " . config('laboratorio.nombre');
-                                $body = "Hola {$get('nombre_completo')},\n\n" .
-                                    "Gracias por solicitar una cotización con nosotros. Aquí tiene un resumen:\n\n" .
-                                    $this->getTextSummary($get) . "\n\n" .
-                                    "Quedamos a su entera disposición para cualquier consulta.\n\n" .
-                                    "Atentamente,\n" .
-                                    (Auth::user()?->name ?? config('laboratorio.nombre')) . "\n" .
-                                    config('laboratorio.nombre') . "\n" .
-                                    config('laboratorio.telefono') . ' · ' . config('laboratorio.correo');
-
-                                $gmailUrl = "https://mail.google.com/mail/?view=cm&fs=1&to=" . rawurlencode($email) . "&su=" . rawurlencode($subject) . "&body=" . rawurlencode($body);
-
-                                // 1. Envía el evento para abrir Gmail
-                                $this->dispatch('open-url-in-new-tab', url: $gmailUrl);
-
-                                // 2. Devuelve la descarga del PDF
-                                return $this->generatePdfPreview(true);
-                            }),
+                            ->url(fn (Get $get) => $this->getEmailUrl($get))
+                            ->openUrlInNewTab()
+                            ->disabled(fn (Get $get) => blank($get('email'))),
                     ])->columnSpanFull(),
                 ]),
         ];
@@ -222,13 +174,52 @@ class CreateCotizacion extends ResourcePage implements HasForms
     $pdf = Pdf::loadView('pdf.cotizacion', $data)->setPaper('letter', 'portrait');
 
     if ($download) {
-        return response()->streamDownload(fn() => print ($pdf->stream()), 'cotizacion-' . date('Y-m-d') . '.pdf');
+        return response()->streamDownload(fn() => print ($pdf->output()), 'cotizacion-' . date('Y-m-d') . '.pdf', [
+            'Content-Type' => 'application/pdf',
+        ]);
     } else {
         $nombreArchivo = 'cotizaciones/cotizacion-' . uniqid() . '.pdf';
         Storage::disk('public')->put($nombreArchivo, $pdf->output());
         return asset('storage/' . $nombreArchivo);
     }
 }
+
+    protected function getWhatsAppUrl(Get $get): ?string
+    {
+        $numero = \App\Support\TelefonoCliente::internacional($get('whatsapp'), $get('whatsapp_codigo_pais'));
+        if (!$numero) {
+            return null;
+        }
+
+        $mensaje = "¡Hola {$get('nombre_completo')}!\n\n" .
+            "Le saluda *" . config('laboratorio.nombre') . "*.\n\n" .
+            "Compartimos el resumen de su cotización:\n\n" .
+            $this->getTextSummary($get) . "\n\n" .
+            "Gracias por confiar en nosotros.\n" .
+            config('laboratorio.telefono') . ' · ' . config('laboratorio.correo');
+
+        return "https://wa.me/{$numero}?text=" . rawurlencode($mensaje);
+    }
+
+    protected function getEmailUrl(Get $get): ?string
+    {
+        if (blank($get('email'))) {
+            return null;
+        }
+
+        $mensaje = "Hola {$get('nombre_completo')},\n\n" .
+            "Gracias por solicitar una cotización. Aquí tiene el resumen:\n\n" .
+            $this->getTextSummary($get) . "\n\nAtentamente,\n" .
+            (Auth::user()?->name ?? config('laboratorio.nombre')) . "\n" .
+            config('laboratorio.nombre') . "\n" .
+            config('laboratorio.telefono') . ' · ' . config('laboratorio.correo');
+
+        return 'https://mail.google.com/mail/?' . http_build_query([
+            'view' => 'cm', 'fs' => '1', 'to' => $get('email'),
+            'su' => 'Cotización de Servicios - ' . config('laboratorio.nombre'),
+            'body' => $mensaje,
+        ], '', '&', PHP_QUERY_RFC3986);
+    }
 
     protected function getTextSummary(Get $get): string
     {
@@ -254,4 +245,3 @@ class CreateCotizacion extends ResourcePage implements HasForms
         return implode("\n", $lines);
     }
 }
-

@@ -314,7 +314,7 @@
                                             </thead>
                                             <tbody>
                                                 @forelse ($examenData['externos'] ?? [] as $index => $ext)
-                                                    <tr class="border-b dark:border-gray-700">
+                                                    <tr wire:key="externo-{{ $detalleId }}-{{ $ext['temp_id'] }}" class="border-b dark:border-gray-700">
                                                         <td class="px-3 py-2">
                                                             <x-filament::input type="text" placeholder="Nombre..." wire:model.defer="data.resultados_examenes.{{ $detalleId }}.externos.{{ $index }}.prueba_nombre"/>
                                                         </td>
@@ -333,7 +333,7 @@
                                                             />
                                                         </td>
                                                         <td class="px-3 py-2 text-center">
-                                                            <x-filament::icon-button color="danger" icon="heroicon-o-trash" label="Eliminar resultado externo" wire:click="removeExternalRow({{ $detalleId }}, {{ $index }}, {{ $ext['id'] ?? 'null' }})" />
+                                                            <x-filament::icon-button color="danger" icon="heroicon-o-trash" label="Eliminar resultado externo" wire:click="removeExternalRow({{ $detalleId }}, {{ $index }})" />
                                                         </td>
                                                     </tr>
                                                 @empty

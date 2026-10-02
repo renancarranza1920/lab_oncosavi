@@ -9,7 +9,7 @@ class IdentidadOncosaviTest extends TestCase
 {
     public function test_login_exposes_the_brand_without_contact_strips(): void
     {
-        $this->get('/login')->assertOk()
+        $this->get(route('filament.admin.auth.login'))->assertOk()
             ->assertSee('ONCOSAVI')
             ->assertSee('images/oncosavi.png')
             ->assertDontSee('oncosavi@gmail.com')

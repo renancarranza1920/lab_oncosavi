@@ -88,10 +88,11 @@ class ClientesResource extends Resource
                                             ->placeholder('dd/mm/aaaa')
                                             ->maxDate(now())
                                             ->reactive() // Permite que los cambios actualicen el estado
-                                            ->helperText('Si seleccionas una fecha de nacimiento, se borrará la selección del grupo etario.')
+                                            ->helperText('Si seleccionas una fecha de nacimiento, se limpiarán la edad y el grupo etario.')
                                             ->afterStateUpdated(function ($state, $set) {
                                                 // Si se establece una fecha, borra el grupo etario
                                                 if ($state) {
+                                                    $set('edad', null);
                                                     $set('grupo_etario', null); // Borra la selección de grupo etario
                                                 }
                                             }),
@@ -141,10 +142,7 @@ class ClientesResource extends Resource
                             ->schema([
                                 Forms\Components\Grid::make(2)
                                     ->schema([
-                                        Forms\Components\TextInput::make('telefono')
-                                            ->label('Teléfono')
-                                            ->numeric()
-                                            ->maxLength(9),
+                                        \App\Support\TelefonoCliente::campo(),
 
                                         Forms\Components\TextInput::make('correo')
                                             ->label('Correo Electrónico')
