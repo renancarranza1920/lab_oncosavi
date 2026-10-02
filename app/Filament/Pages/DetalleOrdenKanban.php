@@ -126,7 +126,8 @@ class DetalleOrdenKanban extends KanbanBoard
             Action::make('Generar ZPL')
                 ->label('Generar Etiquetas ZPL')
                 ->icon('heroicon-o-printer')
-                ->visible(fn() => auth()->user()->can('imprimir_etiquetas_kanban'))
+                ->visible(fn() => config('laboratorio.impresion_etiquetas_habilitada')
+                    && auth()->user()->can('imprimir_etiquetas_kanban'))
                 ->color('gray')
                 ->action(fn() => $this->printAll()),
 
@@ -148,6 +149,10 @@ class DetalleOrdenKanban extends KanbanBoard
 
     public function printGroup(string $status): void
     {
+        if (!config('laboratorio.impresion_etiquetas_habilitada')) {
+            return;
+        }
+
         if (!auth()->user()->can('imprimir_etiquetas_kanban')) {
             Notification::make()->title('Acceso denegado')->danger()->send();
             return;
@@ -178,6 +183,10 @@ class DetalleOrdenKanban extends KanbanBoard
 
     public function printAll(): void
     {
+        if (!config('laboratorio.impresion_etiquetas_habilitada')) {
+            return;
+        }
+
         if (!auth()->user()->can('imprimir_etiquetas_kanban')) {
             Notification::make()->title('Acceso denegado')->danger()->send();
             return;
@@ -203,6 +212,10 @@ class DetalleOrdenKanban extends KanbanBoard
 
     public function printSingle(int $recordId): void
     {
+        if (!config('laboratorio.impresion_etiquetas_habilitada')) {
+            return;
+        }
+
         if (!auth()->user()->can('imprimir_etiquetas_kanban')) {
             Notification::make()->title('Acceso denegado')->danger()->send();
             return;

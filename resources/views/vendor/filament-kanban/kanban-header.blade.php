@@ -8,6 +8,7 @@
     </div>
 
     <!-- Botón imprimir grupo -->
+    @if (config('laboratorio.impresion_etiquetas_habilitada'))
     <x-filament::icon-button
         wire:click="printGroup('{{ $status['id'] }}')"
         color="gray"
@@ -15,4 +16,5 @@
         label="Imprimir todas las etiquetas de este grupo"
         :disabled="count($status['records'] ?? []) === 0"
     />
+    @endif
 </h3>
