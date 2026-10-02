@@ -355,34 +355,21 @@ footer .page-number:before {
 <body>
     <div class="watermark">{{ config('laboratorio.nombre') }}<br><span>SAN VICENTE · RESULTADOS DE LABORATORIO</span></div>
         @php
-function normalizarSimbolosClinicos($texto)
-{
-    //  Lógica original (desactivada temporalmente para pruebas Unicode)
-    /*
-    return str_replace(
-        ['≥','≤'],
-        ['>=','<='],
-        $texto
-    );
-    */
-
-//MODO TEST: no modificar símbolos
-    return $texto;
-}
+$normalizarSimbolosClinicos = fn ($texto) => $texto;
 
         $formatearNumerosReferencia = fn ($texto) => \App\Support\NumeroLaboratorio::imprimirTexto($texto);
 
     @endphp
 
     @php
-   $esFueraDeRango = function ($resultado, $referencia, $alertar = false) {
+   $esFueraDeRango = function ($resultado, $referencia, $alertar = false) use ($normalizarSimbolosClinicos) {
 
     // PRIORIDAD ABSOLUTA: Si el checkbox de "Colorear" está marcado, siempre es true
     if ($alertar) {
         return true;
     }
 
-    $referencia = normalizarSimbolosClinicos($referencia);
+    $referencia = $normalizarSimbolosClinicos($referencia);
 
     if (empty($resultado) || empty($referencia)) {
         return false;
@@ -461,7 +448,7 @@ function normalizarSimbolosClinicos($texto)
 };
 
 //////////////////////////
-function agregarUnidadesPorLinea($referencia, $unidad)
+$agregarUnidadesPorLinea = function ($referencia, $unidad)
 {
     if (empty($unidad)) return $referencia;
 
@@ -486,7 +473,7 @@ function agregarUnidadesPorLinea($referencia, $unidad)
 
     // Volvemos a unir con <br>
     return implode('<br>', $lineas);
-}
+};
 
     @endphp
 
@@ -798,9 +785,9 @@ function agregarUnidadesPorLinea($referencia, $unidad)
                                                         @if($esTablaConRef)
                                                             @php
                                                                 $refFinal = ''; $alineacion = 'center'; $padding = '';
-                                                                $refTemp = normalizarSimbolosClinicos($pruebaData['referencia'] ?? '');
+                                                                $refTemp = $normalizarSimbolosClinicos($pruebaData['referencia'] ?? '');
                                                                 $refTemp = $formatearNumerosReferencia($refTemp);
-                                                                $refFinal = agregarUnidadesPorLinea($refTemp, $pruebaData['unidades'] ?? '');
+                                                                $refFinal = $agregarUnidadesPorLinea($refTemp, $pruebaData['unidades'] ?? '');
                                                                 
                                                                 // 🚀 LA NUEVA REGLA PARA EL RESULTADO: CENTRADO A MENOS QUE SEA BETA HCG
                                                                 $nombrePruebaResult = mb_strtoupper(trim($pruebaData['nombre'] ?? ''), 'UTF-8');
@@ -827,9 +814,9 @@ function agregarUnidadesPorLinea($referencia, $unidad)
                                                             @if($esTablaConRef)
                                                                 @php
                                                                     $refFinal = ''; $alineacion = 'center'; $padding = '';
-                                                                    $refTemp = normalizarSimbolosClinicos($pruebaData['referencia'] ?? '');
+                                                                    $refTemp = $normalizarSimbolosClinicos($pruebaData['referencia'] ?? '');
                                                                     $refTemp = $formatearNumerosReferencia($refTemp);
-                                                                    $refFinal = agregarUnidadesPorLinea($refTemp, $pruebaData['unidades'] ?? '');
+                                                                    $refFinal = $agregarUnidadesPorLinea($refTemp, $pruebaData['unidades'] ?? '');
                                                                     
                                                                     // 🚀 LA NUEVA REGLA PARA EL RESULTADO (EN GRUPO): CENTRADO A MENOS QUE SEA BETA HCG
                                                                     $nombrePruebaResult = mb_strtoupper(trim($pruebaData['nombre'] ?? ''), 'UTF-8');

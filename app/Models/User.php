@@ -10,7 +10,7 @@ use Spatie\Permission\Traits\HasRoles;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 
-class User extends Authenticatable
+class User extends Authenticatable implements \Filament\Models\Contracts\FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
@@ -54,6 +54,17 @@ class User extends Authenticatable
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::updated(function (self $usuario) {
+            if ($usuario->wasChanged('password')) {
+                activity('Usuarios')->performedOn($usuario)->causedBy(auth()->user())
+                    ->withProperties(['password_actualizada' => true])
+                    ->event('updated')->log('Contraseña actualizada para el usuario ' . $usuario->nickname);
+            }
+        });
+    }
+
    public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -67,9 +78,14 @@ class User extends Authenticatable
                 };
                 return "El usuario '{$this->name}' (ID: {$this->id}) ha sido {$eventoTraducido}";
             })
-            ->logFillable() // Rastreará name, email, nickname, firma_path, sello_path
+            ->logOnly(['name', 'email', 'nickname', 'firma_path', 'sello_path'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    public function canAccessPanel(\Filament\Panel $panel): bool
+    {
+        return $this->can('access_admin_panel');
     }
 
     public function username()

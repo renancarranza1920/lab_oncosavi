@@ -27,7 +27,7 @@ class FlujosAtencionTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         Filament::bootCurrentPanel();
         $user = User::factory()->create();
-        foreach (['view_any_clientes', 'create_clientes', 'update_clientes', 'view_any_cotizacion', 'ingresar_resultados_orden'] as $permiso) {
+        foreach (['view_any_clientes', 'create_clientes', 'update_clientes', 'view_any_cotizacion', 'ingresar_resultados_orden', 'access_cotizaciones', 'generar_pdf_cotizacion', 'enviar_cotizacion_whatsapp', 'enviar_cotizacion_email'] as $permiso) {
             $user->givePermissionTo(Permission::findOrCreate($permiso, 'web'));
         }
         $this->actingAs($user);

@@ -9,6 +9,17 @@ use Illuminate\Support\Facades\DB;
 
 class OrdenesChart extends ChartWidget
 {
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('dashboard_ordenes') ?? false;
+    }
+
+    public function mount(): void
+    {
+        abort_unless(static::canView(), 403);
+        parent::mount();
+    }
+
     protected static ?string $heading = 'Órdenes en los Últimos 7 Días';
     protected static ?int $sort = 2;
 

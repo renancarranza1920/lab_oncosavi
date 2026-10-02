@@ -39,6 +39,7 @@ class AdminPanelProvider extends PanelProvider
         $panel->path('admin');
         $panel->login( Login::class);
         $panel->passwordReset();
+        $panel->profile(\App\Filament\Auth\EditProfile::class, isSimple: false);
         
         
         $panel->brandName(config('laboratorio.nombre'));

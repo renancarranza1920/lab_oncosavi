@@ -29,6 +29,16 @@ class ActivityLogResource extends Resource
 
 protected static ?int $navigationSort = 3;
 
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        if (!auth()->user()->can('ver_bitacora_completa')) {
+            $query->where('subject_type', \App\Models\Resultado::class);
+        }
+
+        return $query;
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([]);
@@ -77,7 +87,7 @@ protected static ?int $navigationSort = 3;
                         if ($record->event === 'created' || $record->event === 'deleted') {
                             return 'N/A';
                         }
-                        $oldValues = $record->properties->get('old');
+                        $oldValues = \App\Support\Bitacora::datosVisibles($record->properties->get('old', []));
                         if (empty($oldValues)) {
                             return 'Ninguno';
                         }
@@ -95,7 +105,18 @@ protected static ?int $navigationSort = 3;
             ->filters([
                 SelectFilter::make('log_name')
                     ->label('Módulo')
-                    ->options(fn () => Activity::select('log_name')->distinct()->pluck('log_name', 'log_name'))
+                    ->options(fn () => static::getEloquentQuery()->select('log_name')->distinct()->pluck('log_name', 'log_name')),
+                SelectFilter::make('causer_id')->label('Usuario')
+                    ->options(fn () => \App\Models\User::whereIn('id', static::getEloquentQuery()->select('causer_id'))
+                        ->pluck('name', 'id')),
+                SelectFilter::make('event')->label('Acción')
+                    ->options(['created' => 'Creación', 'updated' => 'Edición', 'deleted' => 'Eliminación']),
+                Tables\Filters\Filter::make('fecha')->form([
+                    Forms\Components\DatePicker::make('desde')->label('Desde'),
+                    Forms\Components\DatePicker::make('hasta')->label('Hasta'),
+                ])->query(fn (Builder $query, array $data) => $query
+                    ->when($data['desde'] ?? null, fn ($q, $fecha) => $q->where('created_at', '>=', \Carbon\Carbon::parse($fecha, 'America/El_Salvador')->startOfDay()->utc()))
+                    ->when($data['hasta'] ?? null, fn ($q, $fecha) => $q->where('created_at', '<=', \Carbon\Carbon::parse($fecha, 'America/El_Salvador')->endOfDay()->utc())))
             ])
              ->actions([
                 Tables\Actions\ViewAction::make()
@@ -121,9 +142,11 @@ protected static ?int $navigationSort = 3;
                                 ->schema([
                                     // Usamos KeyValueEntry aquí porque los datos SÍ son un array
                                     KeyValueEntry::make('properties.old')
+                                        ->state(fn ($record) => \App\Support\Bitacora::datosVisibles($record->properties->get('old', [])))
                                         ->label('Valores Anteriores')
                                         ->visible(fn ($record) => $record->properties->has('old')),
                                     KeyValueEntry::make('properties.attributes')
+                                        ->state(fn ($record) => \App\Support\Bitacora::datosVisibles($record->properties->get('attributes', [])))
                                         ->label('Valores Nuevos')
                                         ->visible(fn ($record) => $record->properties->has('attributes')),
                                 ])

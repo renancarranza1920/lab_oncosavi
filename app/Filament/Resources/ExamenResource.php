@@ -261,6 +261,7 @@ class ExamenResource extends Resource
             ->headerActions([
                 Tables\Actions\Action::make('gestionar_muestras')
                     ->label('Catálogo de Muestras')
+                    ->visible(fn () => auth()->user()->can('view_any_muestra'))
                     ->url(fn() => \App\Filament\Resources\MuestraResource::getUrl('index')) // Asegúrate de la ruta
                     ->color('gray'),
             ])

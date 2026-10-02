@@ -336,11 +336,13 @@ class PruebaResource extends Resource
                     ->color('gray')
                     ->modalWidth('4xl')
                     ->modalSubmitActionLabel('Guardar valores')
+                    ->modalSubmitAction(fn ($action) => auth()->user()->can('gestionar_valores_ref') ? $action : false)
                     ->fillForm(fn (Prueba $record) => [
                         'valoresReferencia' => $record->valoresReferencia()->get()->toArray(),
                     ])
-                    ->form([static::valoresReferenciaSection(useRelationship: false)])
+                    ->form([static::valoresReferenciaSection(useRelationship: false)->disabled(fn () => !auth()->user()->can('gestionar_valores_ref'))])
                     ->action(function (Prueba $record, array $data): void {
+                        abort_unless(auth()->user()->can('gestionar_valores_ref'), 403);
                         DB::transaction(function () use ($record, $data) {
                             $record->valoresReferencia()->delete();
 
@@ -371,6 +373,7 @@ class PruebaResource extends Resource
                     ->icon(fn (Prueba $record) => $record->estado === 'activo' ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
                     ->color(fn (Prueba $record) => $record->estado === 'activo' ? 'warning' : 'success')
                     ->tooltip(fn (Prueba $record) => $record->estado === 'activo' ? 'Desactivar Prueba' : 'Activar Prueba')
+                    ->visible(fn () => auth()->user()->can('cambiar_estado_pruebas'))
                     ->requiresConfirmation()
                     ->modalHeading(fn (Prueba $record) => $record->estado === 'activo' ? 'Desactivar Prueba?' : 'Activar Prueba?')
                     ->modalDescription('¿Estás seguro de que deseas cambiar el estado de este registro?')
@@ -388,13 +391,14 @@ class PruebaResource extends Resource
             ->headerActions([
                 Tables\Actions\Action::make('pruebas_conjuntas')
                     ->label('Ver Pruebas en Matriz')
-                    ->visible(fn () => auth()->user()->can('view_any_prueba'))
+                    ->visible(fn () => auth()->user()->can('ver_pruebas_conjuntas'))
                     ->icon('heroicon-o-table-cells')
                     ->color('gray')
                     ->url(ListPruebasConjuntas::getUrl()),
 
                 Tables\Actions\Action::make('gestionar_tipos')
                     ->label('Tipos de Prueba')
+                    ->visible(fn () => auth()->user()->can('view_any_tipo::prueba'))
                     ->url(TipoPruebaResource::getUrl('index'))
                     ->color('gray'),
             ])

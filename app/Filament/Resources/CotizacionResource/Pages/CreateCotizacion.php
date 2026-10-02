@@ -33,6 +33,7 @@ class CreateCotizacion extends ResourcePage implements HasForms
 
     public function mount(): void
     {
+        abort_unless(auth()->user()?->can('access_cotizaciones'), 403);
         $this->form->fill();
     }
 
@@ -97,11 +98,13 @@ class CreateCotizacion extends ResourcePage implements HasForms
                     \Filament\Forms\Components\Actions::make([
                         FormAction::make('generarPdf')
                             ->label('Generar PDF')
+                            ->visible(fn () => auth()->user()->can('generar_pdf_cotizacion'))
                             ->icon('heroicon-o-document-arrow-down')
                             ->action(fn() => $this->generatePdfPreview(true)),
 
                         FormAction::make('enviarWhatsApp')
                             ->label('Compartir por WhatsApp')
+                            ->visible(fn () => auth()->user()->can('enviar_cotizacion_whatsapp'))
                             ->icon('heroicon-o-paper-airplane')
                             ->color('gray')
                             ->url(fn (Get $get) => $this->getWhatsAppUrl($get))
@@ -110,6 +113,7 @@ class CreateCotizacion extends ResourcePage implements HasForms
 
                         FormAction::make('enviarEmail')
                             ->label('Compartir por Gmail')
+                            ->visible(fn () => auth()->user()->can('enviar_cotizacion_email'))
                             ->icon('heroicon-o-envelope')
                             ->color('gray')
                             ->url(fn (Get $get) => $this->getEmailUrl($get))
@@ -122,6 +126,7 @@ class CreateCotizacion extends ResourcePage implements HasForms
 
     public function generatePdfPreview(bool $download = true)
 {
+    abort_unless(auth()->user()?->can('generar_pdf_cotizacion'), 403);
     $state = $this->form->getState();
     $total = 0;
     $dataPerfiles = [];

@@ -8,6 +8,17 @@ use Illuminate\Support\Facades\DB;
 
 class EstadosOrdenesChart extends ChartWidget
 {
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('dashboard_estados') ?? false;
+    }
+
+    public function mount(): void
+    {
+        abort_unless(static::canView(), 403);
+        parent::mount();
+    }
+
     protected static ?string $heading = 'Distribución de Estados de Órdenes';
     protected static ?int $sort = 1;
 

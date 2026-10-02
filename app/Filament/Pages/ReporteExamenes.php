@@ -21,6 +21,11 @@ class ReporteExamenes extends Page
     protected static ?string $title = 'Reporte de Exámenes y Perfiles';
     protected static string $view = 'filament.pages.reporte-examenes';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('ver_catalogo_pdf') ?? false;
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -56,6 +61,7 @@ class ReporteExamenes extends Page
 
     public function descargarPdf(): ?StreamedResponse
     {
+        abort_unless(static::canAccess(), 403);
         $areas = TipoExamen::query()
             ->where('estado', 1)
             ->with(['examenes' => function ($query) {

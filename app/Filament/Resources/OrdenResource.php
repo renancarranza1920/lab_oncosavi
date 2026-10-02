@@ -1387,6 +1387,7 @@ public static function getOrdenStep(): array
                Tables\Actions\Action::make('ver')
 
     ->tooltip('Ver Detalles')
+    ->visible(fn () => auth()->user()->can('view_orden'))
 
     ->icon('heroicon-o-eye')
 
@@ -2237,7 +2238,7 @@ $record->update([
                 ->color('gray')
 
                 ->visible(function (Orden $record) {
-                    return $record->estado === 'finalizado' && $record->reporteGuardadoExists();
+                    return auth()->user()->can('ver_reporte_orden') && $record->estado === 'finalizado' && $record->reporteGuardadoExists();
 
                 })
 
@@ -2349,7 +2350,7 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
         
 
-        return Storage::disk('public')->exists($filePath) && $record->estado === 'finalizado';
+        return auth()->user()->can('enviar_reporte_orden') && Storage::disk('public')->exists($filePath) && $record->estado === 'finalizado';
 
     })
 

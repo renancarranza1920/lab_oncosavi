@@ -10,6 +10,16 @@ use Illuminate\Support\Number; // Asegúrate de importar esto si usas Laravel 9+
 
 class OrdenStatsWidget extends BaseWidget
 {
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('dashboard_ordenes') ?? false;
+    }
+
+    public function mount(): void
+    {
+        abort_unless(static::canView(), 403);
+    }
+
     // Define el número de columnas que ocupará en el dashboard.
     // 'full' significa que ocupará todo el ancho disponible.
     // También puedes usar números como 1, 2, 3, etc.
@@ -54,12 +64,15 @@ protected static ?int $sort = 0;
     }
 
     // Total de clientes
+    if (auth()->user()->can('dashboard_clientes')) {
     $stats[] = Stat::make(
         'Total de Clientes',
         Cliente::count()
     )
         ->description('Clientes registrados en el sistema')
         ->color('gray');
+
+    }
 
     return $stats;
 }

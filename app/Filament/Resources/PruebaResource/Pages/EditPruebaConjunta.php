@@ -34,6 +34,7 @@ class EditPruebaConjunta extends Page implements HasForms
 
     public function mount(string $record): void
     {
+        abort_unless(auth()->user()->can('editar_pruebas_conjuntas'), 403);
         $this->record = $record;
         
         $pruebas = Prueba::where('tipo_conjunto', $this->record)->get();
@@ -103,6 +104,7 @@ class EditPruebaConjunta extends Page implements HasForms
     // --- CAMBIO CLAVE 2: Lógica de guardado robusta ---
     public function save(): void
     {
+        abort_unless(auth()->user()->can('editar_pruebas_conjuntas'), 403);
         $newData = $this->form->getState();
 
         try {

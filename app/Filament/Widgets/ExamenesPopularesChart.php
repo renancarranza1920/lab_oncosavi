@@ -8,6 +8,17 @@ use Illuminate\Support\Facades\DB;
 
 class ExamenesPopularesChart extends ChartWidget
 {
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('dashboard_examenes') ?? false;
+    }
+
+    public function mount(): void
+    {
+        abort_unless(static::canView(), 403);
+        parent::mount();
+    }
+
     protected static ?string $heading = 'Top 5 Exámenes Más Solicitados';
     protected static ?int $sort = 4;
 
