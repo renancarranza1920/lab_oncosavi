@@ -488,7 +488,13 @@ if (!$valorRef && $grupoTodasEdades) {
         return Storage::disk('public')
             ->exists("reportes/{$fileName}");
     })
-    ->action(fn() => $this->enviarPdfParcial()),
+    ->form(fn (): array => count($this->record->cliente->telefonosParaWhatsapp()) > 1 ? [
+        \Filament\Forms\Components\Select::make('telefono_whatsapp')
+            ->label('¿A qué número desea enviar por WhatsApp?')
+            ->options($this->record->cliente->telefonosParaWhatsapp())
+            ->required(),
+    ] : [])
+    ->action(fn(array $data) => $this->enviarPdfParcial($data)),
         
         ])
         ->label('PDF')
@@ -605,7 +611,13 @@ if (!$valorRef && $grupoTodasEdades) {
         return Storage::disk('public')
             ->exists("reportes/{$fileName}");
     })
-    ->action(fn() => $this->enviarPdfParcial()),
+    ->form(fn (): array => count($this->record->cliente->telefonosParaWhatsapp()) > 1 ? [
+        \Filament\Forms\Components\Select::make('telefono_whatsapp')
+            ->label('¿A qué número desea enviar por WhatsApp?')
+            ->options($this->record->cliente->telefonosParaWhatsapp())
+            ->required(),
+    ] : [])
+    ->action(fn(array $data) => $this->enviarPdfParcial($data)),
         
         ])
         ->label('PDF')
@@ -1132,7 +1144,7 @@ $fileName = strtoupper("{$nombreCliente} - {$orden->id} P.pdf");
     );
 }
 
-public function enviarPdfParcial()
+public function enviarPdfParcial(array $data = [])
 {
     $record = $this->record;
 
@@ -1169,7 +1181,8 @@ public function enviarPdfParcial()
     $mensajeBase .= "Correo: {$labCorreo}\n\n";
     $mensajeBase .= "Gracias por confiar en nosotros.";
 
-    $telefonoCliente = $record->cliente->telefono;
+    $telefonosCliente = $record->cliente->telefonosParaWhatsapp();
+    $telefonoCliente = $data['telefono_whatsapp'] ?? array_key_first($telefonosCliente);
     $correoCliente = $record->cliente->correo;
 
     $linkWhatsapp = $telefonoCliente

@@ -488,13 +488,56 @@ class OrdenResource extends Resource
 
                 ->schema([
 
-                    Forms\Components\TextInput::make('telefono')
-
-                        ->label('Teléfono')
-
-                        ->numeric()
-
-                        ->maxLength(9),
+                    Forms\Components\Repeater::make('telefonos')
+                        ->label('Teléfonos')
+                        ->helperText('Administra los números telefónicos registrados con soporte para formatos nacional e internacional.')
+                        ->schema([
+                            Forms\Components\Placeholder::make('encabezado_telefono')
+                                ->label(new \Illuminate\Support\HtmlString('Número <span class="telefono-requerido">*</span>'))
+                                ->content('')
+                                ->hint(fn (\Filament\Forms\Get $get): \Illuminate\Support\HtmlString => new \Illuminate\Support\HtmlString(match ($get('tipo')) {
+                                    'us' => '<span class="telefono-badge telefono-badge-us">Internacional</span>',
+                                    'fijo' => '<span class="telefono-badge telefono-badge-fijo">Residencial</span>',
+                                    default => '<span class="telefono-badge telefono-badge-sv">Móvil</span>',
+                                }))
+                                ->columnSpanFull(),
+                            Forms\Components\Select::make('tipo')
+                                ->hiddenLabel()
+                                ->options([
+                                    'sv' => '+503',
+                                    'us' => '+1',
+                                    'fijo' => 'Fijo',
+                                ])
+                                ->default('sv')
+                                ->selectablePlaceholder(false)
+                                ->native(false)
+                                ->live()
+                                ->required()
+                                ->extraFieldWrapperAttributes(['class' => 'telefono-prefijo'])
+                                ->columnSpan(2),
+                            Forms\Components\TextInput::make('numero')
+                                ->hiddenLabel()
+                                ->placeholder(fn (\Filament\Forms\Get $get): string => $get('tipo') === 'us' ? '(999) 999-9999' : '9999-9999')
+                                ->mask(fn (\Filament\Forms\Get $get): string => $get('tipo') === 'us' ? '(999) 999-9999' : '9999-9999')
+                                ->required()
+                                ->rules(fn (\Filament\Forms\Get $get): array => [
+                                    $get('tipo') === 'us'
+                                        ? 'regex:/^\(\d{3}\) \d{3}-\d{4}$/'
+                                        : 'regex:/^\d{4}-\d{4}$/',
+                                ])
+                                ->validationMessages([
+                                    'regex' => 'El número no tiene el formato correspondiente al tipo seleccionado.',
+                                ])
+                                ->extraFieldWrapperAttributes(['class' => 'telefono-numero'])
+                                ->columnSpan(10),
+                        ])
+                        ->columns(12)
+                        ->extraAttributes(['class' => 'telefono-compuesto'])
+                        ->defaultItems(1)
+                        ->minItems(1)
+                        ->addActionLabel('Agregar otro teléfono')
+                        ->reorderable(false)
+                        ->columnSpanFull(),
 
 
 
@@ -1021,11 +1064,14 @@ public static function getOrdenStep(): array
 
                             ->sortable(),
                             
-                        TextColumn::make('cliente.telefono')
-    ->label('Teléfono')
+                        TextColumn::make('cliente.telefonos_registrados')
+    ->label('Teléfonos')
+    ->listWithLineBreaks()
     ->icon('heroicon-o-phone')
     ->color('success')
-    ->searchable()
+    ->searchable(query: fn ($query, string $search) => $query->whereHas('cliente', fn ($cliente) => $cliente
+        ->where('telefono', 'like', "%{$search}%")
+        ->orWhere('telefonos', 'like', "%{$search}%")))
     ->sortable(),
 
                         TextColumn::make('cliente.nombre')
@@ -2357,7 +2403,13 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
     })
 
-    ->action(function (Orden $record) {
+    ->form(fn (Orden $record): array => count($record->cliente->telefonosParaWhatsapp()) > 1 ? [
+        Forms\Components\Select::make('telefono_whatsapp')
+            ->label('¿A qué número desea enviar por WhatsApp?')
+            ->options($record->cliente->telefonosParaWhatsapp())
+            ->required(),
+    ] : [])
+    ->action(function (Orden $record, array $data) {
 
         // --- 1. CONFIGURACIÓN DE DATOS DEL LABORATORIO ---
 
@@ -2414,7 +2466,8 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
         // --- 4. GENERACIÓN DE LINKS ---
 
-        $telefonoCliente = $record->cliente->telefono; 
+        $telefonosCliente = $record->cliente->telefonosParaWhatsapp();
+        $telefonoCliente = $data['telefono_whatsapp'] ?? array_key_first($telefonosCliente);
 
         $correoCliente = $record->cliente->correo; 
 
@@ -2422,7 +2475,9 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
         // rawurlencode asegura que los espacios y saltos de línea funcionen en todos los dispositivos
 
-        $linkWhatsapp = 'https://wa.me/' . $telefonoCliente . '?text=' . rawurlencode($mensajeBase);
+        $linkWhatsapp = $telefonoCliente
+            ? 'https://wa.me/' . $telefonoCliente . '?text=' . rawurlencode($mensajeBase)
+            : null;
 
         $linkCorreo = 'mailto:' . $correoCliente . '?subject=' . rawurlencode($asuntoCorreo) . '&body=' . rawurlencode($mensajeBase);
 
@@ -2450,7 +2505,8 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
                     ->button()
 
-                    ->color('success'),
+                    ->color('success')
+                    ->visible(fn () => $linkWhatsapp !== null),
 
                 
 

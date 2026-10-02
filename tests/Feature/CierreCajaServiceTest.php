@@ -35,24 +35,28 @@ class CierreCajaServiceTest extends TestCase
         $this->assertSame(10.0, $datos['resumen']['descuentos']);
         $this->assertSame(150.0, $datos['resumen']['ingreso_neto']);
         $this->assertSame(75.0, $datos['resumen']['valor_cancelado']);
-        $this->assertSame(75.0, $datos['resumen']['ticket_promedio']);
+        $this->assertArrayNotHasKey('ticket_promedio', $datos['resumen']);
         $this->assertCount(2, $datos['movimientos']);
     }
 
-    public function test_genera_los_rangos_mensual_trimestral_y_anual(): void
+    public function test_genera_los_rangos_diario_mensual_trimestral_y_anual(): void
     {
         $servicio = app(CierreCajaService::class);
 
+        [$desdeDia, $hastaDia, $etiquetaDia] = $servicio->rango('diario', 2026, 10, 1, 15);
         [$desdeMes, $hastaMes, $etiquetaMes] = $servicio->rango('mensual', 2026, 2);
         [$desdeTrimestre, $hastaTrimestre, $etiquetaTrimestre] = $servicio->rango('trimestral', 2026, 1, 3);
         [$desdeAnio, $hastaAnio, $etiquetaAnio] = $servicio->rango('anual', 2026);
 
+        $this->assertSame('2026-10-15', $desdeDia->toDateString());
+        $this->assertSame('2026-10-15', $hastaDia->toDateString());
         $this->assertSame('2026-02-01', $desdeMes->toDateString());
         $this->assertSame('2026-02-28', $hastaMes->toDateString());
         $this->assertSame('2026-07-01', $desdeTrimestre->toDateString());
         $this->assertSame('2026-09-30', $hastaTrimestre->toDateString());
         $this->assertSame('2026-01-01', $desdeAnio->toDateString());
         $this->assertSame('2026-12-31', $hastaAnio->toDateString());
+        $this->assertSame('15 de octubre de 2026', $etiquetaDia);
         $this->assertSame('Febrero 2026', $etiquetaMes);
         $this->assertSame('Trimestre 3 de 2026', $etiquetaTrimestre);
         $this->assertSame('Año 2026', $etiquetaAnio);

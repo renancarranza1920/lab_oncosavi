@@ -16,7 +16,7 @@
         .cash-range strong { display: block; color: #090b3b; font-size: .78rem; }
         .cash-range span { display: block; margin-top: .1rem; color: #607784; font-size: .68rem; }
         .cash-note { margin: 0 1.25rem 1.15rem; border-left: 3px solid #64abc6; border-radius: .25rem; padding: .55rem .75rem; color: #526976; background: #f7fafb; font-size: .7rem; }
-        .cash-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1rem; }
+        .cash-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
         .cash-kpi { position: relative; overflow: hidden; min-height: 116px; border: 1px solid #dce5e9; border-radius: .9rem; padding: 1rem; background: #fff; box-shadow: 0 1px 3px rgba(9, 11, 59, .05); }
         .cash-kpi:before { position: absolute; inset: 0 auto 0 0; width: 4px; content: ''; background: var(--kpi-color); }
         .cash-kpi-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
@@ -67,6 +67,7 @@
                     <span class="cash-field-label">Tipo de período</span>
                     <x-filament::input.wrapper>
                         <x-filament::input.select wire:model.live="periodo">
+                            <option value="diario">Diario</option>
                             <option value="mensual">Mensual</option>
                             <option value="trimestral">Trimestral</option>
                             <option value="anual">Anual</option>
@@ -74,7 +75,14 @@
                     </x-filament::input.wrapper>
                 </label>
 
-                @if ($periodo === 'mensual')
+                @if ($periodo === 'diario')
+                    <label>
+                        <span class="cash-field-label">Fecha</span>
+                        <x-filament::input.wrapper>
+                            <x-filament::input type="date" wire:model.live="fecha" />
+                        </x-filament::input.wrapper>
+                    </label>
+                @elseif ($periodo === 'mensual')
                     <label>
                         <span class="cash-field-label">Mes</span>
                         <x-filament::input.wrapper>
@@ -101,6 +109,7 @@
                     <div></div>
                 @endif
 
+                @if ($periodo !== 'diario')
                 <label>
                     <span class="cash-field-label">Año</span>
                     <x-filament::input.wrapper>
@@ -111,7 +120,8 @@
                         </x-filament::input.select>
                     </x-filament::input.wrapper>
                 </label>
-                
+                @endif
+
             </div>
 
             <div class="cash-note">Los ingresos incluyen órdenes no canceladas. Las cancelaciones se muestran por separado porque el sistema todavía no registra el estado ni el método de pago.</div>
@@ -122,7 +132,6 @@
                 ['Ingreso bruto', $datos['resumen']['ingreso_bruto'], '$', '#2563eb', '#eaf1ff', 'Antes de descuentos'],
                 ['Descuentos', $datos['resumen']['descuentos'], '%', '#c47b00', '#fff5df', 'Aplicados en el período'],
                 ['Ingreso neto', $datos['resumen']['ingreso_neto'], '✓', '#15835b', '#e8f8f0', 'Órdenes no canceladas'],
-                ['Ticket promedio', $datos['resumen']['ticket_promedio'], 'Ø', '#7c3aed', '#f2ebff', 'Promedio por orden'],
             ] as [$titulo, $valor, $icono, $color, $fondo, $pie])
                 <article class="cash-kpi" style="--kpi-color: {{ $color }}; --kpi-bg: {{ $fondo }};">
                     <div class="cash-kpi-top"><span class="cash-kpi-label">{{ $titulo }}</span><span class="cash-kpi-icon">{{ $icono }}</span></div>

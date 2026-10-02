@@ -26,10 +26,11 @@ class DatabaseSeeder extends Seeder
         Log::info('Iniciando el seeder...');
 
         // Crear usuario administrador (misma lógica del DatabaseSeeder original)
-        $admin = User::factory()->create([
+        $admin = User::updateOrCreate([
+            'nickname' => 'oncosavi',
+        ], [
             'name' => 'Administración ONCOSAVI',
             'email' => config('laboratorio.correo'),
-            'nickname' => 'oncosavi',
             'password' => Hash::make('admin123'),
         ]);
 

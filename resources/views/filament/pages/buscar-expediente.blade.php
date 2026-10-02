@@ -110,7 +110,7 @@
                                 {{-- Teléfono --}}
                                 <div class="flex items-center text-xs text-gray-600 dark:text-gray-400">
                                     <x-heroicon-m-phone class="w-3.5 h-3.5 mr-2 text-gray-400 flex-shrink-0"/>
-                                    <span>{{ $cliente->telefono ?? 'N/A' }}</span>
+                                    <span>{{ implode(', ', $cliente->telefonos_registrados) ?: 'N/A' }}</span>
                                 </div>
 
                                 {{-- Correo (con truncate por si es largo) --}}

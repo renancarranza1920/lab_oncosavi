@@ -141,10 +141,56 @@ class ClientesResource extends Resource
                             ->schema([
                                 Forms\Components\Grid::make(2)
                                     ->schema([
-                                        Forms\Components\TextInput::make('telefono')
-                                            ->label('Teléfono')
-                                            ->numeric()
-                                            ->maxLength(9),
+                                        Forms\Components\Repeater::make('telefonos')
+                                            ->label('Teléfonos')
+                                            ->helperText('Administra los números telefónicos registrados con soporte para formatos nacional e internacional.')
+                                            ->schema([
+                                                Forms\Components\Placeholder::make('encabezado_telefono')
+                                                    ->label(new \Illuminate\Support\HtmlString('Número <span class="telefono-requerido">*</span>'))
+                                                    ->content('')
+                                                    ->hint(fn (\Filament\Forms\Get $get): \Illuminate\Support\HtmlString => new \Illuminate\Support\HtmlString(match ($get('tipo')) {
+                                                        'us' => '<span class="telefono-badge telefono-badge-us">Internacional</span>',
+                                                        'fijo' => '<span class="telefono-badge telefono-badge-fijo">Residencial</span>',
+                                                        default => '<span class="telefono-badge telefono-badge-sv">Móvil</span>',
+                                                    }))
+                                                    ->columnSpanFull(),
+                                                Forms\Components\Select::make('tipo')
+                                                    ->hiddenLabel()
+                                                    ->options([
+                                                        'sv' => '+503',
+                                                        'us' => '+1',
+                                                        'fijo' => 'Fijo',
+                                                    ])
+                                                    ->default('sv')
+                                                    ->selectablePlaceholder(false)
+                                                    ->native(false)
+                                                    ->live()
+                                                    ->required()
+                                                    ->extraFieldWrapperAttributes(['class' => 'telefono-prefijo'])
+                                                    ->columnSpan(2),
+                                                Forms\Components\TextInput::make('numero')
+                                                    ->hiddenLabel()
+                                                    ->placeholder(fn (\Filament\Forms\Get $get): string => $get('tipo') === 'us' ? '(999) 999-9999' : '9999-9999')
+                                                    ->mask(fn (\Filament\Forms\Get $get): string => $get('tipo') === 'us' ? '(999) 999-9999' : '9999-9999')
+                                                    ->required()
+                                                    ->rules(fn (\Filament\Forms\Get $get): array => [
+                                                        $get('tipo') === 'us'
+                                                            ? 'regex:/^\(\d{3}\) \d{3}-\d{4}$/'
+                                                            : 'regex:/^\d{4}-\d{4}$/',
+                                                    ])
+                                                    ->validationMessages([
+                                                        'regex' => 'El número no tiene el formato correspondiente al tipo seleccionado.',
+                                                    ])
+                                                    ->extraFieldWrapperAttributes(['class' => 'telefono-numero'])
+                                                    ->columnSpan(10),
+                                            ])
+                                            ->columns(12)
+                                            ->extraAttributes(['class' => 'telefono-compuesto'])
+                                            ->defaultItems(1)
+                                            ->minItems(1)
+                                            ->addActionLabel('Agregar otro teléfono')
+                                            ->reorderable(false)
+                                            ->columnSpanFull(),
 
                                         Forms\Components\TextInput::make('correo')
                                             ->label('Correo Electrónico')
@@ -246,8 +292,9 @@ class ClientesResource extends Resource
                     ->icon('heroicon-o-phone')
                     ->schema([
                         Grid::make(2)->schema([
-                            TextEntry::make('telefono')
-                                ->label('Teléfono')
+                            TextEntry::make('telefonos_registrados')
+                                ->label('Teléfonos')
+                                ->listWithLineBreaks()
                                 ->icon('heroicon-m-phone')
                                 ->copyable(),
     
@@ -304,9 +351,12 @@ class ClientesResource extends Resource
                         return $record->edad_legible; 
                     }),
     
-                Tables\Columns\TextColumn::make('telefono')
-                    ->label('Teléfono')
-                     ->searchable()
+                Tables\Columns\TextColumn::make('telefonos_registrados')
+                    ->label('Teléfonos')
+                    ->listWithLineBreaks()
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query
+                        ->where('telefono', 'like', "%{$search}%")
+                        ->orWhere('telefonos', 'like', "%{$search}%"))
                     ->icon('heroicon-m-phone'),
     
                 Tables\Columns\TextColumn::make('correo')
