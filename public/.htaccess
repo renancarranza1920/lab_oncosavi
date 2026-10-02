@@ -5,7 +5,7 @@
 
 
 RewriteEngine On
-RewriteRule ^$ / [L,R=302]
+#RewriteRule ^$ / [L,R=302]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .

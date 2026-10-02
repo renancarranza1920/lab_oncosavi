@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Models\Orden;
 use Barryvdh\DomPDF\Facade\Pdf;
+Route::redirect('/', '/admin');
 /*
 Route::get('/', function () {
     return view('welcome');
