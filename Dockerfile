@@ -77,6 +77,15 @@ COPY --from=frontend \
     /app/public/build \
     ./public/build
 
+RUN mkdir -p \
+    storage/app/public \
+    storage/framework/cache/data \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs \
+    bootstrap/cache \
+    && ln -s /var/www/html/storage/app/public public/storage
+
 RUN composer install \
     --no-dev \
     --optimize-autoloader \

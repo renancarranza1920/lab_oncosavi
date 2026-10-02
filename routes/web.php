@@ -9,6 +9,11 @@ use Illuminate\Http\Request;
 use App\Models\Orden;
 use Barryvdh\DomPDF\Facade\Pdf;
 Route::redirect('/', '/admin');
+Route::middleware([\App\Http\Middleware\RequireChatbotAccess::class, 'throttle:chatbot'])->group(function () {
+    Route::get('/chatbot', [\App\Http\Controllers\ChatbotController::class, 'index'])->name('chatbot.index');
+    Route::get('/chatbot/estado', [\App\Http\Controllers\ChatbotController::class, 'estado'])->name('chatbot.estado');
+    Route::post('/chatbot/preguntar', [\App\Http\Controllers\ChatbotController::class, 'preguntar'])->name('chatbot.preguntar');
+});
 /*
 Route::get('/', function () {
     return view('welcome');

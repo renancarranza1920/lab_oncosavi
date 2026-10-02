@@ -110,7 +110,7 @@ protected static ?int $navigationSort = 3;
                     ->options(fn () => \App\Models\User::whereIn('id', static::getEloquentQuery()->select('causer_id'))
                         ->pluck('name', 'id')),
                 SelectFilter::make('event')->label('Acción')
-                    ->options(['created' => 'Creación', 'updated' => 'Edición', 'deleted' => 'Eliminación']),
+                    ->options(['created' => 'Creación', 'updated' => 'Edición', 'deleted' => 'Eliminación', 'consulted' => 'Consulta de informe']),
                 Tables\Filters\Filter::make('fecha')->form([
                     Forms\Components\DatePicker::make('desde')->label('Desde'),
                     Forms\Components\DatePicker::make('hasta')->label('Hasta'),
@@ -138,6 +138,7 @@ protected static ?int $navigationSort = 3;
                                 ]),
                             Section::make('Datos Modificados (Diff)')
                                 ->description('Muestra los valores antiguos y nuevos.')
+                                ->visible(fn ($record) => $record->properties->has('old') || $record->properties->has('attributes'))
                                 ->columns(2)
                                 ->schema([
                                     // Usamos KeyValueEntry aquí porque los datos SÍ son un array
@@ -149,6 +150,18 @@ protected static ?int $navigationSort = 3;
                                         ->state(fn ($record) => \App\Support\Bitacora::datosVisibles($record->properties->get('attributes', [])))
                                         ->label('Valores Nuevos')
                                         ->visible(fn ($record) => $record->properties->has('attributes')),
+                                ]),
+                            Section::make('Informe consultado')
+                                ->visible(fn ($record) => $record->event === 'consulted')
+                                ->schema([
+                                    KeyValueEntry::make('consulta')->label('Detalle de consulta')
+                                        ->state(fn ($record) => [
+                                            'Informe' => \Illuminate\Support\Str::headline($record->properties->get('informe', '')),
+                                            'Desde' => $record->properties->get('desde'),
+                                            'Hasta' => $record->properties->get('hasta'),
+                                            'Estado' => $record->properties->get('estado'),
+                                            'Filas' => $record->properties->get('filas'),
+                                        ]),
                                 ])
                         ])
                     ),

@@ -40,6 +40,12 @@ class AdminPanelProvider extends PanelProvider
         $panel->login( Login::class);
         $panel->passwordReset();
         $panel->profile(\App\Filament\Auth\EditProfile::class, isSimple: false);
+        $panel->navigationItems([
+            \Filament\Navigation\NavigationItem::make('Asistente del laboratorio')
+                ->icon('heroicon-o-chat-bubble-left-right')->group('Administración')->sort(4)
+                ->url(fn () => route('chatbot.index'))
+                ->visible(fn () => \App\Support\ChatbotAccess::allowed(auth()->user())),
+        ]);
         
         
         $panel->brandName(config('laboratorio.nombre'));
