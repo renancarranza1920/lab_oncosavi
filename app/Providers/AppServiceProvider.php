@@ -26,7 +26,5 @@ class AppServiceProvider extends ServiceProvider
     {
         //
         Gate::policy(Activity::class, ActivityPolicy::class);
-        \Illuminate\Support\Facades\RateLimiter::for('chatbot', fn (\Illuminate\Http\Request $request) =>
-            \Illuminate\Cache\RateLimiting\Limit::perMinute(config('chatbot.requests_per_minute'))->by($request->user()?->id ?? $request->ip()));
     }
 }
