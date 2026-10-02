@@ -3,7 +3,7 @@
      style="
         width: 0; 
         height: 0; 
-        border-top: 28px solid #64ABC6; /* Tamaño reducido */
+        border-top: 28px solid rgb(var(--primary-600)); /* Tamaño reducido */
         border-right: 28px solid transparent; 
         cursor: pointer;
         filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.1));

@@ -39,9 +39,9 @@
 
             @if ($record->estado === 'pausada' && $record->motivo_pausa)
                 <div
-                    class="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-500 rounded-r-lg">
-                    <p class="font-semibold text-yellow-800 dark:text-yellow-300">Motivo de la Pausa:</p>
-                    <p class="text-yellow-700 dark:text-yellow-400">{{ $record->motivo_pausa }}</p>
+                    class="mt-2 p-2 estado-warning border-l-4 rounded-r-lg">
+                    <p class="font-semibold ui-text-warning">Motivo de la Pausa:</p>
+                    <p class="ui-text-warning">{{ $record->motivo_pausa }}</p>
                 </div>
             @endif
         </div>
@@ -176,7 +176,7 @@
                             @foreach($item['pruebas'] as $prueba)
                                 <li class="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                     @if($prueba['completado'])
-                                        <x-heroicon-s-check-circle class="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
+                                        <x-heroicon-s-check-circle class="h-5 w-5 ui-text-success mr-2 flex-shrink-0" />
                                         <span>{{ $prueba['nombre'] }}</span>
                                     @else
                                         <x-heroicon-o-clock class="h-5 w-5 text-gray-400 mr-2 flex-shrink-0" />
@@ -200,7 +200,7 @@
                     <span class="font-mono">${{ number_format($record->total + $record->descuento, 2) }}</span>
                 </div>
 
-                <div class="flex justify-between w-full sm:w-1/2 text-sm text-red-600 dark:text-red-400 font-medium">
+                <div class="flex justify-between w-full sm:w-1/2 text-sm ui-text-danger font-medium">
                     <span>
                         Descuento
                         @if($record->codigo)
@@ -217,7 +217,7 @@
             <div class="flex justify-between w-full sm:w-1/2 text-xl font-bold">
                 <span class="text-gray-900 dark:text-white">Total a Pagar:</span>
                 <span
-                    class="font-mono text-success-600 dark:text-success-500">${{ number_format($record->total, 2) }}</span>
+                    class="font-mono ui-text-primary">${{ number_format($record->total, 2) }}</span>
             </div>
 
         </div>

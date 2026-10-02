@@ -90,16 +90,12 @@ class GrupoEtarioResource extends Resource
                     ->sortable(['edad_min']),
                     
                 Tables\Columns\TextColumn::make('genero')->searchable()->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'Masculino' => 'info',
-                        'Femenino' => 'danger',
-                        'Ambos' => 'success',
-                    }),
+                    ->color('gray'),
 
                 Tables\Columns\TextColumn::make('estado')->label('Estado')
                     ->formatStateUsing(fn (int $state): string => $state === 1 ? 'Activo' : 'Inactivo')
                     ->badge()
-                    ->color(fn (int $state): string => $state === 1 ? 'success' : 'danger')
+                    ->color(fn (int $state): string => $state === 1 ? 'success' : 'gray')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
@@ -123,7 +119,7 @@ class GrupoEtarioResource extends Resource
                 // Cambiar estado con confirmación y notificación
                 Tables\Actions\Action::make('toggleEstado')
                     ->label(fn (GrupoEtario $record) => $record->estado === 1 ? 'Dar de baja' : 'Dar de alta')
-                    ->color(fn (GrupoEtario $record) => $record->estado === 1 ? 'danger' : 'success')
+                    ->color(fn (GrupoEtario $record) => $record->estado === 1 ? 'warning' : 'success')
                     ->icon(fn (GrupoEtario $record) => $record->estado === 1 ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
                     ->visible( auth()->user()->can('cambiar_estado_grupos'))
                     ->requiresConfirmation() // <--- Pide confirmación antes de ejecutar

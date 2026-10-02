@@ -27,7 +27,7 @@ class ExamenesPopularesChart extends ChartWidget
             'datasets' => [
                 [
                     'data' => $data->pluck('total')->toArray(),
-                    'backgroundColor' => '#A5D1DF',
+                    'backgroundColor' => 'rgb(' . config('ui.primary.500') . ')',
                     'borderRadius' => 6,
                 ],
             ],

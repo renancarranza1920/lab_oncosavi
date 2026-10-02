@@ -20,7 +20,7 @@
                 <div class="text-right">
                     @if ($cliente)
                         <div class="text-right">
-                            <h3 class="text-lg font-bold text-danger-600 dark:text-danger-400">
+                            <h3 class="text-lg font-bold ui-text-primary">
                                 {{ $cliente->nombre }} {{ $cliente->apellido }}
                             </h3>
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 mt-1">
@@ -31,7 +31,7 @@
                             </span>
                         </div>
                     @else
-                        <span class="text-warning-600 text-sm font-medium">Sin Cliente</span>
+                        <span class="ui-text-warning text-sm font-medium">Sin Cliente</span>
                     @endif
                 </div>
             </div>
@@ -139,7 +139,7 @@
                         </div>
 
                         @if ($codigoAplicado)
-                            <div class="flex justify-between text-success-600 dark:text-success-400">
+                            <div class="flex justify-between ui-text-primary">
                                 <span>Descuento ({{ $codigoAplicado['codigo'] }})</span>
                                 <span class="font-mono font-bold">- ${{ number_format($descuento, 2) }}</span>
                             </div>

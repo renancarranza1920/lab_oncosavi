@@ -9,7 +9,7 @@
     <div class="flex flex-wrap items-center justify-between gap-6 text-sm">
 
         <div class="flex flex-col">
-            <span class="text-xs text-gray-400 uppercase">Paciente</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400 uppercase">Paciente</span>
             <span class="font-semibold text-gray-900 dark:text-white">
                 {{ $this->record->cliente->nombre }}
                 {{ $this->record->cliente->apellido }}
@@ -17,28 +17,28 @@
         </div>
 
         <div class="flex flex-col">
-            <span class="text-xs text-gray-400 uppercase">Edad</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400 uppercase">Edad</span>
             <span class="font-semibold">
                 {{ $this->record->cliente->edad_legible ?? '—' }}
             </span>
         </div>
 
         <div class="flex flex-col">
-            <span class="text-xs text-gray-400 uppercase">Género</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400 uppercase">Género</span>
             <span class="font-semibold">
                 {{ $this->record->cliente->genero ?? '—' }}
             </span>
         </div>
 
         <div class="flex flex-col">
-            <span class="text-xs text-gray-400 uppercase">Orden</span>
-            <span class="font-bold text-primary-600 text-lg">
+            <span class="text-xs text-gray-500 dark:text-gray-400 uppercase">Orden</span>
+            <span class="font-bold ui-text-primary text-lg">
                 #{{ $this->record->id }}
             </span>
         </div>
 
         <div class="flex flex-col">
-            <span class="text-xs text-gray-400 uppercase">Fecha</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400 uppercase">Fecha</span>
             <span class="font-semibold">
                 {{ $this->record->created_at->format('d/m/Y H:i') }}
             </span>
@@ -82,7 +82,7 @@
                                 {{ $examenData['examen_nombre'] }}
                             </h2>
                             @if($esReferido)
-                                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300 uppercase">Examen Referido</span>
+                                <span class="estado-info text-xs font-medium px-2.5 py-0.5 rounded uppercase">Examen Referido</span>
                             @endif
                         </div>
 
@@ -91,7 +91,7 @@
                             
                             {{-- Pestañas Visuales --}}
                             <div class="flex border-b border-gray-200 dark:border-gray-700 mb-6">
-                                <button type="button" class="py-2 px-4 text-sm font-medium border-b-2 border-primary-500 text-primary-600 focus:outline-none cursor-default">
+                                <button type="button" class="py-2 px-4 text-sm font-medium border-b-2 border-primary-500 ui-text-primary ui-tab cursor-default">
                                     {{ $esReferido ? 'Resultados Externos / Manuales' : 'Resultados Laboratorio' }}
                                 </button>
                             </div>
@@ -109,13 +109,13 @@
                                     @foreach ($pruebasPorTipo as $nombreTipoPrueba => $listaPruebas)
                                         <div class="space-y-3">
                                             {{-- SUBTÍTULO DEL TIPO DE PRUEBA (Ej: Serie Roja, Enzimas, etc.) --}}
-                                            <h3 class="text-xs font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-widest border-l-4 border-primary-500 pl-2">
+                                            <h3 class="text-xs font-extrabold text-gray-600 dark:text-gray-400 uppercase tracking-widest border-l-4 border-primary-500 pl-2">
                                                 {{ $nombreTipoPrueba }}
                                             </h3>
 
                                             <div class="overflow-x-auto border rounded-lg dark:border-gray-700 shadow-sm">
                                                 <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                                                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700">
+                                                    <thead class="text-xs text-gray-700 dark:text-gray-200 uppercase bg-gray-50 dark:bg-gray-700">
                                                         <tr>
                                                             <th class="px-3 py-2 w-1/3">Prueba</th>
                                                             <th class="px-3 py-2">Resultado</th>
@@ -136,7 +136,7 @@
                                                                     ->search(fn($item) => $item['prueba_id'] === $prueba['prueba_id']);
                                                             @endphp
 
-                                                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50/50">
+                                                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 ui-table-row">
                                                                 <th class="px-3 py-2 font-medium text-gray-900 dark:text-white">
                                                                     {{ $prueba['prueba_nombre'] }}
                                                                 </th>
@@ -201,7 +201,7 @@
                                                                 <td class="px-3 py-2 text-xs">
                                                                     @if($prueba['es_alerta'] ?? false)
                                                                         <div class="flex flex-col">
-                                                                            <div class="flex items-center text-yellow-600 mb-1">
+                                                                            <div class="flex items-center ui-text-warning mb-1">
                                                                                 <x-heroicon-s-exclamation-triangle class="w-4 h-4 mr-1"/>
                                                                                 <span class="font-bold uppercase">@php
     $ref = $prueba['valor_referencia'];
@@ -211,7 +211,7 @@
 
 {!! $refFormateado !!}</span>
                                                                             </div>
-                                                                            <div class="text-[10px] leading-tight text-yellow-700 bg-yellow-50 p-1 rounded border border-yellow-100">
+                                                                            <div class="text-[10px] leading-tight estado-warning p-1 rounded">
                                                                                 {{ $prueba['mensaje_alerta'] }}
                                                                             </div>
                                                                         </div>
@@ -228,23 +228,19 @@
 
                                                                     @endif
                                                                 </td>
-                                                                <td class="px-3 py-2 text-gray-500">{{ $prueba['unidades'] }}</td>
+                                                                <td class="px-3 py-2 text-gray-600 dark:text-gray-400">{{ $prueba['unidades'] }}</td>
                                                                 <td class="px-3 py-2 text-center">
-    <input 
-        type="checkbox"
-        class="rounded border-gray-300 text-danger-600 focus:ring-danger-500"
+    <x-filament::input.checkbox
         wire:model.defer="data.resultados_examenes.{{ $detalleId }}.pruebas_unitarias.{{ $originalIndex }}.alertar"
     />
 </td>
-                                                                <td class="px-3 py-2 text-gray-500 text-xs leading-snug">
+                                                                <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-xs leading-snug">
     {!! $prueba['notas'] !!}
 </td>
 
                                                                 <td class="px-3 py-2 text-right">
                                                                     @if($prueba['resultado_id'])
-                                                                        <button type="button" wire:click="deleteResultado({{ $prueba['resultado_id'] }})" class="text-danger-500 hover:text-danger-700 transition">
-                                                                            <x-heroicon-o-trash class="w-5 h-5"/>
-                                                                        </button>
+                                                                        <x-filament::icon-button color="danger" icon="heroicon-o-trash" label="Eliminar resultado" wire:click="deleteResultado({{ $prueba['resultado_id'] }})" />
                                                                     @endif
                                                                 </td>
                                                             </tr>
@@ -301,7 +297,7 @@
                             {{-- CONTENIDO EXTERNO (PARA EXÁMENES REFERIDOS) --}}
                             @if($esReferido)
                                 <div x-show="activeTab === 'externo'" class="space-y-4">
-                                    <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg text-blue-700 dark:text-blue-400 text-sm">
+                                    <div class="p-3 estado-info rounded-lg text-sm">
                                         Ingrese los resultados del laboratorio externo de forma manual.
                                     </div>
                                     <div class="overflow-x-auto border rounded-lg">
@@ -318,7 +314,7 @@
                                             </thead>
                                             <tbody>
                                                 @forelse ($examenData['externos'] ?? [] as $index => $ext)
-                                                    <tr class="border-b dark:border-gray-700">
+                                                    <tr wire:key="externo-{{ $detalleId }}-{{ $ext['temp_id'] }}" class="border-b dark:border-gray-700">
                                                         <td class="px-3 py-2">
                                                             <x-filament::input type="text" placeholder="Nombre..." wire:model.defer="data.resultados_examenes.{{ $detalleId }}.externos.{{ $index }}.prueba_nombre"/>
                                                         </td>
@@ -332,16 +328,12 @@
                                                             <x-filament::input type="text" placeholder="mg/dL..." wire:model.defer="data.resultados_examenes.{{ $detalleId }}.externos.{{ $index }}.unidades"/>
                                                         </td>
                                                         <td class="px-3 py-2 text-center">
-                                                            <input 
-                                                                type="checkbox"
-                                                                class="rounded border-gray-300 text-danger-600 focus:ring-danger-500"
+                                                            <x-filament::input.checkbox
                                                                 wire:model.defer="data.resultados_examenes.{{ $detalleId }}.externos.{{ $index }}.alertar"
                                                             />
                                                         </td>
                                                         <td class="px-3 py-2 text-center">
-                                                            <button type="button" wire:click="removeExternalRow({{ $detalleId }}, {{ $index }}, {{ $ext['id'] ?? 'null' }})" class="text-red-500 hover:text-red-700">
-                                                                <x-heroicon-o-trash class="w-5 h-5"/>
-                                                            </button>
+                                                            <x-filament::icon-button color="danger" icon="heroicon-o-trash" label="Eliminar resultado externo" wire:click="removeExternalRow({{ $detalleId }}, {{ $index }})" />
                                                         </td>
                                                     </tr>
                                                 @empty

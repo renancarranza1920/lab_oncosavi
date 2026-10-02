@@ -38,8 +38,8 @@ class OrdenesChart extends ChartWidget
             'datasets' => [
                 [
                     'data' => $values,
-                    'borderColor' => '#64ABC6',
-                    'backgroundColor' => 'rgba(100,171,198,0.25)',
+                    'borderColor' => 'rgb(' . config('ui.primary.500') . ')',
+                    'backgroundColor' => 'rgba(' . config('ui.primary.400') . ', 0.2)',
                     'fill' => true,
                     'tension' => 0.35,
                 ],

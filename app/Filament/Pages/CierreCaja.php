@@ -40,6 +40,11 @@ class CierreCaja extends Page
 
     public function getTitle(): string
     {
+        // Shield consulta el título sin ejecutar mount() al mostrar permisos.
+        if (!isset($this->anio, $this->mes, $this->trimestre)) {
+            return static::$navigationLabel;
+        }
+
         return 'Reporte Financiero - ' . $this->datos['etiqueta'];
     }
 

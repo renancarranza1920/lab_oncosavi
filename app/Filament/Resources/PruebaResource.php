@@ -312,6 +312,7 @@ class PruebaResource extends Resource
                 Tables\Columns\TextColumn::make('tipoPrueba.nombre')
                     ->label('Tipo de Prueba')
                     ->badge()
+                    ->color('gray')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('tipo_conjunto')
@@ -323,7 +324,7 @@ class PruebaResource extends Resource
                     ->badge()
                     ->colors([
                         'success' => 'activo',
-                        'danger' => 'inactivo',
+                        'gray' => 'inactivo',
                     ])
                     ->formatStateUsing(fn (string $state): string => ucfirst($state))
                     ->sortable(),
@@ -368,7 +369,7 @@ class PruebaResource extends Resource
                 Tables\Actions\Action::make('cambiar_estado')
                     ->label(fn (Prueba $record) => $record->estado === 'activo' ? 'Dar de baja' : 'Dar de alta')
                     ->icon(fn (Prueba $record) => $record->estado === 'activo' ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
-                    ->color(fn (Prueba $record) => $record->estado === 'activo' ? 'danger' : 'success')
+                    ->color(fn (Prueba $record) => $record->estado === 'activo' ? 'warning' : 'success')
                     ->tooltip(fn (Prueba $record) => $record->estado === 'activo' ? 'Desactivar Prueba' : 'Activar Prueba')
                     ->requiresConfirmation()
                     ->modalHeading(fn (Prueba $record) => $record->estado === 'activo' ? 'Desactivar Prueba?' : 'Activar Prueba?')

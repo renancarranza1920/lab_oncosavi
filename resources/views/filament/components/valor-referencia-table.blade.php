@@ -24,7 +24,7 @@
                             {{-- NUEVA CELDA --}}
                             <td class="px-4 py-3 align-top text-gray-700 dark:text-white">
                                 @if($valor->prueba)
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium estado-info">
                                         {{ $valor->prueba->nombre }}
                                     </span>
                                 @else

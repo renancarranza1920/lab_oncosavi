@@ -12,7 +12,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages;
+use App\Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -36,36 +36,28 @@ class AdminPanelProvider extends PanelProvider
         // Esto elimina las posibilidades de errores sutiles de encadenamiento.
         $panel->default();
         $panel->id('admin');
-        $panel->path('');
+        $panel->path('admin');
         $panel->login( Login::class);
         $panel->passwordReset();
         
         
         $panel->brandName(config('laboratorio.nombre'));
         $panel->colors([
-            'primary' => config('laboratorio.colores.marino'),
-            'primary-light' => config('laboratorio.colores.celeste'),
-            'primary-dark' => config('laboratorio.colores.marino'),
-            'secondary' => config('laboratorio.colores.celeste'),
-            'secondary-light' => '#A5D1DF',
-            'secondary-dark' => '#32768C',
+            'primary' => config('ui.primary'),
+            'gray' => Color::Gray,
             'info' => config('estados.info.base'),
             'success' => config('estados.success.base'),
-            'success-light' => config('estados.success.fondo'),
-            'success-dark' => config('estados.success.texto'),
             'warning' => config('estados.warning.base'),
             'danger' => config('estados.danger.base'),
-            'dark' => config('laboratorio.colores.marino'),
-            'accent' => config('laboratorio.colores.blanco'),
         ]);
         $panel->renderHook('panels::head.end', fn () => view('partials.tema-oncosavi'));
         $panel->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources');
         $panel->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages');
         
         $panel->pages([
-            Pages\Dashboard::class,
-            'detalle-orden-kanban' => DetalleOrdenKanban::class,
-        ]);
+    	Dashboard::class,
+    	DetalleOrdenKanban::class,
+	]);
         $panel->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets');
         $panel->widgets([
             Widgets\AccountWidget::class,

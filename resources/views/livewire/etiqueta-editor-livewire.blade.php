@@ -12,18 +12,18 @@
         <h2 class="text-xl font-bold">Orden #{{ $ordenId }}</h2>
         <p>Fecha: {{ $ordenFecha }}</p>
         <p>Paciente: {{ $clienteNombre }} (Expediente: {{ $clienteExpediente }})</p>
-        <x-filament::button wire:click="imprimirEtiquetas" class="mt-4">
+        <x-filament::button wire:click="imprimirEtiquetas" color="gray" icon="heroicon-o-printer" class="mt-4">
             Imprimir Etiquetas
         </x-filament::button>
 
        @if (session()->has('message'))
-    <div class="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg" role="alert">
+    <div class="p-4 mb-4 text-sm estado-success rounded-lg" role="alert">
         {{ session('message') }}
     </div>
 @endif
 
 @if (session()->has('error'))
-    <div class="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+    <div class="p-4 mb-4 text-sm estado-danger rounded-lg" role="alert">
         {{ session('error') }}
     </div>
 @endif

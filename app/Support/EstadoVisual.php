@@ -8,8 +8,9 @@ class EstadoVisual
     {
         return match (mb_strtolower(trim(str_replace('_', ' ', $estado ?? '')))) {
             'finalizado', 'finalizada', 'completado', 'completada', 'activo', 'activa', 'aprobado', 'aprobada' => 'success',
-            'pendiente', 'en espera' => 'warning',
-            'pausada', 'pausado', 'cancelado', 'cancelada', 'inactivo', 'inactiva', 'rechazado', 'rechazada' => 'danger',
+            'pendiente', 'en espera', 'pausada', 'pausado' => 'warning',
+            'cancelado', 'cancelada', 'rechazado', 'rechazada' => 'danger',
+            'inactivo', 'inactiva' => 'gray',
             'en proceso', 'en progreso' => 'info',
             default => 'gray',
         };

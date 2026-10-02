@@ -102,7 +102,9 @@ protected static ?int $navigationSort = 3;
 
             Tables\Columns\IconColumn::make('tiene_vencimiento')
                 ->label('Vence')
-                ->boolean(),
+                ->boolean()
+                ->trueColor('info')
+                ->falseColor('gray'),
             Tables\Columns\TextColumn::make('estado')
                 ->badge()
                 ->color(fn($state) => match ($state) {

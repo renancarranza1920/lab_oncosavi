@@ -1,0 +1,66 @@
+name: lab-oncosavi
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: lab-oncosavi-app:1.0
+
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    ports:
+      - "127.0.0.1:8000:80"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    volumes:
+      - laravel_storage:/var/www/html/storage
+
+    networks:
+      - oncosavi_network
+
+  db:
+    image: mysql:8.0
+
+    restart: unless-stopped
+
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./oncosavi.sql:/docker-entrypoint-initdb.d/01-oncosavi.sql:ro
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h 127.0.0.1 -u root -p"$$MYSQL_ROOT_PASSWORD" --silent
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+    networks:
+      - oncosavi_network
+
+volumes:
+  mysql_data:
+  laravel_storage:
+
+networks:
+  oncosavi_network:
+    driver: bridge
