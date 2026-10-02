@@ -3,13 +3,13 @@
 
     <div class="flex gap-4 overflow-x-auto">
         <template x-for="(items, recipiente) in recipientes" :key="recipiente">
-            <div class="bg-gray-100 p-4 rounded w-64 flex-shrink-0">
+            <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded w-64 flex-shrink-0">
                 <h3 class="font-semibold mb-2" x-text="recipiente"></h3>
                 <div class="space-y-2" 
                      @drop.prevent="onDrop($event, recipiente)" 
                      @dragover.prevent>
                     <template x-for="item in items" :key="item.id">
-                        <div class="bg-white p-2 rounded shadow cursor-move"
+                        <div class="bg-white dark:bg-gray-900 p-2 rounded shadow cursor-move"
                              draggable="true"
                              @dragstart="onDragStart($event, item)">
                             <span x-text="item.nombre_examen"></span>
@@ -21,10 +21,10 @@
             </div>
         </template>
 
-        <div class="w-64 flex-shrink-0 bg-white p-4 border rounded">
+        <div class="w-64 flex-shrink-0 bg-white dark:bg-gray-900 p-4 border rounded">
             <h3 class="font-semibold">Nuevo recipiente</h3>
-            <input x-model="nuevo" class="w-full mt-2 p-1 border rounded text-sm" placeholder="Nombre...">
-            <button @click="crearRecipiente()" class="mt-2 w-full bg-blue-600 text-white text-sm px-3 py-1 rounded">Agregar</button>
+            <input x-model="nuevo" class="w-full mt-2 p-1 border rounded text-sm dark:bg-gray-800 dark:text-white" placeholder="Nombre...">
+            <x-filament::button type="button" @click="crearRecipiente()" class="mt-2 w-full">Agregar</x-filament::button>
         </div>
     </div>
 </div>

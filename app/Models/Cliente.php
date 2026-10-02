@@ -111,7 +111,7 @@ protected static function booted(): void
         $digitos = preg_replace('/\D/', '', $normalizado);
         $tipo ??= str_starts_with($normalizado, '+1') && !str_starts_with($normalizado, '+503')
             ? 'us'
-            : (str_starts_with($normalizado, '+503') ? 'sv' : 'fijo');
+            : (str_starts_with($normalizado, '+503') || (!str_starts_with($normalizado, '+') && !str_starts_with($digitos, '2')) ? 'sv' : 'fijo');
 
         if ($tipo === 'sv') {
             $digitos = str_starts_with($digitos, '503') ? substr($digitos, 3) : $digitos;
@@ -134,6 +134,10 @@ protected static function booted(): void
     public function getTelefonosAttribute($value): array
     {
         $telefonos = is_array($value) ? $value : (json_decode($value ?: '[]', true) ?: []);
+
+        if ($telefonos === [] && !empty($this->attributes['telefono'])) {
+            $telefonos = [['numero' => $this->attributes['telefono']]];
+        }
 
         return collect($telefonos)
             ->map(fn ($telefono) => self::normalizarTelefonoPorTipo(

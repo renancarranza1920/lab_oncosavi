@@ -521,9 +521,13 @@ class OrdenResource extends Resource
                                 ->mask(fn (\Filament\Forms\Get $get): string => $get('tipo') === 'us' ? '(999) 999-9999' : '9999-9999')
                                 ->required()
                                 ->rules(fn (\Filament\Forms\Get $get): array => [
-                                    $get('tipo') === 'us'
-                                        ? 'regex:/^\(\d{3}\) \d{3}-\d{4}$/'
-                                        : 'regex:/^\d{4}-\d{4}$/',
+                                    function (string $attribute, $value, \Closure $fail) use ($get): void {
+                                        $esperados = $get('tipo') === 'us' ? 10 : 8;
+
+                                        if (strlen(preg_replace('/\D/', '', (string) $value)) !== $esperados) {
+                                            $fail('El número no tiene la longitud correspondiente al tipo seleccionado.');
+                                        }
+                                    },
                                 ])
                                 ->validationMessages([
                                     'regex' => 'El número no tiene el formato correspondiente al tipo seleccionado.',

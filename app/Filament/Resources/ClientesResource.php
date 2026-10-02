@@ -88,10 +88,11 @@ class ClientesResource extends Resource
                                             ->placeholder('dd/mm/aaaa')
                                             ->maxDate(now())
                                             ->reactive() // Permite que los cambios actualicen el estado
-                                            ->helperText('Si seleccionas una fecha de nacimiento, se borrará la selección del grupo etario.')
+                                            ->helperText('Si seleccionas una fecha de nacimiento, se limpiarán la edad y el grupo etario.')
                                             ->afterStateUpdated(function ($state, $set) {
                                                 // Si se establece una fecha, borra el grupo etario
                                                 if ($state) {
+                                                    $set('edad', null);
                                                     $set('grupo_etario', null); // Borra la selección de grupo etario
                                                 }
                                             }),
@@ -174,9 +175,13 @@ class ClientesResource extends Resource
                                                     ->mask(fn (\Filament\Forms\Get $get): string => $get('tipo') === 'us' ? '(999) 999-9999' : '9999-9999')
                                                     ->required()
                                                     ->rules(fn (\Filament\Forms\Get $get): array => [
-                                                        $get('tipo') === 'us'
-                                                            ? 'regex:/^\(\d{3}\) \d{3}-\d{4}$/'
-                                                            : 'regex:/^\d{4}-\d{4}$/',
+                                                        function (string $attribute, $value, \Closure $fail) use ($get): void {
+                                                            $esperados = $get('tipo') === 'us' ? 10 : 8;
+
+                                                            if (strlen(preg_replace('/\D/', '', (string) $value)) !== $esperados) {
+                                                                $fail('El número no tiene la longitud correspondiente al tipo seleccionado.');
+                                                            }
+                                                        },
                                                     ])
                                                     ->validationMessages([
                                                         'regex' => 'El número no tiene el formato correspondiente al tipo seleccionado.',

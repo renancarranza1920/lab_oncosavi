@@ -20,17 +20,13 @@
                 <h4 class="font-bold mb-2">{{ $tipo }}</h4>
                 <div class="flex flex-wrap gap-2">
                     @foreach($examenesPorTipo as $examen)
-                        <div style="cursor: pointer; background-color:#090B3B; color: white; padding: 0.25rem 0.75rem; font-size: 0.875rem; border-radius: 9999px; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); transition: all 0.2s ease;"
-                            onmouseover="this.style.backgroundColor='#32768C '"
-                            onmouseout="this.style.backgroundColor='#090B3B'">
                             <a href="{{ route('filament.admin.resources.examens.view', $examen['id']) }}"
    target="_blank" rel="noopener"
-   class="text-blue-600 hover:underline">
+   class="ui-chip ui-chip-link">
     {{ $examen['nombre'] }}
 </a>
 
 
-                        </div>
                     @endforeach
                 </div>
             </div>

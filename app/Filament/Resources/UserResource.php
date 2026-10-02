@@ -117,12 +117,7 @@ protected static ?int $navigationSort = 1;
                 Tables\Columns\BadgeColumn::make('roles.name')
                     ->label('Roles')
                     ->getStateUsing(fn($record) => $record->getRoleNames()->implode(', '))
-                    ->colors([
-                        'primary',
-                        'success' => fn($state) => str_contains($state, 'Admin'),
-                        'warning' => fn($state) => str_contains($state, 'User'),
-                        'danger' => fn($state) => str_contains($state, 'Guest'),
-                    ]),
+                    ->color('gray'),
             ])
             ->filters([
                 //

@@ -48,6 +48,7 @@ protected static ?int $navigationSort = 3;
                 Tables\Columns\TextColumn::make('log_name')
                     ->label('Módulo')
                     ->badge()
+                    ->color('gray')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('description')

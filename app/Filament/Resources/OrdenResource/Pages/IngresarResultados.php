@@ -432,13 +432,27 @@ if (!$valorRef && $grupoTodasEdades) {
         ];
     }
 
-    public function removeExternalRow($detalleId, $index, $resultadoId = null)
+    public function removeExternalRow($detalleId, $index)
     {
-        if ($resultadoId) {
-            $this->deleteResultado($resultadoId);
+        abort_unless(auth()->user()?->can('ingresar_resultados_orden'), 403);
+        abort_unless($this->record->detalleOrden()->whereKey($detalleId)->exists(), 404);
+
+        $fila = $this->data['resultados_examenes'][$detalleId]['externos'][$index] ?? null;
+        if (!$fila) {
+            return;
+        }
+
+        if (!empty($fila['id'])) {
+            $resultado = $this->record->resultados()
+                ->where('resultados.id', $fila['id'])
+                ->where('detalle_orden_id', $detalleId)
+                ->where('es_externo', true)
+                ->firstOrFail();
+            $resultado->delete();
+            $this->eliminarPdfParcial();
         }
         unset($this->data['resultados_examenes'][$detalleId]['externos'][$index]);
-        $this->data['resultados_examenes'][$detalleId]['externos'] = array_values($this->data['resultados_examenes'][$detalleId]['externos']);
+        // Mantener los índices evita cambiar los enlaces wire:model de las filas restantes.
     }
 
     protected function getFormActions(): array
@@ -472,12 +486,14 @@ if (!$valorRef && $grupoTodasEdades) {
     Action::make('generar_pdf_parcial')
         ->label('Generar PDF')
         ->icon('heroicon-o-printer')
+        ->color('gray')
         ->visible(fn() => $this->tieneExamenesParaParcial())
         ->action(fn() => $this->generarPdfParcial()),
 
     Action::make('enviar_pdf_parcial')
     ->label('Enviar')
     ->icon('heroicon-o-paper-airplane')
+    ->color('primary')
     ->visible(function () {
         $nombreCliente = \Illuminate\Support\Str::slug(
             $this->record->cliente->nombre . ' ' . $this->record->cliente->apellido
@@ -595,12 +611,14 @@ if (!$valorRef && $grupoTodasEdades) {
     Action::make('generar_pdf_parcial')
         ->label('Generar PDF')
         ->icon('heroicon-o-printer')
+        ->color('gray')
         ->visible(fn() => $this->tieneExamenesParaParcial())
         ->action(fn() => $this->generarPdfParcial()),
 
     Action::make('enviar_pdf_parcial')
     ->label('Enviar')
     ->icon('heroicon-o-paper-airplane')
+    ->color('primary')
     ->visible(function () {
         $nombreCliente = \Illuminate\Support\Str::slug(
             $this->record->cliente->nombre . ' ' . $this->record->cliente->apellido
@@ -1205,7 +1223,7 @@ public function enviarPdfParcial(array $data = [])
                 ->label('WhatsApp')
                 ->url($linkWhatsapp, shouldOpenInNewTab: true)
                 ->button()
-                ->color('success')
+                ->color('gray')
                 ->visible(fn() => $linkWhatsapp !== null),
 
             \Filament\Notifications\Actions\Action::make('email')

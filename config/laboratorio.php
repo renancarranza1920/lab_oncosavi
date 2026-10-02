@@ -1,6 +1,8 @@
 <?php
 
 return [
+    // Reactivar cuando estén disponibles las etiquetas y la impresora.
+    'impresion_etiquetas_habilitada' => env('IMPRESION_ETIQUETAS_HABILITADA', false),
     'nombre' => 'ONCOSAVI',
     'sede' => 'San Vicente',
     'correo' => 'oncosavi@gmail.com',

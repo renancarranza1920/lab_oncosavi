@@ -7,7 +7,7 @@
     {{-- 2. Separador y Título para la Tabla --}}
     <div class="mt-8 mb-4">
         <h2 class="text-xl font-bold tracking-tight text-gray-950 dark:text-white flex items-center gap-2">
-            <x-heroicon-o-clipboard-document-list class="w-6 h-6 text-primary-600"/>
+            <x-heroicon-o-clipboard-document-list class="w-6 h-6 ui-text-primary"/>
             Historial de Órdenes
         </h2>
         <p class="text-sm text-gray-500 dark:text-gray-400">

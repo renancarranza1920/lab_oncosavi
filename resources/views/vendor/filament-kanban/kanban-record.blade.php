@@ -17,12 +17,14 @@
     {{ $record->{static::$recordTitleAttribute} }}
 
     <!-- Botón imprimir individual usando Livewire -->
-    <button
+    @if (config('laboratorio.impresion_etiquetas_habilitada'))
+    <x-filament::icon-button
         wire:click.stop="printSingle({{ $record->getKey() }})"
-        type="button"
-        class="ml-2 inline-flex items-center gap-2 px-2 py-1 text-xs font-medium text-primary-700 bg-primary-100 rounded hover:bg-primary-200 dark:bg-primary-800 dark:text-primary-200"
-        title="Imprimir etiqueta"
-    >
-        <x-heroicon-o-printer class="w-4 h-4" />
-    </button>
+        color="gray"
+        icon="heroicon-o-printer"
+        label="Imprimir etiqueta"
+        size="sm"
+        class="ml-2"
+    />
+    @endif
 </div>

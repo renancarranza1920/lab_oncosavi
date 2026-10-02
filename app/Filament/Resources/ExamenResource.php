@@ -147,7 +147,7 @@ class ExamenResource extends Resource
                                 TextEntry::make('precio')
                                     ->label('Precio al Público')
                                     ->money('USD')
-                                    ->color('success')
+                                    ->color('gray')
                                     ->weight('bold'),
                             ]),
     
@@ -170,7 +170,7 @@ class ExamenResource extends Resource
                                     ->label('Estado Actual')
                                     ->badge()
                                     ->formatStateUsing(fn (bool $state) => $state ? 'Activo' : 'Inactivo')
-                                    ->color(fn (bool $state) => $state ? 'success' : 'danger'),
+                                    ->color(fn (bool $state) => $state ? 'success' : 'gray'),
                             ]),
                         ])->from('md'),
                     ]),
@@ -181,6 +181,7 @@ class ExamenResource extends Resource
                             TextEntry::make('muestras.nombre')
                                 ->label('Muestras Necesarias')
                                 ->badge()
+                    ->color('gray')
                                 ->color('warning')
                                 ->listWithLineBreaks()
                                 ->placeholder('No se especificaron muestras'),
@@ -234,15 +235,15 @@ class ExamenResource extends Resource
     
                 Tables\Columns\TextColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => $state ? '✅ Activo' : '❌ Inactivo')
+                    ->formatStateUsing(fn($state) => $state ? 'Activo' : 'Inactivo')
                     ->badge()
-                    ->color(fn($state) => $state ? 'success' : 'danger'),
+                    ->color(fn($state) => $state ? 'success' : 'gray'),
     
                 Tables\Columns\BooleanColumn::make('es_externo')
                     ->label('Origen')
                     ->trueIcon('heroicon-o-paper-airplane')
                     ->falseIcon('heroicon-o-home')
-                    ->color(fn($state) => $state ? 'info' : 'success')
+                    ->color(fn($state) => $state ? 'info' : 'gray')
                     ->sortable(),
     
                 Tables\Columns\TextColumn::make('created_at')
@@ -290,7 +291,7 @@ class ExamenResource extends Resource
                     ->label('Añadir Pruebas')
                     ->icon('heroicon-o-plus-circle')
                     ->visible(fn(Examen $record) => $record->es_externo === false && auth()->user()->can('agregar_pruebas_examenes'))
-                    ->color('gray')
+                    ->color('primary')
                     ->modalHeading(fn(Examen $record) => 'Añadir pruebas a: ' . $record->nombre)
                     ->form([
                         Forms\Components\TagsInput::make('nombres_pruebas')
@@ -322,7 +323,7 @@ class ExamenResource extends Resource
                 Action::make('cambiar_estado')
                     ->label(fn($record) => $record->estado ? 'Dar de baja' : 'Dar de alta')
                     ->icon(fn($record) => $record->estado ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
-                    ->color(fn($record) => $record->estado ? 'danger' : 'success')
+                    ->color(fn($record) => $record->estado ? 'warning' : 'success')
                     ->visible(fn(Examen $record) =>    auth()->user()->can('cambiar_estado_examenes'))
                     ->tooltip(fn($record) => $record->estado ? 'Dar de baja' : 'Dar de alta')
                     ->requiresConfirmation()
@@ -357,7 +358,7 @@ class ExamenResource extends Resource
                             if (!empty($perfilesEnRiesgo)) {
                                 $afectados = implode(', ', $perfilesEnRiesgo);
                                 $alertaRiesgo =
-                                    "<div class='mt-3 text-sm text-red-600 dark:text-red-400 font-semibold text-center'>" .
+                                    "<div class='mt-3 text-sm ui-text-danger font-semibold text-center'>" .
                                     "⚠️ Nota: Se desactivarán automáticamente los perfiles:<br>" .
                                     "<span class='text-base'>{$afectados}</span><br>" .
                                     "debido a que quedarán con menos de 2 exámenes activos." .

@@ -5,8 +5,8 @@
     </p>
 
     @if ($muestrasConsolidadas->isEmpty())
-        <div class="p-4 text-center bg-yellow-50 dark:bg-yellow-900/10 rounded-lg">
-            <p class="text-yellow-700 dark:text-yellow-400">No se han definido muestras para los exámenes de esta orden.</p>
+        <div class="p-4 text-center estado-warning rounded-lg">
+            <p class="ui-text-warning">No se han definido muestras para los exámenes de esta orden.</p>
         </div>
     @else
         <div class="border rounded-lg overflow-hidden dark:border-gray-700">

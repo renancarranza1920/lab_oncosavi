@@ -13,12 +13,16 @@
 
 
 .text-success {
-    @apply text-green-500 font-semibold;
-  }
-  
-  .highlighted {
-    color: red;
-    background-color: yellow;
+    color: rgb(var(--success-700));
+    font-weight: 600;
+}
+.dark .text-success { color: rgb(var(--success-300)); }
+.highlighted {
+    color: rgb(var(--warning-700));
+    background-color: rgb(var(--warning-50));
     font-weight: bold;
 }
-
+.dark .highlighted {
+    color: rgb(var(--warning-300));
+    background-color: rgb(var(--warning-950));
+}

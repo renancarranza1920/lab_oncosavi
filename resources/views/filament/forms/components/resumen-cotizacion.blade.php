@@ -60,7 +60,7 @@
         <div class="mt-6 pt-4 border-t-2 border-gray-300 dark:border-gray-600">
             <div class="flex justify-between items-center text-xl font-bold">
                 <span class="text-gray-900 dark:text-white">Total a Pagar:</span>
-                <span class="font-mono text-success-600 dark:text-success-500">${{ number_format($total, 2) }}</span>
+                <span class="font-mono ui-text-primary">${{ number_format($total, 2) }}</span>
             </div>
         </div>
         @endif

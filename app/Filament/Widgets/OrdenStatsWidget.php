@@ -31,7 +31,7 @@ protected static ?int $sort = 0;
         Orden::whereDate('created_at', today())->count()
     )
         ->description('Total de órdenes registradas hoy')
-        ->color('success');
+        ->color('primary');
 
     // Órdenes pendientes
     $stats[] = Stat::make(

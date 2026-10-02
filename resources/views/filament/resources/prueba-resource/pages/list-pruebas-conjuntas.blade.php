@@ -79,7 +79,7 @@
                                                 @if ($prueba)
                                                     <span class="text-xs">{{ $prueba->nombre }}</span>
                                                 @else
-                                                    <span class="text-xs text-red-400">(Error)</span>
+                                                    <span class="text-xs ui-text-danger">(Error)</span>
                                                 @endif
                                             </td>
                                         @endforeach
