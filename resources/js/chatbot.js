@@ -52,6 +52,7 @@ if (root) {
         exportButton.type = 'button'; exportButton.addEventListener('click', () => download(result));
         header.append(heading, exportButton); card.append(header);
         card.append(el('p', `${result.periodo.desde} → ${result.periodo.hasta}${result.periodo.estado !== 'todos' ? ' · ' + result.periodo.estado : ''}`, 'answer-period'));
+        card.append(el('p', result.respuesta, 'answer-summary'));
         if (!result.filas.length) {
             card.append(el('p', 'No hay registros para este periodo y filtro.', 'empty-result'));
         } else {
@@ -69,7 +70,12 @@ if (root) {
         card.append(el('p', result.nota, 'answer-note'));
         const time = new Date(result.consultado_en).toLocaleString('es-SV', { timeZone: 'America/El_Salvador', dateStyle: 'short', timeStyle: 'short' });
         card.append(el('div', `${result.fuente} · Consultado ${time}`, 'answer-source'));
-        messages.append(card);
+        const followups = el('div', undefined, 'answer-followups');
+        for (const label of (result.informe === 'clientes_nuevos' ? ['¿Y hoy?', '¿Y ayer?'] : ['¿Y hoy?', '¿Y ayer?', 'Solo las pendientes'])) {
+            const button = el('button', label, 'export-button'); button.type = 'button';
+            button.addEventListener('click', () => ask(label)); followups.append(button);
+        }
+        card.append(followups); messages.append(card);
     }
     async function ask(question, report = null) {
         if (busy || !question.trim()) return;
@@ -94,13 +100,19 @@ if (root) {
                 throw new Error(response.status === 419 || response.status === 401 ? 'Tu sesión venció. Vuelve a iniciar sesión en el sistema.' : response.status === 429 ? 'El asistente está ocupado o recibiste el límite de consultas. Espera un momento.' : firstError || data.message || 'No fue posible consultar el informe.');
             }
             loading.remove(); render(data.resultado, data.modo);
-            context = { informe: data.resultado.informe, ...data.resultado.periodo };
+            context = { informe: data.resultado.informe, ...data.resultado.periodo, limite: data.resultado.limite };
+            from.value = data.resultado.periodo.desde; to.value = data.resultado.periodo.hasta;
             if (data.modo === 'ia_local') status(true);
         } catch (error) {
             loading.remove(); const node = el('div', error.message || 'No se pudo conectar. Intenta de nuevo.', 'error-message'); node.setAttribute('role', 'alert'); messages.append(node);
         } finally {
             busy = false; send.disabled = false; document.querySelectorAll('.quick-card').forEach(b => b.disabled = false); scroll(); input.focus();
         }
+    }
+    for (const id of ['period-from', 'period-to']) {
+        document.getElementById(id).addEventListener('change', () => {
+            if (context) { context.desde = document.getElementById('period-from').value; context.hasta = document.getElementById('period-to').value; }
+        });
     }
     form.addEventListener('submit', e => { e.preventDefault(); ask(input.value); });
     input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });

@@ -30,10 +30,11 @@ class ChatbotController extends Controller
             'pregunta' => ['required', 'string', 'max:1000'],
             'desde' => ['required', 'date_format:Y-m-d'], 'hasta' => ['required', 'date_format:Y-m-d', 'after_or_equal:desde'],
             'consulta_rapida' => ['nullable', Rule::in(InformesLaboratorio::INFORMES)],
-            'contexto' => ['nullable', 'array:informe,desde,hasta,estado'],
+            'contexto' => ['nullable', 'array:informe,desde,hasta,estado,limite'],
             'contexto.informe' => ['sometimes', Rule::in(InformesLaboratorio::INFORMES)],
             'contexto.desde' => ['sometimes', 'date_format:Y-m-d'],
             'contexto.hasta' => ['sometimes', 'date_format:Y-m-d'],
+            'contexto.limite' => ['sometimes', 'integer', 'between:1,' . config('chatbot.max_rows')],
             'contexto.estado' => ['sometimes', Rule::in(InformesLaboratorio::ESTADOS)],
         ]);
         $periodo = ['desde' => $p['desde'], 'hasta' => $p['hasta']];
@@ -42,9 +43,13 @@ class ChatbotController extends Controller
             if ($p['consulta_rapida'] ?? null) {
                 $parametros = array_merge($periodo, ['informe' => $p['consulta_rapida']]);
                 $modo = 'guiado';
+            } elseif ($rechazo = $planificador->rechazo($p['pregunta'])) {
+                return response()->json(['message' => $rechazo], 422);
+            } elseif ($parametros = $planificador->guiada($p['pregunta'], $periodo, $p['contexto'] ?? [])) {
+                $modo = 'guiado';
             } else {
                 // One model inference at a time across all owner sessions.
-                $bloqueo = Cache::lock('chatbot-inferencia-local', 100);
+                $bloqueo = Cache::lock('chatbot-inferencia-local', config('chatbot.ai.timeout') + 20);
                 if (!$bloqueo->get()) return response()->json(['message' => 'El asistente está atendiendo otra pregunta. Intenta de nuevo en un momento.'], 429);
                 try {
                     $parametros = $planificador->interpretar($p['pregunta'], $periodo, $p['contexto'] ?? []);
@@ -55,7 +60,7 @@ class ChatbotController extends Controller
                     $modo = 'guiado';
                 }
                 if (($parametros['informe'] ?? null) === 'no_disponible') {
-                    return response()->json(['message' => 'Puedo consultar resúmenes, estados de órdenes, importes por día, exámenes populares, órdenes recientes y clientes nuevos. Prueba una de las consultas rápidas.'], 422);
+                    return response()->json(['message' => 'Puedo consultar resúmenes, cantidades y listas de órdenes, importes totales o por día, exámenes populares, clientes nuevos y pacientes atendidos. Prueba una de las consultas rápidas.'], 422);
                 }
             }
             $resultado = $informes->consultar($parametros, $request->user());

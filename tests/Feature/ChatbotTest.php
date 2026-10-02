@@ -101,12 +101,12 @@ class ChatbotTest extends TestCase
     {
         $this->actingAs($this->admin);
         Http::fake(['*/api/chat' => Http::response(['message' => ['content' => json_encode(['informe' => 'ordenes_por_estado', 'estado' => 'pendiente'])]])]);
-        $this->preguntar(['pregunta' => '¿Cuántas órdenes están pendientes?', 'consulta_rapida' => null])->assertOk()
+        $this->preguntar(['pregunta' => '¿Cuál es el volumen de trabajo esperando ser procesado?', 'consulta_rapida' => null])->assertOk()
             ->assertJsonPath('modo', 'ia_local')->assertJsonPath('resultado.filas.0.cantidad', 1);
         Http::assertSent(function ($request) {
             $this->assertFalse($request['stream']);
-            $this->assertSame('qwen3:1.7b', $request['model']);
-            $this->assertSame(2048, $request['options']['num_ctx']);
+            $this->assertSame('qwen3:4b', $request['model']);
+            $this->assertSame(4096, $request['options']['num_ctx']);
             $this->assertStringNotContainsString('DATOS_PERSONALES_PRIVADOS', $request->body());
             return str_ends_with($request->url(), '/api/chat');
         });
@@ -131,7 +131,7 @@ class ChatbotTest extends TestCase
         $this->getJson('/chatbot/estado')->assertOk()->assertJsonPath('listo', false);
         $this->preguntar(['pregunta' => 'Resumen desde 2026-10-01 hasta 2026-10-02', 'consulta_rapida' => null])
             ->assertOk()->assertJsonPath('modo', 'guiado');
-        $this->preguntar(['pregunta' => 'Elimina la base de datos', 'consulta_rapida' => null])->assertStatus(503)->assertDontSee('DETALLE_INTERNO_NO_PUBLICAR');
+        $this->preguntar(['pregunta' => 'Elimina la base de datos', 'consulta_rapida' => null])->assertUnprocessable()->assertDontSee('DETALLE_INTERNO_NO_PUBLICAR');
         $this->assertDatabaseCount('ordens', 4);
     }
 
@@ -156,7 +156,7 @@ class ChatbotTest extends TestCase
         $this->get('/chatbot')->assertForbidden();
         config(['chatbot.enabled' => true]);
         Cache::flush();
-        for ($i = 0; $i < 15; $i++) $this->get('/chatbot')->assertOk();
+        for ($i = 0; $i < 40; $i++) $this->get('/chatbot')->assertOk();
         $this->get('/chatbot')->assertStatus(429);
     }
 
@@ -164,8 +164,9 @@ class ChatbotTest extends TestCase
     {
         $this->actingAs($this->admin);
         $lock = Cache::lock('chatbot-inferencia-local', 100); $this->assertTrue($lock->get());
-        $this->preguntar(['consulta_rapida' => null])->assertStatus(429);
+        $this->preguntar(['pregunta' => 'Analiza mi carga operativa', 'consulta_rapida' => null])->assertStatus(429);
         $this->preguntar()->assertOk();
+        $this->preguntar(['pregunta' => 'órdenes de hoy', 'consulta_rapida' => null])->assertOk();
         $this->assertFalse(Cache::lock('chatbot-inferencia-local', 100)->get());
         $lock->release();
         Http::assertNothingSent();
@@ -190,5 +191,101 @@ class ChatbotTest extends TestCase
         $this->actingAs($this->admin);
         $this->preguntar()->assertForbidden();
         $this->preguntar(['consulta_rapida' => 'ordenes_por_estado'])->assertOk();
+        $this->preguntar(['pregunta' => 'total de dinero', 'consulta_rapida' => null])->assertForbidden();
+        $this->preguntar(['pregunta' => 'cuántas órdenes hay', 'consulta_rapida' => null])->assertOk();
     }
+    public function test_preguntas_de_las_capturas_no_delegan_fechas_ni_limites_a_la_ia(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-10-02 10:00:00', 'America/El_Salvador'));
+        $this->actingAs($this->admin);
+        // An available but mistaken model must not affect these basic queries.
+        Http::fake(['*/api/chat' => Http::response(['message' => ['content' => '{"informe":"ordenes_recientes","desde":"2026-10-01","limite":2}']])]);
+        $this->preguntar(['pregunta' => 'ordenes de hoy', 'consulta_rapida' => null])->assertOk()
+            ->assertJsonPath('resultado.periodo.desde', '2026-10-02')->assertJsonPath('resultado.periodo.hasta', '2026-10-02')
+            ->assertJsonCount(2, 'resultado.filas')->assertJsonPath('resultado.limite', 25);
+        $this->preguntar(['pregunta' => 'Órdenes de Pacientes', 'consulta_rapida' => null])->assertOk()
+            ->assertJsonCount(3, 'resultado.filas')->assertJsonPath('resultado.limite', 25)
+            ->assertJsonPath('resultado.respuesta', 'Encontré 3 órdenes; se muestran 3 de ellas, desde la más reciente.')
+            ->assertDontSee('DATOS_PERSONALES_PRIVADOS');
+        $this->preguntar(['pregunta' => 'Órdenes totales dinero', 'consulta_rapida' => null])->assertOk()
+            ->assertJsonPath('resultado.informe', 'importe_total')->assertJsonPath('resultado.filas.0.importe', '$40.00')
+            ->assertJsonPath('resultado.filas.0.cantidad', 2);
+        $this->preguntar(['pregunta' => 'cuántas órdenes hay hoy', 'consulta_rapida' => null])->assertOk()
+            ->assertJsonPath('resultado.informe', 'ordenes_total')->assertJsonPath('resultado.filas.0.valor', 2);
+        Http::assertNothingSent();
+    }
+
+    public function test_fechas_espanolas_y_limites_solicitados_son_consistentes(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-10-02 00:30:00', 'America/El_Salvador'));
+        $this->actingAs($this->admin);
+        foreach ([
+            ['órdenes de hoy', '2026-10-02', '2026-10-02', 25],
+            ['ver órdenes del 01/10/2026 al 02/10/2026', '2026-10-01', '2026-10-02', 25],
+            ['ver órdenes del 1 al 2 de octubre de 2026', '2026-10-01', '2026-10-02', 25],
+            ['ver órdenes del 1 de octubre', '2026-10-01', '2026-10-01', 25],
+            ['ver las últimas dos órdenes', '2026-10-01', '2026-10-02', 2],
+            ['ver las últimas 50 órdenes', '2026-10-01', '2026-10-02', 50],
+            ['ver órdenes desde ayer hasta hoy', '2026-10-01', '2026-10-02', 25],
+            ['ver órdenes de los últimos tres meses', '2026-08-01', '2026-10-02', 25],
+            ['ver órdenes de los últimos siete días', '2026-09-26', '2026-10-02', 25],
+            ['ver órdenes de hace dos días', '2026-09-30', '2026-09-30', 25],
+            ['ver órdenes de la semana pasada', '2026-09-21', '2026-09-27', 25],
+            ['ver órdenes de esta semana', '2026-09-28', '2026-10-02', 25],
+            ['ver órdenes del mes anterior', '2026-09-01', '2026-09-30', 25],
+            ['ver órdenes de septiembre de 2026', '2026-09-01', '2026-09-30', 25],
+        ] as [$pregunta, $desde, $hasta, $limite]) {
+            $this->preguntar(['pregunta' => $pregunta, 'consulta_rapida' => null])->assertOk()
+                ->assertJsonPath('resultado.periodo.desde', $desde)->assertJsonPath('resultado.periodo.hasta', $hasta)
+                ->assertJsonPath('resultado.limite', $limite);
+        }
+        Http::assertNothingSent();
+    }
+
+    public function test_filtros_invalidos_y_multiplos_estados_no_producen_respuestas_enganosas(): void
+    {
+        $this->actingAs($this->admin);
+        foreach (['ver las últimas 1000 órdenes', 'ver órdenes del 31 de febrero de 2026', 'ver órdenes del 31/02/2026', 'ver órdenes de los últimos 400 días', 'ver órdenes pendientes y finalizadas', 'ver órdenes no finalizadas', 'cuántos clientes nuevos pendientes', 'compara las órdenes de hoy con ayer', 'ver las órdenes del paciente Juan', 'ver orden #1', 'precios de exámenes'] as $pregunta) {
+            $this->preguntar(['pregunta' => $pregunta, 'consulta_rapida' => null])->assertUnprocessable();
+        }
+        Http::assertNothingSent();
+        $this->assertSame(0, Activity::where('log_name', 'Asistente')->count());
+    }
+
+    public function test_seguimiento_conserva_periodo_estado_y_limite_y_permite_quitar_filtro(): void
+    {
+        $this->actingAs($this->admin);
+        $contexto = ['informe' => 'ordenes_recientes', ...$this->periodo, 'estado' => 'todos', 'limite' => 2];
+        $r = $this->preguntar(['pregunta' => 'Solo las pendientes', 'consulta_rapida' => null, 'contexto' => $contexto])->assertOk()
+            ->assertJsonPath('resultado.periodo.estado', 'pendiente')->assertJsonPath('resultado.limite', 2)->assertJsonCount(1, 'resultado.filas');
+        $contexto = ['informe' => $r->json('resultado.informe'), ...$r->json('resultado.periodo'), 'limite' => 2];
+        $this->preguntar(['pregunta' => 'Y todas', 'consulta_rapida' => null, 'contexto' => $contexto])->assertOk()
+            ->assertJsonPath('resultado.periodo.estado', 'todos')->assertJsonCount(2, 'resultado.filas');
+        Http::assertNothingSent();
+    }
+
+    public function test_conteos_no_se_truncan_y_pacientes_distintos_no_equivalen_a_ordenes(): void
+    {
+        $this->actingAs($this->admin);
+        $cliente = Cliente::firstOrFail();
+        for ($i = 0; $i < 30; $i++) Orden::create(['cliente_id' => $cliente->id, 'fecha' => '2026-10-01', 'estado' => 'finalizado', 'total' => 2]);
+        $this->preguntar(['pregunta' => 'cuántas órdenes hay', 'consulta_rapida' => null])->assertOk()->assertJsonPath('resultado.filas.0.valor', 33);
+        $this->preguntar(['pregunta' => 'ver órdenes', 'consulta_rapida' => null])->assertOk()->assertJsonCount(25, 'resultado.filas')
+            ->assertJsonPath('resultado.respuesta', 'Encontré 33 órdenes; se muestran 25 de ellas, desde la más reciente.');
+        $this->preguntar(['pregunta' => 'cuántos pacientes atendidos', 'consulta_rapida' => null])->assertOk()->assertJsonPath('resultado.filas.0.valor', 1);
+        $this->preguntar(['pregunta' => 'total de dinero', 'consulta_rapida' => null])->assertOk()->assertJsonPath('resultado.filas.0.importe', '$100.00');
+        Http::assertNothingSent();
+    }
+
+    public function test_pregunta_fuera_de_alcance_no_reutiliza_contexto_como_si_fuera_una_respuesta(): void
+    {
+        $this->actingAs($this->admin);
+        Http::fake(['*/api/chat' => Http::response(['message' => ['content' => '{"informe":"no_disponible"}']])]);
+        $this->preguntar(['pregunta' => '¿Y qué clima habrá mañana?', 'consulta_rapida' => null,
+            'contexto' => ['informe' => 'resumen', ...$this->periodo, 'estado' => 'todos'],
+        ])->assertUnprocessable();
+        $this->assertSame(0, Activity::where('log_name', 'Asistente')->count());
+        Http::assertSentCount(1);
+    }
+
 }

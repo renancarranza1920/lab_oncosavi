@@ -9,7 +9,7 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Version;
 
 #[Name('ONCOSAVI · Informes del laboratorio')]
-#[Version('1.0.0')]
+#[Version('1.1.0')]
 #[Instructions('Consulta informes administrativos reales mediante consultar_laboratorio. No ejecuta SQL libre ni modifica datos de negocio. Acceso exclusivo del administrador autenticado. Fechas de El Salvador; importes en USD, no equivalen a pagos comprobados.')]
 class LaboratorioServer extends Server
 {

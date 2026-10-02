@@ -13,7 +13,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('consultar_laboratorio')]
-#[Description('Obtiene tablas de informes administrativos: resumen, ordenes_por_estado, ingresos_por_dia, examenes_populares, ordenes_recientes y clientes_nuevos. Solo lectura de datos de negocio; registra la consulta en bitácora. Sin datos clínicos ni personales.')]
+#[Description('Obtiene tablas de informes administrativos: resumen, ordenes_por_estado, ingresos_por_dia, examenes_populares, ordenes_recientes, clientes_nuevos, ordenes_total, importe_total y pacientes_atendidos. Solo lectura de datos de negocio; registra la consulta en bitácora. Sin datos clínicos ni personales.')]
 #[IsReadOnly]
 class ConsultarLaboratorio extends Tool
 {
@@ -24,7 +24,7 @@ class ConsultarLaboratorio extends Tool
             'desde' => $schema->string()->description('YYYY-MM-DD, fecha inicial inclusiva.'),
             'hasta' => $schema->string()->description('YYYY-MM-DD, fecha final inclusiva; máximo 366 días.'),
             'estado' => $schema->string()->enum(InformesLaboratorio::ESTADOS),
-            'limite' => $schema->integer()->min(1)->max(20),
+            'limite' => $schema->integer()->min(1)->max(config('chatbot.max_rows')),
         ];
     }
 
