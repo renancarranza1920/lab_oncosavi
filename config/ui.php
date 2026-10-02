@@ -1,6 +1,21 @@
 <?php
 
 return [
+    // Paleta de gráficos independiente de botones y etiquetas de estado.
+    'charts' => [
+        'line' => '#3B82F6',
+        'line_fill' => 'rgba(59, 130, 246, 0.12)',
+        'bars' => ['#6366F1', '#3B82F6', '#0891B2', '#0D9488', '#8B5CF6'],
+        'states' => [
+            'pendiente' => '#8B5CF6',
+            'en proceso' => '#3B82F6',
+            'finalizado' => '#059669',
+            'pausada' => '#D97706',
+            'cancelado' => '#E11D48',
+        ],
+        'fallback' => '#94A3B8',
+    ],
+
     // Escala institucional: marino para la marca y celeste legible en modo oscuro.
     'primary' => [
         50 => '240, 247, 250',

@@ -21,6 +21,7 @@ class EstadosOrdenesChart extends ChartWidget
 
     protected static ?string $heading = 'Distribución de Estados de Órdenes';
     protected static ?int $sort = 1;
+    protected static ?string $maxHeight = '300px';
 
     protected int | string | array $columnSpan = 1;
 
@@ -37,9 +38,11 @@ class EstadosOrdenesChart extends ChartWidget
                 [
                     'data' => $data->pluck('total')->toArray(),
                     'backgroundColor' => $data->pluck('estado')->map(
-                        fn ($estado) => config('estados.' . \App\Support\EstadoVisual::color($estado) . '.base')
+                        fn ($estado) => config('ui.charts.states.' . mb_strtolower(trim(str_replace('_', ' ', $estado ?? ''))), config('ui.charts.fallback'))
                     )->toArray(),
-                    'borderWidth' => 0,
+                    'borderColor' => '#FFFFFF',
+                    'borderWidth' => 3,
+                    'hoverOffset' => 6,
                 ],
             ],
             'labels' => $data->pluck('estado')->toArray(),
@@ -54,15 +57,20 @@ class EstadosOrdenesChart extends ChartWidget
     protected function getOptions(): array
     {
         return [
+            'scales' => ['x' => ['display' => false], 'y' => ['display' => false]],
             'plugins' => [
                 'legend' => [
                     'position' => 'bottom',
                     'labels' => [
                         'usePointStyle' => true,
+                        'pointStyle' => 'circle',
+                        'padding' => 18,
+                        'boxWidth' => 10,
+                        'boxHeight' => 10,
                     ],
                 ],
             ],
-            'cutout' => '65%',
+            'cutout' => '70%',
         ];
     }
 }
