@@ -1,0 +1,109 @@
+{
+  "id": "oncosaviWhatsAppV1",
+  "name": "ONCOSAVI · envío privado de PDF por WhatsApp",
+  "active": false,
+  "nodes": [
+    {
+      "id": "webhook",
+      "name": "Solicitud ONCOSAVI",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "oncosavi-whatsapp",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "oncosavi-whatsapp",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "oncosaviWebhookV1",
+          "name": "ONCOSAVI webhook privado"
+        }
+      }
+    },
+    {
+      "id": "send",
+      "name": "Enviar documento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "http://whatsapp:3000/send",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {
+          "timeout": 35000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "oncosaviBridgeV1",
+          "name": "ONCOSAVI WhatsApp privado"
+        }
+      }
+    },
+    {
+      "id": "response",
+      "name": "Estado para ONCOSAVI",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ ({status: ['sent','failed','sending','unknown'].includes($json.status) ? $json.status : 'unknown', messageId: typeof $json.messageId === 'string' ? $json.messageId : undefined, code: ['not_connected','not_registered','invalid_request','busy'].includes($json.code) ? $json.code : undefined}) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Solicitud ONCOSAVI": {
+      "main": [
+        [
+          {
+            "node": "Enviar documento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar documento": {
+      "main": [
+        [
+          {
+            "node": "Estado para ONCOSAVI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "saveManualExecutions": false,
+    "saveExecutionProgress": false,
+    "executionTimeout": 45
+  }
+}

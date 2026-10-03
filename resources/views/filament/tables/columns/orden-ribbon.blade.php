@@ -10,7 +10,7 @@
      "
      x-data
      x-tooltip="'Compartir resultados'"
-     @click.stop="$wire.mountTableAction('compartirWhatsapp', {{ $getRecord()->id }})"
+     @click.stop="$wire.mountTableAction('enviarPorCorreoOWhatsApp', {{ $getRecord()->id }})"
 >
     {{-- Ajustamos la posición del ícono para que encaje en el nuevo tamaño --}}
     <div class="absolute" style="top: -26px; left: 2px; color: white;">

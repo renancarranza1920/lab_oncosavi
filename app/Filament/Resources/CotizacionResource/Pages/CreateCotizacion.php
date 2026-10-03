@@ -92,7 +92,7 @@ class CreateCotizacion extends ResourcePage implements HasForms
                 ->schema([
                     Placeholder::make('acciones_finales')
                         ->label('Acciones')
-                        ->content('Descargue el PDF y comparta el resumen por WhatsApp o Gmail. Para enviar el archivo, adjúntelo en la conversación o el correo antes de enviarlo.')
+                        ->content('Envíe el PDF directamente por WhatsApp. Para Gmail, descargue el PDF y adjúntelo al correo.')
                         ->columnSpanFull(),
 
                     \Filament\Forms\Components\Actions::make([
@@ -103,12 +103,14 @@ class CreateCotizacion extends ResourcePage implements HasForms
                             ->action(fn() => $this->generatePdfPreview(true)),
 
                         FormAction::make('enviarWhatsApp')
-                            ->label('Compartir por WhatsApp')
+                            ->label('Enviar PDF por WhatsApp')
                             ->visible(fn () => auth()->user()->can('enviar_cotizacion_whatsapp'))
                             ->icon('heroicon-o-paper-airplane')
                             ->color('gray')
-                            ->url(fn (Get $get) => $this->getWhatsAppUrl($get))
-                            ->openUrlInNewTab()
+                            ->requiresConfirmation()
+                            ->modalHeading('Enviar cotización por WhatsApp')
+                            ->modalDescription(fn (Get $get) => 'Se enviará el PDF al número ingresado: ' . $get('whatsapp') . '. Verifique que pertenezca al cliente.')
+                            ->action(fn () => $this->enviarWhatsApp())
                             ->disabled(fn (Get $get) => blank($get('whatsapp'))),
 
                         FormAction::make('enviarEmail')
@@ -127,7 +129,17 @@ class CreateCotizacion extends ResourcePage implements HasForms
     public function generatePdfPreview(bool $download = true)
 {
     abort_unless(auth()->user()?->can('generar_pdf_cotizacion'), 403);
-    $state = $this->form->getState();
+    $pdf = $this->crearPdf($this->form->getState());
+    if ($download) {
+        return response()->streamDownload(fn () => print($pdf->output()), 'cotizacion-' . date('Y-m-d') . '.pdf', ['Content-Type' => 'application/pdf']);
+    }
+    $nombreArchivo = 'cotizaciones/cotizacion-' . uniqid() . '.pdf';
+    Storage::disk('public')->put($nombreArchivo, $pdf->output());
+    return asset('storage/' . $nombreArchivo);
+}
+
+    protected function crearPdf(array $state)
+    {
     $total = 0;
     $dataPerfiles = [];
 
@@ -176,34 +188,15 @@ class CreateCotizacion extends ResourcePage implements HasForms
         'usuario_nombre' => Auth::user()?->name ?? 'N/A',
     ];
 
-    $pdf = Pdf::loadView('pdf.cotizacion', $data)->setPaper('letter', 'portrait');
-
-    if ($download) {
-        return response()->streamDownload(fn() => print ($pdf->output()), 'cotizacion-' . date('Y-m-d') . '.pdf', [
-            'Content-Type' => 'application/pdf',
-        ]);
-    } else {
-        $nombreArchivo = 'cotizaciones/cotizacion-' . uniqid() . '.pdf';
-        Storage::disk('public')->put($nombreArchivo, $pdf->output());
-        return asset('storage/' . $nombreArchivo);
-    }
+    return Pdf::loadView('pdf.cotizacion', $data)->setPaper('letter', 'portrait');
 }
 
-    protected function getWhatsAppUrl(Get $get): ?string
+    public function enviarWhatsApp(): void
     {
-        $numero = \App\Support\TelefonoCliente::internacional($get('whatsapp'), $get('whatsapp_codigo_pais'));
-        if (!$numero) {
-            return null;
-        }
-
-        $mensaje = "¡Hola {$get('nombre_completo')}!\n\n" .
-            "Le saluda *" . config('laboratorio.nombre') . "*.\n\n" .
-            "Compartimos el resumen de su cotización:\n\n" .
-            $this->getTextSummary($get) . "\n\n" .
-            "Gracias por confiar en nosotros.\n" .
-            config('laboratorio.telefono') . ' · ' . config('laboratorio.correo');
-
-        return "https://wa.me/{$numero}?text=" . rawurlencode($mensaje);
+        abort_unless(auth()->user()?->can('access_cotizaciones') && auth()->user()?->can('enviar_cotizacion_whatsapp'), 403);
+        $state = $this->form->getState();
+        \App\Support\AvisoWhatsApp::enviar(fn () => app(\App\Services\WhatsAppService::class)
+            ->cotizacion($state['whatsapp'] ?? null, $this->crearPdf($state)->output()));
     }
 
     protected function getEmailUrl(Get $get): ?string

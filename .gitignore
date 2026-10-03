@@ -1,5 +1,7 @@
 /.phpunit.cache
 /node_modules
+/docker/whatsapp/node_modules
+/docker/whatsapp/__pycache__
 /public/build
 /public/hot
 /public/storage
@@ -11,6 +13,7 @@
 .env
 .env.backup
 .env.production
+.env.whatsapp
 .phpactor.json
 .phpunit.result.cache
 Homestead.json

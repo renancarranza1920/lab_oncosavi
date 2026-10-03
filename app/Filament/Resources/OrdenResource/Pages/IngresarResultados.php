@@ -492,7 +492,9 @@ if (!$valorRef && $grupoTodasEdades) {
         ->action(fn() => $this->generarPdfParcial()),
 
     Action::make('enviar_pdf_parcial')
-    ->label('Enviar')
+    ->label('Enviar PDF por WhatsApp')
+    ->requiresConfirmation()
+    ->modalDescription(fn () => 'Se enviará el PDF parcial al número ' . $this->record->cliente->telefono . '. Verifique el destinatario.')
     ->icon('heroicon-o-paper-airplane')
     ->color('primary')
     ->visible(function () {
@@ -612,7 +614,9 @@ if (!$valorRef && $grupoTodasEdades) {
         ->action(fn() => $this->generarPdfParcial()),
 
     Action::make('enviar_pdf_parcial')
-    ->label('Enviar')
+    ->label('Enviar PDF por WhatsApp')
+    ->requiresConfirmation()
+    ->modalDescription(fn () => 'Se enviará el PDF parcial al número ' . $this->record->cliente->telefono . '. Verifique el destinatario.')
     ->icon('heroicon-o-paper-airplane')
     ->color('primary')
     ->visible(function () {
@@ -1158,80 +1162,10 @@ $fileName = strtoupper("{$nombreCliente} - {$orden->id} P.pdf");
     );
 }
 
-public function enviarPdfParcial()
+public function enviarPdfParcial(): void
 {
-    abort_unless(auth()->user()?->can('enviar_reporte_orden'), 403);
-    $record = $this->record;
-
-    $labNombre = config('laboratorio.nombre');
-    $labTelefonos = config('laboratorio.telefono');
-    $labCorreo = config('laboratorio.correo');
-
-    $nombreCliente = \Illuminate\Support\Str::slug(
-        $record->cliente->nombre . ' ' . $record->cliente->apellido
-    );
-
-    $fileName = strtoupper("{$nombreCliente} - {$record->id} P.pdf");
-
-    $filePath = "reportes/{$fileName}";
-    $fullPath = storage_path("app/public/{$filePath}");
-
-    if (!file_exists($fullPath)) {
-        Notification::make()
-            ->title('Debe generar el PDF parcial primero')
-            ->danger()
-            ->send();
-        return;
-    }
-
-    $nombrePaciente = $record->cliente->nombre . ' ' . $record->cliente->apellido;
-
-    $asuntoCorreo = "Resultados Parciales - Orden #{$record->id} - {$labNombre}";
-
-    $mensajeBase = "Estimado(a) *{$nombrePaciente}*,\n\n";
-    $mensajeBase .= "Le compartimos sus *resultados parciales de laboratorio*.\n\n";
-    $mensajeBase .= "Por favor revise el documento PDF adjunto.\n\n";
-    $mensajeBase .= "Para cualquier consulta estamos a su disposición en:\n";
-    $mensajeBase .= "Teléfonos: {$labTelefonos}\n";
-    $mensajeBase .= "Correo: {$labCorreo}\n\n";
-    $mensajeBase .= "Gracias por confiar en nosotros.";
-
-    $telefonoCliente = $record->cliente->telefono;
-    $correoCliente = $record->cliente->correo;
-
-    $linkWhatsapp = $telefonoCliente
-        ? 'https://wa.me/' . $telefonoCliente . '?text=' . rawurlencode($mensajeBase)
-        : null;
-
-    $linkCorreo = $correoCliente
-        ? 'mailto:' . $correoCliente .
-            '?subject=' . rawurlencode($asuntoCorreo) .
-            '&body=' . rawurlencode($mensajeBase)
-        : null;
-
-    Notification::make()
-        ->title('PDF Parcial Descargado')
-        ->body("El archivo se ha guardado en tu equipo.\nRecuerda adjuntar el PDF manualmente.")
-        ->success()
-        ->persistent()
-        ->actions([
-            \Filament\Notifications\Actions\Action::make('whatsapp')
-                ->label('WhatsApp')
-                ->url($linkWhatsapp, shouldOpenInNewTab: true)
-                ->button()
-                ->color('gray')
-                ->visible(fn() => $linkWhatsapp !== null),
-
-            \Filament\Notifications\Actions\Action::make('email')
-                ->label('Correo')
-                ->url($linkCorreo)
-                ->button()
-                ->color('gray')
-                ->visible(fn() => $linkCorreo !== null),
-        ])
-        ->send();
-
-    return response()->download($fullPath);
+    abort_unless(auth()->user()?->can('ingresar_resultados_orden') && auth()->user()?->can('enviar_reporte_orden'), 403);
+    \App\Support\AvisoWhatsApp::enviar(fn () => app(\App\Services\WhatsAppService::class)->orden($this->record, true));
 }
     protected function eliminarPdfParcial()
 {

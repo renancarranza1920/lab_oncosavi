@@ -73,7 +73,7 @@ class FlujosAtencionTest extends TestCase
         $this->assertSame('50377777777', $cliente->fresh()->telefono);
     }
 
-    public function test_cotizacion_genera_enlaces_nativos_con_destinatario_resumen_y_total(): void
+    public function test_cotizacion_conserva_correo_con_resumen_y_reemplaza_enlace_whatsapp_por_envio_directo(): void
     {
         $tipo = \App\Models\TipoExamen::create(['nombre' => 'Química']);
         $examen = \App\Models\Examen::create(['tipo_examen_id' => $tipo->id, 'nombre' => 'Glucosa', 'precio' => 15.50]);
@@ -83,9 +83,10 @@ class FlujosAtencionTest extends TestCase
                 'whatsapp' => '202-555-0123', 'email' => 'paciente@example.com',
                 'examenes_seleccionados' => [['examen_id' => $examen->id, 'precio_hidden' => 15.50]],
             ]);
-        // Las acciones se renderizan como enlaces nativos, sin eventos de apertura de ventanas.
+        // Gmail conserva su destinatario/resumen; WhatsApp es una acción interna con PDF.
         $html = $componente->html();
-        $this->assertStringContainsString('https://wa.me/12025550123?text=', $html);
+        $this->assertStringNotContainsString('https://wa.me/12025550123?text=', $html);
+        $this->assertStringContainsString('Enviar PDF por WhatsApp', $html);
         $this->assertStringContainsString('https://mail.google.com/mail/?', $html);
         $this->assertStringContainsString('paciente%40example.com', $html);
         $this->assertStringContainsString(rawurlencode('Paciente USA'), $html);

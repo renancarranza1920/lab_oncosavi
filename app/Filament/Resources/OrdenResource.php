@@ -2326,151 +2326,33 @@ $record->update([
                     
 
 Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
-
-    ->tooltip('Enviar Resultados por Correo o WhatsApp')
-
-    ->icon('heroicon-o-paper-airplane')
-
-    ->iconButton()
-
-    ->color('primary')
-
-    ->visible(function (Orden $record) {
-
-        $expediente = $record->cliente->NumeroExp ?? 'SinExp';
-
-        $nombreCliente = \Illuminate\Support\Str::slug($record->cliente->nombre . ' ' . $record->cliente->apellido);
-
-        $ordenId = $record->id;
-
-        $fileName = strtoupper("{$nombreCliente} - {$record->id}.pdf");
-
-
-        $filePath = "reportes/{$fileName}";
-
-        
-
-        return auth()->user()->can('enviar_reporte_orden') && Storage::disk('public')->exists($filePath) && $record->estado === 'finalizado';
-
-    })
-
-    ->action(function (Orden $record) {
-
-        // --- 1. CONFIGURACIÓN DE DATOS DEL LABORATORIO ---
-
-        $labNombre = config('laboratorio.nombre');
-
-        $labTelefonos = config('laboratorio.telefono');
-
-        // Datos de contacto institucionales.
-
-        $labCorreo = config('laboratorio.correo');
-
-        
-
-        // --- 2. PREPARACIÓN DE ARCHIVOS ---
-
-        $expediente = $record->cliente->NumeroExp ?? 'SinExp';
-
-        $nombreCliente = \Illuminate\Support\Str::slug($record->cliente->nombre . ' ' . $record->cliente->apellido);
-
-        $ordenId = $record->id;
-
-        $fileName = strtoupper("{$nombreCliente} - {$ordenId}.pdf");
-
-
-        $filePath = "reportes/{$fileName}";
-
-        $fullPath = storage_path("app/public/{$filePath}");
-
-
-
-        // --- 3. CONSTRUCCIÓN DEL MENSAJE AMABLE ---
-
-        $nombrePaciente = $record->cliente->nombre . ' ' . $record->cliente->apellido;
-
-        $asuntoCorreo = "Resultados de Laboratorio - Orden #{$ordenId} - {$labNombre}";
-
-
-
-        // Construcción del mensaje con los datos institucionales.
-
-        $mensajeBase = "Estimado(a) *{$nombrePaciente}*,\n\n";
-
-        $mensajeBase .= " *Por favor, revise el documento PDF adjunto.*\n\n";
-
-        $mensajeBase .= "Para cualquier consulta sobre sus resultados, estamos a su disposición en:\n";
-
-        $mensajeBase .= " Teléfonos: {$labTelefonos}\n";
-
-        $mensajeBase .= " Correo: {$labCorreo}\n\n"; // <--- CAMBIO AQUÍ
-
-        $mensajeBase .= "¡Gracias por confiar en nosotros! Que tenga un excelente día.";
-
-
-
-        // --- 4. GENERACIÓN DE LINKS ---
-
-        $telefonoCliente = $record->cliente->telefono; 
-
-        $correoCliente = $record->cliente->correo; 
-
-
-
-        // rawurlencode asegura que los espacios y saltos de línea funcionen en todos los dispositivos
-
-        $linkWhatsapp = 'https://wa.me/' . $telefonoCliente . '?text=' . rawurlencode($mensajeBase);
-
-        $linkCorreo = 'mailto:' . $correoCliente . '?subject=' . rawurlencode($asuntoCorreo) . '&body=' . rawurlencode($mensajeBase);
-
-
-
-        // --- 5. NOTIFICACIÓN AL USUARIO DEL SISTEMA ---
-
-        Notification::make()
-
-            ->title('PDF Descargado')
-
-            ->body("El archivo se ha guardado en tu equipo.\nSelecciona cómo enviar el mensaje y **recuerda adjuntar el PDF manualmente**.")
-
-            ->success()
-
-            ->persistent() // Obliga a cerrar manual
-
-            ->actions([
-
-                \Filament\Notifications\Actions\Action::make('whatsapp')
-
-                    ->label('WhatsApp')
-
-                    ->url($linkWhatsapp, shouldOpenInNewTab: true)
-
-                    ->button()
-
-                    ->color('gray'),
-
-                
-
-                \Filament\Notifications\Actions\Action::make('email')
-
-                    ->label('Correo')
-
-                    ->url($linkCorreo)
-
-                    ->button()
-
-                    ->color('gray'),
-
-            ])
-
-            ->send();
-
-
-
-        // --- 6. DESCARGA FINAL ---
-
-        //return response()->download($fullPath);
-
+    ->tooltip('Enviar PDF por WhatsApp o compartir por correo')
+    ->icon('heroicon-o-paper-airplane')->iconButton()->color('primary')
+    ->visible(fn (Orden $record) => auth()->user()->can('enviar_reporte_orden') && $record->reporteGuardadoExists() && $record->estado === 'finalizado')
+    ->modalHeading('Enviar resultados')
+    ->form([
+        \Filament\Forms\Components\Select::make('canal')->label('Enviar por')
+            ->options(['whatsapp' => 'WhatsApp: envío directo del PDF', 'email' => 'Correo: abrir correo para adjuntar PDF'])
+            ->default('whatsapp')->required()->selectablePlaceholder(false),
+        \Filament\Forms\Components\Placeholder::make('destino')->label('Número del cliente')
+            ->content(fn (Orden $record) => ($record->cliente->telefono ?: 'Sin teléfono registrado') . '. Verifique el destinatario antes de enviar.'),
+    ])
+    ->modalSubmitActionLabel('Continuar')
+    ->action(function (Orden $record, array $data) {
+        abort_unless(auth()->user()->can('view_orden') && auth()->user()->can('enviar_reporte_orden'), 403);
+        if ($data['canal'] === 'whatsapp') {
+            \App\Support\AvisoWhatsApp::enviar(fn () => app(\App\Services\WhatsAppService::class)->orden($record));
+            return;
+        }
+        $correo = $record->cliente->correo;
+        if (!$correo) {
+            Notification::make()->title('El cliente no tiene un correo registrado')->warning()->send();
+            return;
+        }
+        $url = 'mailto:' . $correo . '?subject=' . rawurlencode('Resultados de laboratorio - Orden #' . $record->id)
+            . '&body=' . rawurlencode('Le saluda ' . config('laboratorio.nombre') . '. Adjuntamos sus resultados de laboratorio.');
+        Notification::make()->title('Compartir por correo')->body('Descargue el PDF y adjúntelo al correo antes de enviarlo.')
+            ->actions([\Filament\Notifications\Actions\Action::make('correo')->label('Abrir correo')->url($url)->button()])->send();
     }),
 
     
