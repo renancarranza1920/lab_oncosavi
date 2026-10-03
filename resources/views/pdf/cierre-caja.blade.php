@@ -81,7 +81,6 @@
             <td><div class="summary-label">Ingreso bruto</div><div class="summary-value">${{ number_format($resumen['ingreso_bruto'], 2) }}</div></td>
             <td><div class="summary-label">Descuentos</div><div class="summary-value discount">${{ number_format($resumen['descuentos'], 2) }}</div></td>
             <td><div class="summary-label">Ingreso neto</div><div class="summary-value net">${{ number_format($resumen['ingreso_neto'], 2) }}</div></td>
-            <td><div class="summary-label">Ticket promedio</div><div class="summary-value">${{ number_format($resumen['ticket_promedio'], 2) }}</div></td>
             <td><div class="summary-label">Órdenes registradas</div><div class="summary-value">{{ $resumen['ordenes'] }}</div></td>
         </tr>
     </table>

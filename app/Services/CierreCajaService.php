@@ -8,15 +8,16 @@ use Illuminate\Support\Collection;
 
 class CierreCajaService
 {
-    public const PERIODOS = ['mensual', 'trimestral', 'anual'];
+    public const PERIODOS = ['diario', 'mensual', 'trimestral', 'anual'];
 
-    public function generar(string $periodo, int $anio, int $mes = 1, int $trimestre = 1): array
+    public function generar(string $periodo, int $anio, int $mes = 1, int $trimestre = 1, int $dia = 1): array
     {
-        [$desde, $hasta, $etiqueta] = $this->rango($periodo, $anio, $mes, $trimestre);
+        [$desde, $hasta, $etiqueta] = $this->rango($periodo, $anio, $mes, $trimestre, $dia);
 
         $ordenes = Orden::query()
             ->with('cliente:id,nombre,apellido')
-            ->whereBetween('fecha', [$desde->toDateString(), $hasta->toDateString()])
+            ->where('fecha', '>=', $desde->toDateString())
+            ->where('fecha', '<', $hasta->addDay()->toDateString())
             ->orderBy('fecha')
             ->orderBy('id')
             ->get();
@@ -32,7 +33,6 @@ class CierreCajaService
             'descuentos' => $vigentes->sum(fn (Orden $orden) => (float) $orden->descuento),
             'ingreso_neto' => $vigentes->sum(fn (Orden $orden) => (float) $orden->total),
             'valor_cancelado' => $canceladas->sum(fn (Orden $orden) => (float) $orden->total + (float) $orden->descuento),
-            'ticket_promedio' => $vigentes->count() > 0 ? $vigentes->avg(fn (Orden $orden) => (float) $orden->total) : 0,
         ];
 
         return [
@@ -55,10 +55,18 @@ class CierreCajaService
         ];
     }
 
-    public function rango(string $periodo, int $anio, int $mes = 1, int $trimestre = 1): array
+    public function rango(string $periodo, int $anio, int $mes = 1, int $trimestre = 1, int $dia = 1): array
     {
         $periodo = in_array($periodo, self::PERIODOS, true) ? $periodo : 'mensual';
         $anio = max(2000, min(2100, $anio));
+
+        if ($periodo === 'diario') {
+            $mes = max(1, min(12, $mes));
+            $dia = max(1, min(CarbonImmutable::create($anio, $mes, 1)->daysInMonth, $dia));
+            $desde = CarbonImmutable::create($anio, $mes, $dia)->startOfDay();
+
+            return [$desde, $desde->endOfDay(), ucfirst($desde->locale('es')->translatedFormat('d \d\e F \d\e Y'))];
+        }
 
         if ($periodo === 'anual') {
             $desde = CarbonImmutable::create($anio, 1, 1)->startOfDay();

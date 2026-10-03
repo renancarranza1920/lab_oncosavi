@@ -21,7 +21,7 @@
         .catalog-kpi-icon { display: grid; width: 31px; height: 31px; place-items: center; border-radius: .6rem; color: var(--kpi-color); background: var(--kpi-bg); font-size: .78rem; font-weight: 900; }
         .catalog-kpi-value { margin-top: .7rem; color: var(--ui-heading); font-size: 1.55rem; font-weight: 800; letter-spacing: -.03em; }
         .catalog-kpi-foot { margin-top: .12rem; color: var(--ui-muted); font-size: .66rem; }
-        .catalog-content { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); gap: 1.25rem; align-items: start; }
+        .catalog-content { display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; }
         .catalog-panel-title { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--ui-border); padding: .95rem 1rem; color: var(--ui-heading); font-size: .9rem; font-weight: 800; }
         .catalog-panel-title span { color: var(--ui-muted); font-size: .68rem; font-weight: 500; }
         .catalog-area-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; padding: 1rem; }
@@ -46,12 +46,6 @@
                 <div class="catalog-eyebrow">Catálogo institucional</div>
                 <div class="catalog-title">Reporte de Exámenes y Perfiles</div>
                 <div class="catalog-description">Genera la solicitud impresa del laboratorio con precios actualizados, espacios para datos del paciente y selección manual de servicios.</div>
-                <div class="catalog-badges">
-                    <span class="catalog-badge">Formato A4</span>
-                    <span class="catalog-badge">Máximo 2 páginas</span>
-                    <span class="catalog-badge">Precios en USD</span>
-                    <span class="catalog-badge">Solo servicios activos</span>
-                </div>
             </div>
         </section>
 
@@ -88,16 +82,6 @@
                 </div>
             </div>
 
-            <div class="catalog-panel">
-                <div class="catalog-panel-title">Contenido del PDF <span>Listo para imprimir</span></div>
-                <div class="catalog-features">
-                    <div class="catalog-feature"><div class="catalog-feature-icon">01</div><div><strong>Identificación del paciente</strong><span>Campos para paciente, médico y edad.</span></div></div>
-                    <div class="catalog-feature"><div class="catalog-feature-icon">02</div><div><strong>Selección manual</strong><span>Círculos para marcar exámenes y perfiles solicitados.</span></div></div>
-                    <div class="catalog-feature"><div class="catalog-feature-icon">03</div><div><strong>Información actualizada</strong><span>Áreas, nombres y precios tomados del catálogo activo.</span></div></div>
-                    <div class="catalog-feature"><div class="catalog-feature-icon">04</div><div><strong>Datos de contacto</strong><span>Teléfono, WhatsApp y correo institucional.</span></div></div>
-                </div>
-                <div class="catalog-footer-note">Usa el botón <strong>Descargar PDF</strong> de la parte superior para generar la versión más reciente del catálogo.</div>
-            </div>
         </section>
     </div>
 </x-filament-panels::page>
