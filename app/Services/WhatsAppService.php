@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\EnvioWhatsApp;
 use App\Models\Orden;
+use App\Support\RegistroWhatsApp;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -42,6 +43,7 @@ class WhatsAppService
 
     private function enviar(?string $telefono, string $mensaje, string $pdf, string $archivo, string $tipo, ?int $ordenId = null): EnvioWhatsApp
     {
+        RegistroWhatsApp::evento('envio_solicitado', ['tipo' => $tipo]);
         $this->comprobarConfiguracion();
         $numero = self::numero($telefono);
         if (! $numero) {
@@ -75,12 +77,14 @@ class WhatsAppService
                     ->withHeaders(['X-Oncosavi-Token' => config('whatsapp.webhook_secret')])
                     ->post(config('whatsapp.webhook_url'), ['id' => $envio->id, 'phone' => $numero, 'message' => $mensaje,
                         'filename' => $archivo, 'pdf' => base64_encode($pdf)]);
+                RegistroWhatsApp::evento('respuesta_n8n', ['http' => $respuesta->status()]);
                 if (in_array($respuesta->status(), [401, 403, 404], true)) {
                     $envio->update(['estado' => 'fallido', 'codigo' => 'configuration']);
                 } else {
                     $this->aplicarRespuesta($envio, $respuesta->json() ?? []);
                 }
             } catch (\Throwable $e) {
+                RegistroWhatsApp::evento('envio_sin_confirmacion', ['clase' => $e::class]);
                 $envio->update(['estado' => 'desconocido', 'codigo' => 'connection']);
             }
             activity('WhatsApp')->causedBy(auth()->user())->performedOn($envio)
@@ -131,29 +135,45 @@ class WhatsAppService
     public function conexion(string $accion = 'status'): array
     {
         abort_unless(auth()->user()?->can('manage_settings'), 403);
+        if ($accion === 'connect') {
+            RegistroWhatsApp::evento('vinculacion_solicitada');
+        }
         $this->comprobarConfiguracion();
         try {
             $respuesta = $accion === 'connect' ? $this->bridge()->post('/connect') : $this->bridge()->get('/status');
+            if ($accion === 'connect') {
+                RegistroWhatsApp::evento('respuesta_puente', ['http' => $respuesta->status()]);
+            }
+            if (in_array($respuesta->status(), [401, 403], true)) {
+                throw new \DomainException('La configuración de WhatsApp no coincide entre los servicios. Pida al administrador que actualice la instalación.');
+            }
             if (! $respuesta->successful()) {
                 throw new \RuntimeException;
             }
             $datos = $respuesta->json();
 
-            return ['status' => in_array($datos['status'] ?? '', ['connected', 'qr', 'connecting', 'disconnected'], true) ? $datos['status'] : 'disconnected',
+            return ['code' => in_array($datos['code'] ?? '', ['auth_expired', 'connection_replaced', 'protocol_error', 'qr_expired', 'network_error', 'session_error', 'connection_timeout', 'qr_error'], true) ? $datos['code'] : null,
+                'status' => in_array($datos['status'] ?? '', ['connected', 'qr', 'connecting', 'disconnected'], true) ? $datos['status'] : 'disconnected',
                 'qr' => isset($datos['qr']) && preg_match('#^data:image/png;base64,[A-Za-z0-9+/=]+$#', $datos['qr']) ? $datos['qr'] : null];
+        } catch (\DomainException $e) {
+            throw $e;
         } catch (\Throwable $e) {
+            if ($accion === 'connect') {
+                RegistroWhatsApp::evento('puente_no_disponible', ['clase' => $e::class]);
+            }
             throw new \DomainException('No pudimos conectar con el servicio de WhatsApp. Revise que los contenedores estén iniciados.');
         }
     }
 
     private function bridge(): \Illuminate\Http\Client\PendingRequest
     {
-        return Http::baseUrl(rtrim(config('whatsapp.bridge_url'), '/'))->withToken(config('whatsapp.bridge_token'))->connectTimeout(2)->timeout(5);
+        return Http::baseUrl(rtrim(config('whatsapp.bridge_url'), '/'))->withToken(config('whatsapp.bridge_token'))->connectTimeout(2)->timeout(10);
     }
 
     private function comprobarConfiguracion(): void
     {
         if (! config('whatsapp.enabled') || ! config('whatsapp.webhook_secret') || ! config('whatsapp.bridge_token')) {
+            RegistroWhatsApp::evento('configuracion_incompleta');
             throw new \DomainException('El envío automático aún no está configurado. Pida al administrador que active n8n y vincule el WhatsApp del laboratorio.');
         }
     }

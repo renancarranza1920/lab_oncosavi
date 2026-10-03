@@ -146,4 +146,44 @@ class WhatsAppTest extends TestCase
             Http::assertNothingSent();
         }
     }
+    public function test_vincular_muestra_progreso_qr_y_cierre_con_motivo_visible(): void
+    {
+        $admin = User::factory()->create(['nickname' => 'admin.qr']);
+        $admin->assignRole('admin');
+        $this->actingAs($admin);
+        Http::fake(['whatsapp:3000/*' => Http::sequence()
+            ->push(['status' => 'connecting', 'qr' => null])
+            ->push(['status' => 'qr', 'qr' => 'data:image/png;base64,AA=='])
+            ->push(['status' => 'disconnected', 'qr' => null, 'code' => 'protocol_error', 'error' => 'SECRET'])]);
+        Livewire::test(EnviosWhatsApp::class)->callAction('vincular')
+            ->assertSet('estadoConexion', 'conectando')->assertSee('El QR aparecerá aquí automáticamente')
+            ->call('actualizarConexion')->assertSet('qr', 'data:image/png;base64,AA==')
+            ->call('actualizarConexion')->assertSet('qr', null)->assertSet('estadoConexion', 'desconectado')
+            ->assertSee('WhatsApp rechazó la conexión')->assertDontSee('SECRET');
+        Http::assertSentCount(3);
+        Http::assertSent(fn ($r) => $r->method() === 'POST' && $r->url() === 'http://whatsapp:3000/connect');
+    }
+
+    public function test_error_de_configuracion_permanece_visible_y_poll_no_insiste(): void
+    {
+        $admin = User::factory()->create(['nickname' => 'admin.error']);
+        $admin->assignRole('admin');
+        $this->actingAs($admin);
+        Http::fake(['whatsapp:3000/*' => Http::response(['error' => 'SECRET'], 401)]);
+        Livewire::test(EnviosWhatsApp::class)->callAction('vincular')->assertSet('estadoConexion', 'no disponible')
+            ->assertSee('La configuración de WhatsApp no coincide')->assertDontSee('SECRET')
+            ->call('actualizarConexion');
+        Http::assertSentCount(1);
+    }
+
+    public function test_diagnostico_no_imprime_qr_ni_credenciales_y_no_inicia_conexion(): void
+    {
+        Http::fake(['whatsapp:3000/*' => Http::response(['status' => 'disconnected', 'code' => 'protocol_error', 'qr' => 'SECRET'])]);
+        $this->artisan('whatsapp:diagnostico')->expectsOutput('Configuración: completa')
+            ->expectsOutput('Puente WhatsApp: HTTP 200')->expectsOutput('Sesión: disconnected')
+            ->expectsOutput('Motivo: protocol_error')->assertSuccessful();
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($r) => $r->method() === 'GET');
+    }
+
 }

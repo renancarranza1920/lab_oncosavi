@@ -31,6 +31,8 @@ class EnviosWhatsApp extends Page implements HasTable
 
     public ?string $qr = null;
 
+    public string $mensajeConexion = 'Consultando el servicio de WhatsApp…';
+
     public static function canAccess(): bool
     {
         return auth()->user()?->canAny(['enviar_cotizacion_whatsapp', 'enviar_reporte_orden', 'manage_settings']) ?? false;
@@ -52,12 +54,36 @@ class EnviosWhatsApp extends Page implements HasTable
                 'connecting' => 'conectando', default => 'desconectado',
             };
             $this->qr = $datos['qr'];
+            $this->mensajeConexion = match ($datos['code'] ?? null) {
+                'auth_expired' => 'El teléfono cerró esta sesión. Pulse Vincular WhatsApp para obtener un QR nuevo.',
+                'connection_replaced' => 'Este WhatsApp se conectó en otro servicio. Cierre esa conexión antes de volver a vincularlo.',
+                'protocol_error' => 'WhatsApp rechazó la conexión. El administrador debe revisar la compatibilidad del servicio.',
+                'qr_expired' => 'El QR venció. Pulse Vincular WhatsApp para obtener otro.',
+                'network_error', 'connection_timeout' => 'No se pudo establecer conexión con WhatsApp. Revise la conexión a Internet del servidor y vuelva a intentarlo.',
+                'session_error' => 'No se pudo preparar la sesión de WhatsApp. Pida al administrador que revise el servicio.',
+                'qr_error' => 'No se pudo preparar el QR. Vuelva a intentarlo.',
+                default => match ($datos['status']) {
+                    'connected' => 'WhatsApp está vinculado y listo para enviar PDFs.',
+                    'qr' => 'Escanee este QR desde Dispositivos vinculados en el teléfono del laboratorio.',
+                    'connecting' => 'Conectando con WhatsApp. El QR aparecerá aquí automáticamente; puede tardar hasta 30 segundos.',
+                    default => 'Pulse Vincular WhatsApp para comenzar.',
+                },
+            };
         } catch (\DomainException $e) {
             $this->qr = null;
             $this->estadoConexion = 'no disponible';
+            $this->mensajeConexion = $e->getMessage();
             if ($iniciar) {
                 Notification::make()->title('WhatsApp no disponible')->body($e->getMessage())->warning()->send();
             }
+        }
+    }
+
+    public function actualizarConexion(): void
+    {
+        abort_unless(auth()->user()?->can('manage_settings'), 403);
+        if ($this->estadoConexion !== 'no disponible') {
+            $this->consultarConexion();
         }
     }
 

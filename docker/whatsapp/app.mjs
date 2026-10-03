@@ -10,7 +10,7 @@ function authorized(header, token) {
   const provided = Buffer.from(header ?? ''); const expected = Buffer.from(`Bearer ${token}`);
   return provided.length === expected.length && timingSafeEqual(provided, expected);
 }
-export function createApp({ token, directory, gateway, interval = 5000, timeout = 25000 }) {
+export function createApp({ token, directory, gateway, interval = 5000, timeout = 25000, log = () => {} }) {
   if (!token || token.length < 32) throw new Error('Configure WHATSAPP_BRIDGE_TOKEN (mínimo 32 caracteres).');
   let busy = false, lastSend = 0;
   const pending = new Map();
@@ -29,9 +29,9 @@ export function createApp({ token, directory, gateway, interval = 5000, timeout 
   return createServer(async (req, res) => {
     try {
       if (req.method === 'GET' && req.url === '/health') return reply(res, 200, { status: 'ok' });
-      if (!authorized(req.headers.authorization, token)) return reply(res, 401, { status: 'failed' });
+      if (!authorized(req.headers.authorization, token)) { log('request_rejected', { status: 401 }); return reply(res, 401, { status: 'failed' }); }
       if (req.method === 'GET' && req.url === '/status') return reply(res, 200, gateway.status());
-      if (req.method === 'POST' && req.url === '/connect') return reply(res, 200, await gateway.connect());
+      if (req.method === 'POST' && req.url === '/connect') { log('connect_received'); return reply(res, 200, await gateway.connect()); }
       if (req.method === 'GET' && req.url.startsWith('/messages/')) {
         const id = req.url.slice('/messages/'.length);
         if (!uuid.test(id)) return reply(res, 400, { status: 'failed', code: 'invalid_request' });
@@ -57,6 +57,7 @@ export function createApp({ token, directory, gateway, interval = 5000, timeout 
       const document = Buffer.from(input.pdf, 'base64');
       if (document.length > maxPdf || document.subarray(0, 5).toString() !== '%PDF-') return reply(res, 400, { status: 'failed', code: 'invalid_request' });
       // No acepta URLs, rutas de archivo, grupos o comandos arbitrarios.
+      log('send_received');
       const saved = await read(input.id);
       if (saved) {
         if (saved.status === 'sending' && !pending.has(input.id)) saved.status = 'unknown';
@@ -80,6 +81,7 @@ export function createApp({ token, directory, gateway, interval = 5000, timeout 
         return reply(res, 200, result);
       } finally { if (!pending.has(input.id)) busy = false; }
     } catch {
+      log('request_failed', { status: 500 });
       // Nunca devolver el error interno o registrar payloads con PDF o teléfonos.
       reply(res, 500, { status: 'unknown' });
     }

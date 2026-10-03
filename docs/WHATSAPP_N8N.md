@@ -60,6 +60,29 @@ docker compose --env-file .env --env-file .env.whatsapp -f docker-compose.yml -f
 docker compose --env-file .env --env-file .env.whatsapp -f docker-compose.yml -f docker-compose.whatsapp.yml restart n8n whatsapp
 ```
 
+## Si pasa de «conectando» a «desconectado» sin QR
+
+El clic ya llegó al servicio, pero WhatsApp cerró la conexión antes de generar el QR. La página muestra el motivo y los logs registran el intento, la versión de protocolo, el cierre y su código numérico, sin imprimir QR, teléfonos o claves.
+
+Actualice con el script anterior; después recargue la página y pulse **Vincular WhatsApp**. El servicio consulta la versión web publicada por Baileys (con espera máxima de 3.5 segundos y respaldo en la versión incorporada), espera hasta 30 segundos por el QR y limita las reconexiones automáticas. El QR y los fallos se actualizan en pantalla cada cinco segundos.
+
+Para diagnosticar desde Oracle sin enviar mensajes ni revelar credenciales:
+
+```bash
+cd ~/lab_oncosavi
+bash docker/whatsapp/diagnostico.sh
+```
+
+- `connect_received`: el botón llegó al puente.
+- `version_updated` / `version_fallback`: se obtuvo la versión web actual o se usó la incorporada.
+- `qr_ready`: el QR ya se generó; debe aparecer en la página.
+- `disconnected` con código `protocol_error`: WhatsApp rechazó el protocolo; el código numérico permite investigarlo.
+- `network_error` / `connection_timeout`: la conexión externa falló o no respondió.
+- `auth_expired`: el teléfono revocó la sesión. Un nuevo clic en Vincular WhatsApp borra **solo esa sesión revocada** y permite generar otro QR; no borra datos de ONCOSAVI ni registros de envío.
+- HTTP 401/403: las claves de los servicios no coinciden; use el mismo `.env.whatsapp` conservado al reconstruir.
+
+La aplicación también registra `WhatsApp: vinculacion_solicitada` y la respuesta del puente en `storage/logs/laravel.log` y en la salida del contenedor `app`. No es necesario activar logs de depuración de Baileys, que pueden exponer claves de sesión. Vincular el teléfono comunica Laravel directamente con el puente; n8n participa al **enviar** el PDF.
+
 ## Servicios privados y datos
 
 No requiere cambiar Caddy ni abrir nuevos puertos en Oracle. Baileys no publica ningún puerto en el host; n8n escucha en `127.0.0.1:5678`. La base sigue privada. La comunicación interna exige claves distintas para el webhook y para Baileys. No se permiten rutas, URLs de archivos, grupos ni comandos arbitrarios en la solicitud.
