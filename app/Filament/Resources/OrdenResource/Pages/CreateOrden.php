@@ -322,9 +322,13 @@ protected function handleRecordCreation(array $data): \Illuminate\Database\Eloqu
         }
     }
 
-// 1. Modificamos o eliminamos el redireccionamiento automático
+// Mientras no haya etiquetadora, regresar al listado sin eliminar el flujo del Kanban.
     protected function getRedirectUrl(): string
     {
+        if (! config('laboratorio.impresion_etiquetas_habilitada')) {
+            return static::getResource()::getUrl('index');
+        }
+
         // Al terminar el Wizard, lo mandamos al index o al Kanban 
         // pero la notificación le dará la opción de imprimir.
         return DetalleOrdenKanban::getUrl(['ordenId' => $this->record->id]);

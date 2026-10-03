@@ -51,6 +51,7 @@ protected static ?int $navigationSort = 1;
                         Forms\Components\TextInput::make('password')
                             ->label('Contraseña')
                             ->password()
+                            ->revealable()
                             ->required(fn($livewire) => $livewire instanceof Pages\CreateUser)
                             ->maxLength(255)
                             ->dehydrated(fn($state) => filled($state))
