@@ -14,6 +14,10 @@ class ListMedicos extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+            Actions\Action::make('abrirPortal')
+                ->label('Abrir portal de expedientes')->icon('heroicon-o-arrow-top-right-on-square')->color('gray')
+                ->url(fn () => route('expediente.index'))->openUrlInNewTab()
+                ->visible(fn () => auth()->user()?->can('manage_settings')),
         ];
     }
 }

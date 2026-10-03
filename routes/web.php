@@ -9,6 +9,17 @@ use Illuminate\Http\Request;
 use App\Models\Orden;
 use Barryvdh\DomPDF\Facade\Pdf;
 Route::redirect('/', '/admin');
+
+Route::prefix('expediente')->name('expediente.')->middleware(\App\Http\Middleware\ExpedientePrivado::class)->group(function () {
+    Route::get('/ingresar', [\App\Http\Controllers\Expediente\AuthMedicoController::class, 'create'])->name('login');
+    Route::post('/ingresar', [\App\Http\Controllers\Expediente\AuthMedicoController::class, 'store'])->middleware('throttle:20,1')->name('login.store');
+    Route::middleware(\App\Http\Middleware\PortalMedico::class)->group(function () {
+        Route::get('/', [\App\Http\Controllers\Expediente\ExpedienteController::class, 'index'])->name('index');
+        Route::get('/pacientes/{paciente}', [\App\Http\Controllers\Expediente\ExpedienteController::class, 'show'])->whereNumber('paciente')->name('show');
+        Route::get('/ordenes/{orden}/pdf', [\App\Http\Controllers\Expediente\ExpedienteController::class, 'pdf'])->whereNumber('orden')->name('pdf');
+        Route::post('/salir', [\App\Http\Controllers\Expediente\AuthMedicoController::class, 'destroy'])->name('logout');
+    });
+});
 /*
 Route::get('/', function () {
     return view('welcome');

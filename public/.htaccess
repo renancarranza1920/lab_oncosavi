@@ -5,6 +5,9 @@
 
 
 RewriteEngine On
+    # Los resultados se sirven desde las rutas autenticadas de Laravel.
+    # Evita saltarse el acceso del portal con la URL pública del archivo.
+    RewriteRule ^storage/reportes(?:/|$) - [F,L,NC]
 #RewriteRule ^$ / [L,R=302]
 
     # Handle Authorization Header
