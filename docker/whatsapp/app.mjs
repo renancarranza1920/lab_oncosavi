@@ -50,7 +50,7 @@ export function createApp({ token, directory, gateway, interval = 5000, timeout 
       let input;
       try { input = JSON.parse(Buffer.concat(chunks)); } catch { return reply(res, 400, { status: 'failed', code: 'invalid_request' }); }
       if (!uuid.test(input.id ?? '') || !validPhone.test(input.phone ?? '') || typeof input.message !== 'string'
-        || input.message.length > 2000 || !/^[a-zA-Z0-9_-]{1,80}\.pdf$/.test(input.filename ?? '')
+        || input.message.length > 2000 || !/^[a-zA-Z0-9_-][a-zA-Z0-9 _-]{0,249}\.pdf$/i.test(input.filename ?? '')
         || typeof input.pdf !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(input.pdf)) {
         return reply(res, 400, { status: 'failed', code: 'invalid_request' });
       }

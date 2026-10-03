@@ -61,7 +61,9 @@ class WhatsAppTest extends TestCase
         $envio = app(WhatsAppService::class)->orden($this->orden);
         Http::assertSentCount(1);
         Http::assertSent(fn ($r) => $r->hasHeader('X-Oncosavi-Token', str_repeat('a', 64)) && $r['phone'] === '50377778888'
-            && base64_decode($r['pdf']) === '%PDF-1.7 prueba' && $r['filename'] === 'orden-'.$this->orden->id.'.pdf');
+            && base64_decode($r['pdf']) === '%PDF-1.7 prueba' && $r['filename'] === $this->orden->reporteGuardadoFileName()
+            && str_contains($r['message'], 'Estimado(a) *Paciente Prueba*')
+            && str_contains($r['message'], '¡Gracias por confiar en nosotros! Que tenga un excelente día.'));
         $this->assertSame('enviado', $envio->estado);
         $actividad = \Spatie\Activitylog\Models\Activity::where('log_name', 'WhatsApp')->sole();
         $this->assertTrue($actividad->subject->is($this->orden));
@@ -128,7 +130,11 @@ class WhatsAppTest extends TestCase
         Livewire::test(CreateCotizacion::class)->fillForm(['nombre_completo' => 'Cliente de prueba', 'whatsapp' => '77778888',
             'whatsapp_codigo_pais' => '503', 'examenes_seleccionados' => [['examen_id' => $examen->id, 'precio_hidden' => 10]], 'perfiles_seleccionados' => []])
             ->call('enviarWhatsApp')->assertHasNoFormErrors()->assertNotified('PDF enviado por WhatsApp');
-        Http::assertSent(fn ($r) => $r['phone'] === '50377778888' && str_starts_with(base64_decode($r['pdf']), '%PDF-'));
+        Http::assertSent(fn ($r) => $r['phone'] === '50377778888' && str_starts_with(base64_decode($r['pdf']), '%PDF-')
+            && $r['filename'] === WhatsAppService::nombreCotizacion()
+            && str_contains($r['message'], '¡Hola Cliente de prueba!')
+            && str_contains($r['message'], '*- Glucosa* - $10.00')
+            && str_contains($r['message'], '*Total a Pagar:* $10.00'));
         $envio = EnvioWhatsApp::sole();
         $this->assertSame('cotizacion', $envio->tipo);
         $actividad = \Spatie\Activitylog\Models\Activity::where('log_name', 'WhatsApp')->sole();
@@ -225,6 +231,16 @@ class WhatsAppTest extends TestCase
         } finally {
             \Spatie\Activitylog\Models\Activity::setEventDispatcher($dispatcher);
         }
+    }
+
+    public function test_parcial_conserva_nombre_descargado_y_mensaje_preestablecido(): void
+    {
+        Storage::disk('public')->put($this->orden->reporteGuardadoPath(true), '%PDF-1.7 parcial');
+        Http::fake(['n8n:5678/*' => Http::response(['status' => 'sent', 'messageId' => 'parcial'])]);
+        app(WhatsAppService::class)->orden($this->orden, true);
+        Http::assertSent(fn ($r) => $r['filename'] === $this->orden->reporteGuardadoFileName(true)
+            && str_ends_with($r['filename'], ' P.PDF')
+            && str_contains($r['message'], 'Le compartimos sus *resultados parciales de laboratorio*.'));
     }
 
 }

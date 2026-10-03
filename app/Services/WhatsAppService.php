@@ -22,23 +22,42 @@ class WhatsAppService
             throw new \DomainException('Genere el PDF de esta orden antes de enviarlo.');
         }
 
-        $tipo = $parcial ? 'resultados parciales' : 'resultados';
+        $nombre = $orden->cliente->nombre.' '.$orden->cliente->apellido;
+        $telefono = config('laboratorio.telefono');
+        $correo = config('laboratorio.correo');
+        $mensaje = "Estimado(a) *{$nombre}*,\n\n";
+        if ($parcial) {
+            $mensaje .= "Le compartimos sus *resultados parciales de laboratorio*.\n\n";
+            $mensaje .= "Por favor revise el documento PDF adjunto.\n\n";
+            $mensaje .= "Para cualquier consulta estamos a su disposición en:\n";
+            $mensaje .= "Teléfonos: {$telefono}\nCorreo: {$correo}\n\nGracias por confiar en nosotros.";
+        } else {
+            $mensaje .= " *Por favor, revise el documento PDF adjunto.*\n\n";
+            $mensaje .= "Para cualquier consulta sobre sus resultados, estamos a su disposición en:\n";
+            $mensaje .= " Teléfonos: {$telefono}\n Correo: {$correo}\n\n";
+            $mensaje .= "¡Gracias por confiar en nosotros! Que tenga un excelente día.";
+        }
 
         return $this->enviar(
             $orden->cliente->telefono,
-            'Le saluda '.config('laboratorio.nombre').". Adjuntamos sus {$tipo} de laboratorio. Para consultas: ".config('laboratorio.telefono'),
+            $mensaje,
             Storage::disk('public')->get($orden->reporteGuardadoPath($parcial)),
-            "orden-{$orden->id}".($parcial ? '-parcial' : '').'.pdf',
+            $orden->reporteGuardadoFileName($parcial),
             $parcial ? 'reporte_parcial' : 'reporte_final',
             $orden->id,
         );
     }
 
-    public function cotizacion(?string $telefono, string $pdf): EnvioWhatsApp
+    public function cotizacion(?string $telefono, string $pdf, ?string $mensaje = null): EnvioWhatsApp
     {
         abort_unless(auth()->user()?->can('access_cotizaciones') && auth()->user()?->can('enviar_cotizacion_whatsapp'), 403);
 
-        return $this->enviar($telefono, 'Le saluda '.config('laboratorio.nombre').'. Adjuntamos la cotización solicitada. Para consultas: '.config('laboratorio.telefono'), $pdf, 'cotizacion.pdf', 'cotizacion');
+        return $this->enviar($telefono, $mensaje ?? 'Le saluda '.config('laboratorio.nombre').'. Adjuntamos la cotización solicitada. Para consultas: '.config('laboratorio.telefono'), $pdf, self::nombreCotizacion(), 'cotizacion');
+    }
+
+    public static function nombreCotizacion(): string
+    {
+        return 'cotizacion-'.now()->format('Y-m-d').'.pdf';
     }
 
     private function enviar(?string $telefono, string $mensaje, string $pdf, string $archivo, string $tipo, ?int $ordenId = null): EnvioWhatsApp

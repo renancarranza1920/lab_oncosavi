@@ -68,3 +68,15 @@ test('respuesta tardía puede consultarse sin reenviar', async t => {
   await new Promise(resolve => setTimeout(resolve, 45));
   assert.deepEqual(await (await f.request('/messages/' + input.id)).json(), { status: 'sent', messageId: 'tardio-123' });
 });
+
+test('conserva el nombre descargado con espacios y PDF en mayúsculas y el mensaje original', async t => {
+  let received;
+  const f = await fixture(t, { gateway: { send: async (_jid, input) => { received = input; return 'nombre-original'; } } });
+  const input = { ...body(), filename: 'PACIENTE-PRUEBA - 5 P.PDF', message: 'Estimado(a) *Paciente Prueba*,\n\nPor favor revise el documento PDF adjunto.' };
+  assert.equal((await (await f.request('/send', input)).json()).status, 'sent');
+  assert.equal(received.filename, input.filename);
+  assert.equal(received.message, input.message);
+  for (const filename of ['../PACIENTE.PDF', 'carpeta/PACIENTE.PDF', 'carpeta\\PACIENTE.PDF', 'PACIENTE\n.PDF']) {
+    assert.equal((await f.request('/send', { ...body(), filename })).status, 400);
+  }
+});

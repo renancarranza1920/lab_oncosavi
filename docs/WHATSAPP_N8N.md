@@ -31,6 +31,8 @@ La sesión queda en el volumen `whatsapp_session`; normalmente se conserva al re
 
 ## Uso del personal
 
+El archivo enviado conserva el mismo nombre que la descarga: paciente y número de orden (con `P` para parciales), o `cotizacion-AAAA-MM-DD.pdf`. El mensaje conserva el saludo y texto preestablecido; en cotizaciones incluye los estudios y el total.
+
 - **Cotizaciones:** complete los estudios y teléfono; en el último paso pulse **Enviar PDF por WhatsApp** y confirme el destinatario. El PDF se genera y adjunta automáticamente.
 - **Órdenes finalizadas:** genere el reporte, pulse el botón de compartir, seleccione **WhatsApp: envío directo del PDF**, revise el número y continúe.
 - **Resultados parciales:** en Ingresar Resultados, genere el PDF parcial y pulse **Enviar PDF por WhatsApp**.

@@ -131,7 +131,7 @@ class CreateCotizacion extends ResourcePage implements HasForms
     abort_unless(auth()->user()?->can('generar_pdf_cotizacion'), 403);
     $pdf = $this->crearPdf($this->form->getState());
     if ($download) {
-        return response()->streamDownload(fn () => print($pdf->output()), 'cotizacion-' . date('Y-m-d') . '.pdf', ['Content-Type' => 'application/pdf']);
+        return response()->streamDownload(fn () => print($pdf->output()), \App\Services\WhatsAppService::nombreCotizacion(), ['Content-Type' => 'application/pdf']);
     }
     $nombreArchivo = 'cotizaciones/cotizacion-' . uniqid() . '.pdf';
     Storage::disk('public')->put($nombreArchivo, $pdf->output());
@@ -196,7 +196,17 @@ class CreateCotizacion extends ResourcePage implements HasForms
         abort_unless(auth()->user()?->can('access_cotizaciones') && auth()->user()?->can('enviar_cotizacion_whatsapp'), 403);
         $state = $this->form->getState();
         \App\Support\AvisoWhatsApp::enviar(fn () => app(\App\Services\WhatsAppService::class)
-            ->cotizacion($state['whatsapp'] ?? null, $this->crearPdf($state)->output()));
+            ->cotizacion($state['whatsapp'] ?? null, $this->crearPdf($state)->output(), $this->mensajeWhatsApp($state)));
+    }
+
+    protected function mensajeWhatsApp(array $state): string
+    {
+        return "¡Hola ".($state['nombre_completo'] ?? '')."!\n\n".
+            "Le saluda *".config('laboratorio.nombre')."*.\n\n".
+            "Compartimos el resumen de su cotización:\n\n".
+            $this->getTextSummary($state)."\n\n".
+            "Gracias por confiar en nosotros.\n".
+            config('laboratorio.telefono').' · '.config('laboratorio.correo');
     }
 
     protected function getEmailUrl(Get $get): ?string
@@ -219,11 +229,12 @@ class CreateCotizacion extends ResourcePage implements HasForms
         ], '', '&', PHP_QUERY_RFC3986);
     }
 
-    protected function getTextSummary(Get $get): string
+    protected function getTextSummary(Get|array $get): string
     {
         $total = 0;
         $lines = [];
-        foreach ($get('perfiles_seleccionados') ?? [] as $item) {
+        $valor = fn (string $campo) => is_array($get) ? ($get[$campo] ?? null) : $get($campo);
+        foreach ($valor('perfiles_seleccionados') ?? [] as $item) {
             $perfil = Perfil::find($item['perfil_id']);
             if ($perfil) {
                 $precio = floatval($item['precio_hidden'] ?? $perfil->precio);
@@ -231,7 +242,7 @@ class CreateCotizacion extends ResourcePage implements HasForms
                 $total += $precio;
             }
         }
-        foreach ($get('examenes_seleccionados') ?? [] as $item) {
+        foreach ($valor('examenes_seleccionados') ?? [] as $item) {
             $examen = Examen::find($item['examen_id']);
             if ($examen) {
                 $precio = floatval($item['precio_hidden'] ?? $examen->precio);
