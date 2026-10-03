@@ -29,6 +29,11 @@ class DetalleOrdenKanban extends KanbanBoard
         return false;
     }
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('imprimir_etiquetas_orden') ?? false;
+    }
+
     public array $extraRecipientes = [];
 
     protected function getBoardStyles(): string
@@ -77,12 +82,12 @@ class DetalleOrdenKanban extends KanbanBoard
             return;
         }
 
-        $detalle = DetalleOrden::find($recordId);
+        $detalle = DetalleOrden::where('orden_id', $this->ordenId)->findOrFail($recordId);
         if ($detalle) {
             $detalle->update(['status' => $status]);
         }
 
-        DetalleOrden::setNewOrder($toOrderedIds);
+        $this->ordenarDetalles($toOrderedIds);
 
         // Registrar bitácora
         if ($detalle && $detalle->orden) {
@@ -95,11 +100,20 @@ class DetalleOrdenKanban extends KanbanBoard
 
     public function onSortChanged(int|string $recordId, string $status, array $orderedIds): void
     {
-        DetalleOrden::setNewOrder($orderedIds);
+        abort_unless(auth()->user()->can('mover_etiquetas_kanban'), 403);
+        $this->ordenarDetalles($orderedIds);
+    }
+
+    private function ordenarDetalles(array $ids): void
+    {
+        $validos = DetalleOrden::where('orden_id', $this->ordenId)->whereIn('id', $ids)->count();
+        abort_unless($validos === count(array_unique($ids)), 403);
+        DetalleOrden::setNewOrder($ids);
     }
 
     public function mount(): void
     {
+        abort_unless(static::canAccess(), 403);
         parent::mount();
 
         if ($this->ordenId) {
@@ -221,7 +235,7 @@ class DetalleOrdenKanban extends KanbanBoard
             return;
         }
 
-        $detalle = DetalleOrden::with('orden.cliente')->find($recordId);
+        $detalle = DetalleOrden::with('orden.cliente')->where('orden_id', $this->ordenId)->find($recordId);
 
         if (!$detalle) {
             Notification::make()->title('Detalle no encontrado')->danger()->send();

@@ -13,6 +13,16 @@ use Illuminate\Database\Eloquent\Builder;
 
 class UltimasOrdenesWidget extends BaseWidget
 {
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('dashboard_ultimas_ordenes') ?? false;
+    }
+
+    public function mount(): void
+    {
+        abort_unless(static::canView(), 403);
+    }
+
     protected static ?string $heading = 'Últimas Órdenes Pendientes o en Proceso';
 
     // 🔢 Orden visual (fila 3 izquierda)
@@ -65,6 +75,7 @@ class UltimasOrdenesWidget extends BaseWidget
             ->actions([
                 Action::make('etiquetas')
                     ->label('Etiquetas')
+                    ->visible(fn () => auth()->user()->can('imprimir_etiquetas_orden'))
                     ->icon('heroicon-o-ticket')
                     ->color('gray')
                     ->url(fn (Orden $record) => DetalleOrdenKanban::getUrl([
@@ -76,7 +87,7 @@ class UltimasOrdenesWidget extends BaseWidget
                     ->label('Resultados')
                     ->icon('heroicon-o-pencil-square')
                     ->color('primary')
-                    ->visible(fn (Orden $record): bool => $record->estado === 'en proceso')
+                    ->visible(fn (Orden $record): bool => $record->estado === 'en proceso' && auth()->user()->can('ingresar_resultados_orden'))
                     ->url(fn (Orden $record) => OrdenResource::getUrl(
                         'ingresar-resultados',
                         ['record' => $record]

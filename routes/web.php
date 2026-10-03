@@ -9,17 +9,23 @@ use Illuminate\Http\Request;
 use App\Models\Orden;
 use Barryvdh\DomPDF\Facade\Pdf;
 Route::redirect('/', '/admin');
+
+Route::prefix('expediente')->name('expediente.')->middleware(\App\Http\Middleware\ExpedientePrivado::class)->group(function () {
+    Route::get('/ingresar', [\App\Http\Controllers\Expediente\AuthMedicoController::class, 'create'])->name('login');
+    Route::post('/ingresar', [\App\Http\Controllers\Expediente\AuthMedicoController::class, 'store'])->middleware('throttle:20,1')->name('login.store');
+    Route::middleware(\App\Http\Middleware\PortalMedico::class)->group(function () {
+        Route::get('/', [\App\Http\Controllers\Expediente\ExpedienteController::class, 'index'])->name('index');
+        Route::get('/pacientes/{paciente}', [\App\Http\Controllers\Expediente\ExpedienteController::class, 'show'])->whereNumber('paciente')->name('show');
+        Route::get('/ordenes/{orden}/pdf', [\App\Http\Controllers\Expediente\ExpedienteController::class, 'pdf'])->whereNumber('orden')->name('pdf');
+        Route::post('/salir', [\App\Http\Controllers\Expediente\AuthMedicoController::class, 'destroy'])->name('logout');
+    });
+});
 /*
 Route::get('/', function () {
     return view('welcome');
 });
 */
-Route::get('/detalles/zpl/{id}', [ZplController::class, 'single'])->name('detalles.zpl');
-
-Route::get('/grupo/{status}/zpl/{ordenId}', [ZplController::class, 'group'])
-    ->name('grupo.zpl');
-    
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'can:imprimir_etiquetas_kanban'])->group(function () {
     // Ruta para una sola etiqueta
     Route::get('/detalles/zpl/{id}', [ZplController::class, 'single'])->name('detalles.zpl');
     
@@ -30,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/orden/zpl-all/{ordenId}', [ZplController::class, 'all'])->name('zpl.all');
 });
 Route::get('/orden/{orden}/boleta', function (App\Models\Orden $orden) {
+    abort_unless(auth()->user()->can('view_orden') && auth()->user()->can('create_orden'), 403);
     $data = [
         'orden' => $orden->load(['cliente', 'detalleOrden']),
         'usuario' => auth()->user()->name,
@@ -42,6 +49,7 @@ Route::get('/orden/{orden}/boleta', function (App\Models\Orden $orden) {
 })->name('orden.boleta.pdf')->middleware('auth');
 
 Route::get('/orden/{orden}/reporte-guardado', function (App\Models\Orden $orden) {
+    abort_unless(auth()->user()->can('view_orden') && auth()->user()->can('descargar_reporte_orden'), 403);
     abort_unless($orden->reporteGuardadoExists(), 404);
 
     return response()->file($orden->reporteGuardadoFullPath(), [
@@ -62,7 +70,7 @@ Route::get('/sign-message', function() {
     openssl_sign($message, $signature, $privateKey, OPENSSL_ALGO_SHA256);
 
     return base64_encode($signature); // ✔ QZ solo acepta Base64
-});
+})->middleware(['auth', 'can:imprimir_etiquetas_kanban']);
 
 
 Route::get('/test-key', function () {
@@ -74,11 +82,12 @@ Route::get('/test-key', function () {
     }
 
     return "✔ Clave privada cargada correctamente";
-});
+})->middleware(['auth', 'can:imprimir_etiquetas_kanban']);
 
 
 
 Route::post('/ordenes/ordenar', function (Request $request) {
+    abort_unless(auth()->user()->can('mover_etiquetas_kanban'), 403);
     foreach ($request->ids as $index => $id) {
         DetalleOrden::where('id', $id)
             ->where('orden_id', $request->orden_id)

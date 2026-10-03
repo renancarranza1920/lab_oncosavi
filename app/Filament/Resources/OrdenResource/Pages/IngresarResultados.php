@@ -420,6 +420,7 @@ if (!$valorRef && $grupoTodasEdades) {
 }
     public function addExternalRow($detalleId)
     {
+        abort_unless(auth()->user()?->can('ingresar_resultados_orden'), 403);
         $this->data['resultados_examenes'][$detalleId]['externos'][] = [
             'id' => null,
             'temp_id' => Str::uuid()->toString(),
@@ -462,7 +463,7 @@ if (!$valorRef && $grupoTodasEdades) {
             ->label('Completar Orden')
             ->color('success')
             ->icon('heroicon-o-check-circle')
-            //->visible(fn(): bool => $this->isOrderComplete())
+            ->visible(fn() => auth()->user()->can('finalizar_orden'))
             ->requiresConfirmation()
             ->action(function () {
 
@@ -487,7 +488,7 @@ if (!$valorRef && $grupoTodasEdades) {
         ->label('Generar PDF')
         ->icon('heroicon-o-printer')
         ->color('gray')
-        ->visible(fn() => $this->tieneExamenesParaParcial())
+        ->visible(fn() => auth()->user()->can('generar_reporte_orden') && $this->tieneExamenesParaParcial())
         ->action(fn() => $this->generarPdfParcial()),
 
     Action::make('enviar_pdf_parcial')
@@ -495,6 +496,7 @@ if (!$valorRef && $grupoTodasEdades) {
     ->icon('heroicon-o-paper-airplane')
     ->color('primary')
     ->visible(function () {
+        if (!auth()->user()->can('enviar_reporte_orden')) return false;
         $nombreCliente = \Illuminate\Support\Str::slug(
             $this->record->cliente->nombre . ' ' . $this->record->cliente->apellido
         );
@@ -504,13 +506,7 @@ if (!$valorRef && $grupoTodasEdades) {
         return Storage::disk('public')
             ->exists("reportes/{$fileName}");
     })
-    ->form(fn (): array => count($this->record->cliente->telefonosParaWhatsapp()) > 1 ? [
-        \Filament\Forms\Components\Select::make('telefono_whatsapp')
-            ->label('¿A qué número desea enviar por WhatsApp?')
-            ->options($this->record->cliente->telefonosParaWhatsapp())
-            ->required(),
-    ] : [])
-    ->action(fn(array $data) => $this->enviarPdfParcial($data)),
+    ->action(fn() => $this->enviarPdfParcial()),
         
         ])
         ->label('PDF')
@@ -529,7 +525,7 @@ if (!$valorRef && $grupoTodasEdades) {
                 ->label('Sincronizar con Catálogo')
                 ->color('warning')
                 ->icon('heroicon-o-arrow-path')
-                ->visible(fn() => !in_array($this->record->estado, ['finalizado', 'cancelado']))
+                ->visible(fn() => auth()->user()->can('sincronizar_catalogo_orden') && !in_array($this->record->estado, ['finalizado', 'cancelado']))
                 ->requiresConfirmation()
                 ->modalHeading('¿Actualizar definición de pruebas?')
                 ->modalDescription('Esto actualizará la orden con la configuración actual del catálogo (nombres y valores de referencia).')
@@ -592,7 +588,7 @@ if (!$valorRef && $grupoTodasEdades) {
                 }),
 
             Action::make('completar')->label('Completar Orden')->color('success')->icon('heroicon-o-check-circle')
-                //->visible(fn(): bool => $this->isOrderComplete())
+                ->visible(fn() => auth()->user()->can('finalizar_orden'))
                 ->requiresConfirmation()
                 ->action(function () {
                         $this->save();
@@ -612,7 +608,7 @@ if (!$valorRef && $grupoTodasEdades) {
         ->label('Generar PDF')
         ->icon('heroicon-o-printer')
         ->color('gray')
-        ->visible(fn() => $this->tieneExamenesParaParcial())
+        ->visible(fn() => auth()->user()->can('generar_reporte_orden') && $this->tieneExamenesParaParcial())
         ->action(fn() => $this->generarPdfParcial()),
 
     Action::make('enviar_pdf_parcial')
@@ -620,6 +616,7 @@ if (!$valorRef && $grupoTodasEdades) {
     ->icon('heroicon-o-paper-airplane')
     ->color('primary')
     ->visible(function () {
+        if (!auth()->user()->can('enviar_reporte_orden')) return false;
         $nombreCliente = \Illuminate\Support\Str::slug(
             $this->record->cliente->nombre . ' ' . $this->record->cliente->apellido
         );
@@ -629,13 +626,7 @@ if (!$valorRef && $grupoTodasEdades) {
         return Storage::disk('public')
             ->exists("reportes/{$fileName}");
     })
-    ->form(fn (): array => count($this->record->cliente->telefonosParaWhatsapp()) > 1 ? [
-        \Filament\Forms\Components\Select::make('telefono_whatsapp')
-            ->label('¿A qué número desea enviar por WhatsApp?')
-            ->options($this->record->cliente->telefonosParaWhatsapp())
-            ->required(),
-    ] : [])
-    ->action(fn(array $data) => $this->enviarPdfParcial($data)),
+    ->action(fn() => $this->enviarPdfParcial()),
         
         ])
         ->label('PDF')
@@ -649,6 +640,7 @@ if (!$valorRef && $grupoTodasEdades) {
 
     public function save(): void
     {
+        abort_unless(auth()->user()?->can('ingresar_resultados_orden'), 403);
         $formData = $this->form->getState()['resultados_examenes'];
      //dd($this->form->getState());
         foreach ($formData as $detalleId => $examenData) {
@@ -744,6 +736,7 @@ protected function guardarResultadoExterno(int $detalleId, array $ext): void
 
     public function deleteResultado($resultadoId): void
     {
+        abort_unless(auth()->user()?->can('ingresar_resultados_orden'), 403);
         $resultado = \App\Models\Resultado::find($resultadoId);
         if ($resultado && $resultado->detalleOrden->orden_id === $this->record->id) {
             $resultado->delete();
@@ -815,7 +808,10 @@ protected function tieneExamenesParaParcial(): bool
 
 public function generarPdfParcial()
 {
-    $this->save();
+    abort_unless(auth()->user()?->can('generar_reporte_orden'), 403);
+    if (auth()->user()->can('ingresar_resultados_orden') && !empty($this->data)) {
+        $this->save();
+    }
 
     $examenesCompletos = $this->getExamenesCompletosParcial();
 
@@ -1162,8 +1158,9 @@ $fileName = strtoupper("{$nombreCliente} - {$orden->id} P.pdf");
     );
 }
 
-public function enviarPdfParcial(array $data = [])
+public function enviarPdfParcial()
 {
+    abort_unless(auth()->user()?->can('enviar_reporte_orden'), 403);
     $record = $this->record;
 
     $labNombre = config('laboratorio.nombre');
@@ -1199,8 +1196,7 @@ public function enviarPdfParcial(array $data = [])
     $mensajeBase .= "Correo: {$labCorreo}\n\n";
     $mensajeBase .= "Gracias por confiar en nosotros.";
 
-    $telefonosCliente = $record->cliente->telefonosParaWhatsapp();
-    $telefonoCliente = $data['telefono_whatsapp'] ?? array_key_first($telefonosCliente);
+    $telefonoCliente = $record->cliente->telefono;
     $correoCliente = $record->cliente->correo;
 
     $linkWhatsapp = $telefonoCliente

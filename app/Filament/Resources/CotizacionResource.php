@@ -22,7 +22,11 @@ class CotizacionResource extends Resource
     protected static ?string $slug = 'cotizaciones';
  public static function shouldRegisterNavigation(): bool
 {
-    return true; // si quieres que aparezca en el menú
+    return static::canViewAny();
+}
+public static function canViewAny(): bool
+{
+    return auth()->user()?->can('access_cotizaciones') ?? false;
 }
 public static function getPermissionPrefixes(): array
 {

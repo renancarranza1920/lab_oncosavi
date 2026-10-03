@@ -59,7 +59,7 @@ class CierreCaja extends Page
 
     public function getDatosProperty(): array
     {
-        $fecha = Carbon::parse($this->fecha);
+        $fecha = $this->fechaConsulta();
 
         return app(CierreCajaService::class)->generar(
             $this->periodo,
@@ -106,7 +106,7 @@ class CierreCaja extends Page
         ])->setPaper('letter', 'landscape');
 
         $sufijo = match ($this->periodo) {
-            'diario' => Carbon::parse($this->fecha)->format('Y-m-d'),
+            'diario' => $this->fechaConsulta()->format('Y-m-d'),
             'anual' => (string) $this->anio,
             'trimestral' => "{$this->anio}-T{$this->trimestre}",
             default => sprintf('%d-%02d', $this->anio, $this->mes),
@@ -116,5 +116,13 @@ class CierreCaja extends Page
             fn () => print($pdf->output()),
             "cierre-caja-{$this->periodo}-{$sufijo}.pdf",
         );
+    }
+
+    private function fechaConsulta(): Carbon
+    {
+        // Un campo de fecha vacío durante la edición no debe romper Livewire.
+        return validator(['fecha' => $this->fecha], ['fecha' => 'required|date_format:Y-m-d'])->passes()
+            ? Carbon::createFromFormat('!Y-m-d', $this->fecha)
+            : now();
     }
 }

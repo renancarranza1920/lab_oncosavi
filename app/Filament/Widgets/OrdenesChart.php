@@ -9,8 +9,20 @@ use Illuminate\Support\Facades\DB;
 
 class OrdenesChart extends ChartWidget
 {
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('dashboard_ordenes') ?? false;
+    }
+
+    public function mount(): void
+    {
+        abort_unless(static::canView(), 403);
+        parent::mount();
+    }
+
     protected static ?string $heading = 'Órdenes en los Últimos 7 Días';
     protected static ?int $sort = 2;
+    protected static ?string $maxHeight = '300px';
 
     protected int | string | array $columnSpan = 1;
 
@@ -38,8 +50,14 @@ class OrdenesChart extends ChartWidget
             'datasets' => [
                 [
                     'data' => $values,
-                    'borderColor' => 'rgb(' . config('ui.primary.500') . ')',
-                    'backgroundColor' => 'rgba(' . config('ui.primary.400') . ', 0.2)',
+                    'borderColor' => config('ui.charts.line'),
+                    'backgroundColor' => config('ui.charts.line_fill'),
+                    'pointBackgroundColor' => config('ui.charts.line'),
+                    'pointBorderColor' => '#FFFFFF',
+                    'pointBorderWidth' => 2,
+                    'pointRadius' => 4,
+                    'pointHoverRadius' => 6,
+                    'borderWidth' => 2.5,
                     'fill' => true,
                     'tension' => 0.35,
                 ],
@@ -53,20 +71,10 @@ class OrdenesChart extends ChartWidget
         return 'line';
     }
     protected function getOptions(): array
-{
-    return [
-        'plugins' => [
-            'legend' => [
-                'display' => false,
-            ],
-        ],
-    ];
-}
-protected function getExtraAttributes(): array
-{
-    return [
-        'style' => 'min-height: 420px;',
-    ];
-}
-
+    {
+        return [
+            'plugins' => ['legend' => ['display' => false]],
+            'scales' => ['y' => ['beginAtZero' => true, 'ticks' => ['precision' => 0]]],
+        ];
+    }
 }

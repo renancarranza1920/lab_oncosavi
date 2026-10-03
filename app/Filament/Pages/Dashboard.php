@@ -16,6 +16,11 @@ class Dashboard extends BaseDashboard
     protected static ?string $navigationIcon = 'heroicon-o-home';
     protected static ?int $navigationSort = -2;
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('view_dashboard') ?? false;
+    }
+
     public function getWidgets(): array
     {
         return [

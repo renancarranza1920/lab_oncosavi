@@ -16,7 +16,8 @@ class CierreCajaService
 
         $ordenes = Orden::query()
             ->with('cliente:id,nombre,apellido')
-            ->whereBetween('fecha', [$desde->toDateString(), $hasta->toDateString()])
+            ->where('fecha', '>=', $desde->toDateString())
+            ->where('fecha', '<', $hasta->addDay()->toDateString())
             ->orderBy('fecha')
             ->orderBy('id')
             ->get();

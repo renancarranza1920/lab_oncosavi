@@ -61,4 +61,20 @@ class CierreCajaServiceTest extends TestCase
         $this->assertSame('Trimestre 3 de 2026', $etiquetaTrimestre);
         $this->assertSame('Año 2026', $etiquetaAnio);
     }
+
+    public function test_el_cierre_diario_no_incluye_otros_dias_y_excluye_cancelaciones_del_neto(): void
+    {
+        $cliente = Cliente::create(['nombre' => 'Paciente', 'apellido' => 'Diario', 'genero' => 'Femenino']);
+        foreach ([['2026-10-01', 'finalizado', 999], ['2026-10-02', 'finalizado', 25], ['2026-10-02', 'cancelado', 75], ['2026-10-03', 'pendiente', 999]] as [$fecha, $estado, $total]) {
+            Orden::create(['cliente_id' => $cliente->id, 'fecha' => $fecha, 'estado' => $estado, 'total' => $total]);
+        }
+        $datos = app(CierreCajaService::class)->generar('diario', 2026, 10, 1, 2);
+        $this->assertSame(2, $datos['resumen']['ordenes']);
+        $this->assertSame(25.0, $datos['resumen']['ingreso_neto']);
+        $this->assertSame(75.0, $datos['resumen']['valor_cancelado']);
+        $this->assertCount(1, $datos['movimientos']);
+        [$desde, $hasta] = app(CierreCajaService::class)->rango('diario', 2024, 2, 1, 31);
+        $this->assertSame('2024-02-29', $desde->toDateString());
+        $this->assertSame('2024-02-29', $hasta->toDateString());
+    }
 }

@@ -27,20 +27,20 @@ class FlujosAtencionTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         Filament::bootCurrentPanel();
         $user = User::factory()->create();
-        foreach (['view_any_clientes', 'create_clientes', 'update_clientes', 'view_any_cotizacion', 'ingresar_resultados_orden'] as $permiso) {
+        foreach (['view_any_clientes', 'create_clientes', 'update_clientes', 'view_any_cotizacion', 'ingresar_resultados_orden', 'access_cotizaciones', 'generar_pdf_cotizacion', 'enviar_cotizacion_whatsapp', 'enviar_cotizacion_email'] as $permiso) {
             $user->givePermissionTo(Permission::findOrCreate($permiso, 'web'));
         }
         $this->actingAs($user);
     }
 
-    public function test_guarda_telefono_y_limpia_edad_y_grupo_al_elegir_fecha(): void
+    public function test_guarda_telefono_usa_y_limpia_edad_y_grupo_al_elegir_fecha(): void
     {
         Livewire::test(CreateClientes::class)->assertStatus(200)
             ->fillForm([
                 'nombre' => 'Paciente', 'apellido' => 'USA', 'genero' => 'Femenino',
+                'telefono_codigo_pais' => '1', 'telefono' => '202-555-0123',
                 'edad' => 40, 'grupo_etario' => '123',
             ])
-            ->set('data.telefonos', ['telefono-prueba' => ['tipo' => 'sv', 'numero' => '7200-1156']])
             ->set('data.fecha_nacimiento', '1990-05-20')
             ->assertSet('data.edad', null)
             ->assertSet('data.grupo_etario', null)
@@ -48,7 +48,7 @@ class FlujosAtencionTest extends TestCase
             ->assertHasNoFormErrors();
 
         $this->assertDatabaseHas('clientes', [
-            'apellido' => 'USA', 'telefono' => '+50372001156',
+            'apellido' => 'USA', 'telefono' => '12025550123',
             'edad' => null, 'grupo_etario' => null, 'fecha_nacimiento' => '1990-05-20',
         ]);
     }
@@ -58,20 +58,19 @@ class FlujosAtencionTest extends TestCase
         Livewire::test(CreateClientes::class)->assertStatus(200)
             ->fillForm([
                 'nombre' => 'Paciente', 'apellido' => 'Prueba', 'genero' => 'Femenino',
+                'telefono_codigo_pais' => '1', 'telefono' => '77777777',
             ])
-            ->set('data.telefonos', ['telefono-prueba' => ['tipo' => 'us', 'numero' => '7777-7777']])
-            ->call('create')->assertHasFormErrors();
+            ->call('create')->assertHasFormErrors(['telefono']);
 
         $cliente = Cliente::create([
             'nombre' => 'Paciente', 'apellido' => 'Local', 'genero' => 'Femenino',
             'telefono' => '77777777',
         ]);
         Livewire::test(EditClientes::class, ['record' => $cliente->getRouteKey()])
-            ->assertSet('data.telefonos', fn (array $telefonos): bool => collect($telefonos)->contains(
-                fn (array $telefono): bool => $telefono['tipo'] === 'sv' && $telefono['numero'] === '77777777'
-            ))
+            ->assertSet('data.telefono_codigo_pais', '503')
+            ->assertSet('data.telefono', '77777777')
             ->call('save')->assertHasNoFormErrors();
-        $this->assertSame('+50377777777', $cliente->fresh()->telefono);
+        $this->assertSame('50377777777', $cliente->fresh()->telefono);
     }
 
     public function test_cotizacion_genera_enlaces_nativos_con_destinatario_resumen_y_total(): void

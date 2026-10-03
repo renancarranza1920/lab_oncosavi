@@ -28,7 +28,6 @@ class Cliente extends Model
         'grupo_etario',
         'genero',
         'telefono',
-        'telefonos',
         'correo',
         'direccion',
         'estado',
@@ -36,28 +35,6 @@ class Cliente extends Model
 
 protected static function booted(): void
 {
-    static::saving(function (Cliente $cliente): void {
-        $telefonos = collect($cliente->telefonos ?? [])
-            ->map(function ($telefono) {
-                $telefono = is_array($telefono) ? $telefono : ['numero' => $telefono];
-                $normalizado = self::normalizarTelefonoPorTipo(
-                    $telefono['tipo'] ?? null,
-                    $telefono['numero'] ?? '',
-                );
-
-                return $normalizado;
-            })
-            ->filter()
-            ->unique(fn (array $telefono) => $telefono['tipo'] . ':' . $telefono['numero'])
-            ->values()
-            ->all();
-
-        if ($telefonos !== []) {
-            $cliente->telefonos = $telefonos;
-            $cliente->telefono = self::numeroCompleto($telefonos[0]);
-        }
-    });
-
     static::creating(function ($cliente) {
 
         // Generar prefijo (iniciales + año)
@@ -86,129 +63,6 @@ protected static function booted(): void
         }
     });
 }
-
-    public static function normalizarTelefono(?string $telefono): ?string
-    {
-        $telefono = trim((string) $telefono);
-        $esInternacional = str_starts_with($telefono, '+');
-        $digitos = preg_replace('/\D/', '', $telefono);
-
-        if ($digitos === '') {
-            return null;
-        }
-
-        return $esInternacional ? '+' . $digitos : $digitos;
-    }
-
-    public static function normalizarTelefonoPorTipo(?string $tipo, ?string $numero): ?array
-    {
-        $normalizado = self::normalizarTelefono($numero);
-
-        if (!$normalizado) {
-            return null;
-        }
-
-        $digitos = preg_replace('/\D/', '', $normalizado);
-        $tipo ??= str_starts_with($normalizado, '+1') && !str_starts_with($normalizado, '+503')
-            ? 'us'
-            : (str_starts_with($normalizado, '+503') || (!str_starts_with($normalizado, '+') && !str_starts_with($digitos, '2')) ? 'sv' : 'fijo');
-
-        if ($tipo === 'sv') {
-            $digitos = str_starts_with($digitos, '503') ? substr($digitos, 3) : $digitos;
-        } elseif ($tipo === 'us') {
-            $digitos = str_starts_with($digitos, '1') && strlen($digitos) === 11 ? substr($digitos, 1) : $digitos;
-        }
-
-        return ['tipo' => $tipo, 'numero' => $digitos];
-    }
-
-    public static function numeroCompleto(array $telefono): string
-    {
-        return match ($telefono['tipo'] ?? 'fijo') {
-            'sv' => '+503' . $telefono['numero'],
-            'us' => '+1' . $telefono['numero'],
-            default => $telefono['numero'],
-        };
-    }
-
-    public function getTelefonosAttribute($value): array
-    {
-        $telefonos = is_array($value) ? $value : (json_decode($value ?: '[]', true) ?: []);
-
-        if ($telefonos === [] && !empty($this->attributes['telefono'])) {
-            $telefonos = [['numero' => $this->attributes['telefono']]];
-        }
-
-        return collect($telefonos)
-            ->map(fn ($telefono) => self::normalizarTelefonoPorTipo(
-                is_array($telefono) ? ($telefono['tipo'] ?? null) : null,
-                is_array($telefono) ? ($telefono['numero'] ?? '') : $telefono,
-            ))
-            ->filter()
-            ->values()
-            ->all();
-    }
-
-    public function setTelefonosAttribute($value): void
-    {
-        $this->attributes['telefonos'] = $value === null ? null : json_encode($value);
-    }
-
-    public static function formatearTelefono(?string $telefono): ?string
-    {
-        $telefono = self::normalizarTelefono($telefono);
-
-        if (!$telefono) {
-            return null;
-        }
-
-        $digitos = preg_replace('/\D/', '', $telefono);
-
-        if (str_starts_with($telefono, '+1') && strlen($digitos) === 11) {
-            return sprintf('+1 (%s) %s-%s', substr($digitos, 1, 3), substr($digitos, 4, 3), substr($digitos, 7, 4));
-        }
-
-        if (str_starts_with($telefono, '+503') && strlen($digitos) === 11) {
-            return '+503 ' . substr($digitos, 3, 4) . '-' . substr($digitos, 7, 4);
-        }
-
-        if (!str_starts_with($telefono, '+') && strlen($digitos) === 8) {
-            return substr($digitos, 0, 4) . '-' . substr($digitos, 4, 4);
-        }
-
-        return $telefono;
-    }
-
-    public function getTelefonosRegistradosAttribute(): array
-    {
-        $telefonos = $this->telefonos ?: ($this->telefono ? [['numero' => $this->telefono]] : []);
-
-        return collect($telefonos)
-            ->map(function ($telefono) {
-                $normalizado = self::normalizarTelefonoPorTipo(
-                    is_array($telefono) ? ($telefono['tipo'] ?? null) : null,
-                    is_array($telefono) ? ($telefono['numero'] ?? '') : $telefono,
-                );
-
-                return $normalizado ? self::formatearTelefono(self::numeroCompleto($normalizado)) : null;
-            })
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-    }
-
-    public function telefonosParaWhatsapp(): array
-    {
-        return collect($this->telefonos_registrados)
-            ->mapWithKeys(function (string $telefono): array {
-                $digitos = preg_replace('/\D/', '', $telefono);
-                $destino = str_starts_with($telefono, '+') ? $digitos : '503' . $digitos;
-
-                return [$destino => $telefono];
-            })
-            ->all();
-    }
 
     public function ordenes(): HasMany
     {
