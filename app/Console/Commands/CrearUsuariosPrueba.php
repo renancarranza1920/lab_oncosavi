@@ -12,11 +12,11 @@ use Illuminate\Support\Str;
 class CrearUsuariosPrueba extends Command
 {
     protected $signature = 'oncosavi:usuarios-prueba';
-    protected $description = 'Actualiza los tres roles y crea cuentas de prueba con contraseñas aleatorias, sin modificar el catálogo.';
+    protected $description = 'Actualiza los roles y crea únicamente la cuenta de prueba del administrador.';
 
     public function handle(): int
     {
-        $cuentas = ['prueba.admin' => 'admin', 'prueba.recepcion' => 'Recepcion', 'prueba.laboratorista' => 'Laboratorista'];
+        $cuentas = ['prueba.admin' => 'admin'];
         foreach ($cuentas as $nickname => $rol) {
             $usuario = User::where('nickname', $nickname)->orWhere('email', $nickname . '@oncosavi.test')->first();
             if ($usuario && ($usuario->nickname !== $nickname || $usuario->email !== $nickname . '@oncosavi.test')) {

@@ -185,12 +185,13 @@ class RolesAccionesTest extends TestCase
         $this->assertNull($this->usuarios['Laboratorista']->fresh()->firma_path);
     }
 
-    public function test_crear_tres_cuentas_es_repetible_y_conserva_passwords(): void
+    public function test_crear_solo_admin_es_repetible_y_conserva_passwords(): void
     {
         Storage::fake('local');
         $this->artisan('oncosavi:usuarios-prueba')->assertSuccessful();
         $cuentas = User::where('nickname', 'like', 'prueba.%')->get();
-        $this->assertCount(3, $cuentas);
+        $this->assertCount(1, $cuentas);
+        $this->assertSame('prueba.admin', $cuentas->sole()->nickname);
         $hashes = $cuentas->pluck('password', 'nickname')->all();
         $archivo = Storage::disk('local')->get('usuarios-prueba.json');
         foreach (json_decode($archivo, true) as $cuenta) {

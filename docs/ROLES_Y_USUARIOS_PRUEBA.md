@@ -27,11 +27,16 @@ git pull --ff-only origin main
 docker compose build app
 docker compose up -d --no-deps --force-recreate app
 docker compose exec app php artisan optimize:clear
-docker compose exec app php artisan oncosavi:usuarios-prueba
+docker compose exec app php artisan migrate --force
+docker compose exec app php artisan oncosavi:eliminar-usuarios-prueba
 docker compose exec app php artisan permission:cache-reset
 ```
 
-El comando crea `prueba.admin`, `prueba.recepcion` y `prueba.laboratorista`, sincroniza permisos de los roles y conserva contraseñas de cuentas ya existentes. No ejecuta el seeder completo ni modifica catálogos, órdenes o pacientes. Si encuentra una cuenta ajena con el mismo usuario o correo, se detiene antes de cambiar datos.
+La migración retira las cuentas de personal de prueba existentes. El comando de limpieza se puede repetir y también retira sus entradas del archivo privado de credenciales. Se identifican por los pares de usuario/correo `prueba.lab`, `prueba.recepcion` y `prueba.laboratorista` con correo `@oncosavi.test`, o por los nombres exactos `Prueba Lab`, `Prueba Recepcion`, `Prueba Recepción` y `Prueba Laboratorista`.
+
+Se conservan los administradores, el personal real, todos los roles y sus permisos. Las órdenes, pacientes, resultados, PDFs guardados, firmas y eventos de bitácora permanecen; las referencias al usuario de prueba retirado quedan vacías, sin atribuirlas a otro empleado. Se retiran sus sesiones y enlaces de restablecimiento de contraseña.
+
+`oncosavi:usuarios-prueba` ahora crea **únicamente `prueba.admin`**, conserva su contraseña si existe y sincroniza los tres roles. No vuelve a crear Recepción ni Laboratorista de prueba. No ejecuta el seeder completo ni modifica el catálogo. Si encuentra una cuenta ajena con el mismo usuario o correo, se detiene antes de cambiar datos.
 
 Consultar las contraseñas nuevas únicamente en la terminal del servidor:
 
@@ -49,7 +54,7 @@ docker compose exec app php artisan db:seed --class=RolesPermisosSeeder --force
 
 ## Verificación
 
-`RolesAccionesTest` comprueba los tres roles, URLs directas, llamadas a acciones ocultas, generación/descarga real del PDF, permisos de widgets, firma/sello propios, rechazo de rutas ajenas, bitácora filtrada y cuentas repetibles. La verificación en navegador se realiza en una base local aislada con las tres cuentas. No implica creación de usuarios ni despliegue en Oracle.
+`RolesAccionesTest` comprueba los tres roles con usuarios temporales de una base aislada: URLs directas, llamadas a acciones ocultas, generación/descarga real del PDF, permisos de widgets, firma/sello propios, rechazo de rutas ajenas y bitácora filtrada. `RetirarUsuariosPruebaTest` verifica la limpieza repetible, la conservación de administradores, roles, permisos y registros clínicos, y la retirada de sesiones y credenciales de las cuentas eliminadas. Las pruebas no crean usuarios en Oracle.
 
 Para ejecutar la suite local, se requiere el límite PHP de 512 MB que ya configura `docker/php.ini`:
 
