@@ -52,12 +52,6 @@ return [
 
     'channels' => [
 
-        'whatsapp' => [
-            'driver' => 'stack',
-            'channels' => ['single', 'stderr'],
-            'ignore_exceptions' => true,
-        ],
-
         'stack' => [
             'driver' => 'stack',
             'channels' => explode(',', env('LOG_STACK', 'single')),

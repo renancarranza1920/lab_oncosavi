@@ -1,7 +1,5 @@
 /.phpunit.cache
 /node_modules
-/docker/whatsapp/node_modules
-/docker/whatsapp/__pycache__
 /public/build
 /public/hot
 /public/storage
