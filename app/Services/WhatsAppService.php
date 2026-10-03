@@ -87,9 +87,19 @@ class WhatsAppService
                 RegistroWhatsApp::evento('envio_sin_confirmacion', ['clase' => $e::class]);
                 $envio->update(['estado' => 'desconocido', 'codigo' => 'connection']);
             }
-            activity('WhatsApp')->causedBy(auth()->user())->performedOn($envio)
-                ->withProperties(['tipo' => $tipo, 'orden_id' => $ordenId, 'estado' => $envio->estado])
-                ->log('Solicitud de envío por WhatsApp');
+            try {
+                // subject_id es BIGINT en MySQL: el UUID del envío pertenece a properties.
+                $actividad = activity('WhatsApp')->causedBy(auth()->user())
+                    ->withProperties(['envio_id' => $envio->id, 'tipo' => $tipo,
+                        'orden_id' => $ordenId, 'estado' => $envio->estado]);
+                if ($ordenId !== null && ($orden = Orden::find($ordenId))) {
+                    $actividad->performedOn($orden);
+                }
+                $actividad->log('Solicitud de envío por WhatsApp');
+            } catch (\Throwable $e) {
+                // El envío ya tiene un resultado persistido; un fallo auxiliar no lo cambia.
+                RegistroWhatsApp::evento('bitacora_no_registrada', ['estado' => $envio->estado, 'clase' => $e::class]);
+            }
 
             return $envio;
         } finally {

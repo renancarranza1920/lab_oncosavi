@@ -16,6 +16,7 @@ class AvisoWhatsApp
         } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
             throw $e;
         } catch (\Throwable $e) {
+            RegistroWhatsApp::evento('solicitud_interrumpida', ['clase' => $e::class]);
             // No mostrar mensajes internos, rutas, credenciales o respuestas del proveedor.
             Notification::make()->title('No se pudo completar la solicitud')
                 ->body('Revise Envíos WhatsApp antes de intentarlo nuevamente. Si persiste, contacte al administrador.')->danger()->send();

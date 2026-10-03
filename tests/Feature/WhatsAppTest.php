@@ -42,6 +42,12 @@ class WhatsAppTest extends TestCase
         Storage::fake('public');
         Storage::disk('public')->put($this->orden->reporteGuardadoPath(), '%PDF-1.7 prueba');
         config(['whatsapp.enabled' => true, 'whatsapp.webhook_secret' => str_repeat('a', 64), 'whatsapp.bridge_token' => str_repeat('b', 64)]);
+        // SQLite admite texto en BIGINT; reproducir la restricción real de MySQL.
+        if (DB::getDriverName() === 'sqlite') {
+            DB::unprepared("CREATE TRIGGER activity_subject_integer BEFORE INSERT ON activity_log
+                WHEN NEW.subject_id IS NOT NULL AND typeof(NEW.subject_id) != 'integer'
+                BEGIN SELECT RAISE(ABORT, 'activity_log.subject_id must be numeric'); END");
+        }
         Http::preventStrayRequests();
         $this->actingAs($this->recepcion);
     }
@@ -57,6 +63,11 @@ class WhatsAppTest extends TestCase
         Http::assertSent(fn ($r) => $r->hasHeader('X-Oncosavi-Token', str_repeat('a', 64)) && $r['phone'] === '50377778888'
             && base64_decode($r['pdf']) === '%PDF-1.7 prueba' && $r['filename'] === 'orden-'.$this->orden->id.'.pdf');
         $this->assertSame('enviado', $envio->estado);
+        $actividad = \Spatie\Activitylog\Models\Activity::where('log_name', 'WhatsApp')->sole();
+        $this->assertTrue($actividad->subject->is($this->orden));
+        $this->assertSame($envio->id, $actividad->properties->get('envio_id'));
+        $this->assertSame('enviado', $actividad->properties->get('estado'));
+        $this->assertSame($this->recepcion->id, $actividad->causer_id);
         $this->assertNotSame('50377778888', DB::table('envios_whatsapp')->value('telefono'));
         $this->assertArrayNotHasKey('telefono', $envio->toArray());
         $this->assertStringNotContainsString('%PDF-', json_encode($envio->getAttributes()));
@@ -118,7 +129,11 @@ class WhatsAppTest extends TestCase
             'whatsapp_codigo_pais' => '503', 'examenes_seleccionados' => [['examen_id' => $examen->id, 'precio_hidden' => 10]], 'perfiles_seleccionados' => []])
             ->call('enviarWhatsApp')->assertHasNoFormErrors()->assertNotified('PDF enviado por WhatsApp');
         Http::assertSent(fn ($r) => $r['phone'] === '50377778888' && str_starts_with(base64_decode($r['pdf']), '%PDF-'));
-        $this->assertSame('cotizacion', EnvioWhatsApp::first()->tipo);
+        $envio = EnvioWhatsApp::sole();
+        $this->assertSame('cotizacion', $envio->tipo);
+        $actividad = \Spatie\Activitylog\Models\Activity::where('log_name', 'WhatsApp')->sole();
+        $this->assertNull($actividad->subject_id);
+        $this->assertSame($envio->id, $actividad->properties->get('envio_id'));
     }
 
     public function test_cada_empleado_ve_sus_envios_y_solo_admin_puede_ver_el_qr(): void
@@ -184,6 +199,32 @@ class WhatsAppTest extends TestCase
             ->expectsOutput('Motivo: protocol_error')->assertSuccessful();
         Http::assertSentCount(1);
         Http::assertSent(fn ($r) => $r->method() === 'GET');
+    }
+
+    public function test_fallo_de_bitacora_no_oculta_envio_confirmado_ni_provoca_reenvio(): void
+    {
+        // Fallo secundario posterior al envío, sin modificar el servicio externo.
+        $dispatcher = \Spatie\Activitylog\Models\Activity::getEventDispatcher();
+        $aislado = clone $dispatcher;
+        \Spatie\Activitylog\Models\Activity::setEventDispatcher($aislado);
+        $aislado->listen('eloquent.creating: '.\Spatie\Activitylog\Models\Activity::class, function ($actividad) {
+            if ($actividad->log_name === 'WhatsApp') {
+                throw new \RuntimeException('DETALLE INTERNO DE PRUEBA');
+            }
+        });
+        Http::fake(['n8n:5678/*' => Http::response(['status' => 'sent', 'messageId' => 'confirmado'])]);
+        try {
+            Livewire::test(ListOrdens::class)->set('activeTab', 'finalizado')
+                ->callTableAction('enviarPorCorreoOWhatsApp', $this->orden, ['canal' => 'whatsapp'])
+                ->assertNotified('PDF enviado por WhatsApp')->assertDontSee('DETALLE INTERNO DE PRUEBA');
+            $envio = EnvioWhatsApp::sole();
+            $this->assertSame('enviado', $envio->estado);
+            $this->assertSame('confirmado', $envio->message_id);
+            $this->assertSame($envio->id, app(WhatsAppService::class)->orden($this->orden)->id);
+            Http::assertSentCount(1);
+        } finally {
+            \Spatie\Activitylog\Models\Activity::setEventDispatcher($dispatcher);
+        }
     }
 
 }

@@ -83,6 +83,12 @@ bash docker/whatsapp/diagnostico.sh
 
 La aplicación también registra `WhatsApp: vinculacion_solicitada` y la respuesta del puente en `storage/logs/laravel.log` y en la salida del contenedor `app`. No es necesario activar logs de depuración de Baileys, que pueden exponer claves de sesión. Vincular el teléfono comunica Laravel directamente con el puente; n8n participa al **enviar** el PDF.
 
+## Si el PDF llegó y el historial dice «enviado», pero apareció un aviso rojo
+
+La versión inicial intentaba asociar el UUID del envío al campo numérico `activity_log.subject_id`. MySQL rechazaba el registro de bitácora **después** de confirmar el envío. La corrección conserva el UUID en `properties.envio_id` y asocia la actividad a la orden, cuyo identificador sí es numérico; las cotizaciones conservan la referencia al envío en las propiedades.
+
+Un fallo de bitácora se registra como `bitacora_no_registrada` y no cambia el resultado del envío ni provoca un reintento. Actualice con `bash docker/whatsapp/iniciar.sh`. Los documentos ya confirmados no deben reenviarse para corregir este aviso. No hace falta modificar la estructura de la base ni borrar registros.
+
 ## Servicios privados y datos
 
 No requiere cambiar Caddy ni abrir nuevos puertos en Oracle. Baileys no publica ningún puerto en el host; n8n escucha en `127.0.0.1:5678`. La base sigue privada. La comunicación interna exige claves distintas para el webhook y para Baileys. No se permiten rutas, URLs de archivos, grupos ni comandos arbitrarios en la solicitud.
