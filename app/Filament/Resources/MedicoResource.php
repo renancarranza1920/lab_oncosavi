@@ -24,6 +24,11 @@ class MedicoResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user';
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->whereNull('portal_usuario');
+    }
+
     public static function form(Form $form): Form
     {
         return $form

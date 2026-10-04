@@ -191,7 +191,7 @@ class CreateCotizacion extends ResourcePage implements HasForms
 
     protected function getWhatsAppUrl(Get $get): ?string
     {
-        $numero = \App\Support\TelefonoCliente::internacional($get('whatsapp'), $get('whatsapp_codigo_pais'));
+        $numero = \App\Support\TelefonoCliente::internacional($get('whatsapp'), $get('whatsapp_codigo_pais') === 'otro' ? $get('whatsapp_codigo_otro') : $get('whatsapp_codigo_pais'));
         if (!$numero) {
             return null;
         }

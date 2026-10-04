@@ -190,7 +190,6 @@ protected function handleRecordCreation(array $data): \Illuminate\Database\Eloqu
             $this->codigoAplicado->registrarUso();
         }
 
-        session()->flash('from_create_orden', true);
         $state = $this->form->getState();
         $perfiles = OrdenSelectionService::perfilesUnicos($state['perfiles_seleccionados'] ?? []);
         $examenes = OrdenSelectionService::examenesCobrables(
@@ -326,11 +325,9 @@ protected function handleRecordCreation(array $data): \Illuminate\Database\Eloqu
     protected function getRedirectUrl(): string
     {
         if (! config('laboratorio.impresion_etiquetas_habilitada')) {
-            return static::getResource()::getUrl('index');
+            return static::getResource()::getUrl('index', ['activeTab' => 'pendiente']);
         }
 
-        // Al terminar el Wizard, lo mandamos al index o al Kanban 
-        // pero la notificación le dará la opción de imprimir.
         return DetalleOrdenKanban::getUrl(['ordenId' => $this->record->id]);
     }
 

@@ -2,7 +2,13 @@
 
 URL: `https://applab.oncosavi.com/expediente`. Usa el mismo dominio y contenedor del sistema; no requiere otro servicio ni cambios en Caddy.
 
-## Habilitar acceso
+## Acceso general para todos los médicos
+
+El acceso compartido usa el usuario **medicos**. Después de migrar, entra a **Atención al Paciente → Médicos → Acceso médico general**, habilítalo y define una contraseña para compartir. Consulta todos los expedientes y PDFs, sin acceso al administrador. El comando `oncosavi:portal-medicos-general` también permite habilitarlo con una contraseña aleatoria guardada en `storage/app/private/portal-medicos-general.json`.
+
+Cambiar la contraseña cierra las sesiones existentes. Los botones de contraseña permiten mostrar u ocultar lo escrito; no revelan contraseñas guardadas. Consulta [la guía de actualización](MEJORAS_OPERACION_Y_REPORTES.md) para los comandos de Oracle y la gestión de la cuenta compartida.
+
+## Accesos individuales opcionales
 
 1. Como administrador, entra a **Atención al Paciente → Médicos**. Registra al médico si todavía no existe.
 2. Usa **Acceso al portal**, habilita el acceso y define una contraseña de al menos 8 caracteres. Su usuario aparece como `MED-ID` en la tabla y el formulario.
@@ -40,11 +46,11 @@ docker compose -f docker-compose.yml exec -T app php artisan filament:clear-cach
 docker compose -f docker-compose.yml ps
 ```
 
-No ejecuta seeders ni elimina datos, PDFs o volúmenes. La migración agrega campos de acceso a los médicos y dos índices de consulta de órdenes. Después de actualizar, habilitar los médicos desde el panel.
+No ejecuta seeders ni elimina datos, PDFs o volúmenes. Después de actualizar, configurar el acceso general o los accesos individuales desde el panel.
 
 ## Integración de dev-manuel
 
-Se hizo un merge con la rama `dev-manuel`, conservando solo el alcance solicitado de reportes: cierre diario, retiro del ticket promedio y simplificación de la vista del catálogo. Se conservaron los tokens de color claro/oscuro de `main` y se corrigió el límite de fechas del cierre diario. Las propuestas de teléfonos múltiples y sus cambios en clientes, órdenes, resultados, seeders y pruebas no se incorporaron: `main` mantiene sus teléfonos +503/+1, acciones, permisos y flujo manual de WhatsApp.
+Se hizo un merge con la rama `dev-manuel`, conservando solo el alcance solicitado de reportes: cierre diario, retiro del ticket promedio y simplificación de la vista del catálogo. Se conservaron los tokens de color claro/oscuro de `main` y se corrigió el límite de fechas del cierre diario. La actualización posterior de atención agrega teléfonos múltiples y nuevos diseños de documentos, manteniendo los permisos y el flujo manual de WhatsApp.
 
 ## Verificación
 

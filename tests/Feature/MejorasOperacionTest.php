@@ -1,0 +1,185 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Filament\Resources\ClientesResource\Pages\CreateClientes;
+use App\Filament\Resources\ClientesResource\Pages\EditClientes;
+use App\Filament\Resources\MedicoResource;
+use App\Filament\Resources\MedicoResource\Pages\ListMedicos;
+use App\Filament\Resources\OrdenResource\Pages\CreateOrden;
+use App\Filament\Resources\OrdenResource\Pages\IngresarResultados;
+use App\Filament\Resources\OrdenResource\Pages\ListOrdens;
+use App\Models\Cliente;
+use App\Models\DetalleOrden;
+use App\Models\Examen;
+use App\Models\Medico;
+use App\Models\Muestra;
+use App\Models\Orden;
+use App\Models\TipoExamen;
+use App\Models\User;
+use App\Services\AccesoMedicoService;
+use Database\Seeders\RolesPermisosSeeder;
+use Filament\Facades\Filament;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
+use Tests\TestCase;
+
+class MejorasOperacionTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RolesPermisosSeeder::class);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::bootCurrentPanel();
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $this->actingAs($admin);
+    }
+
+    private function orden(): array
+    {
+        $cliente = Cliente::create(['nombre' => 'Paciente', 'apellido' => 'Prueba', 'genero' => 'Femenino']);
+        $tipo = TipoExamen::create(['nombre' => 'Química']);
+        $examen = Examen::create(['tipo_examen_id' => $tipo->id, 'nombre' => 'Glucosa', 'precio' => 10]);
+        $muestra = Muestra::create(['nombre' => 'Sangre']);
+        $examen->muestras()->attach($muestra);
+        $orden = Orden::create(['cliente_id' => $cliente->id, 'fecha' => now(), 'total' => 10, 'estado' => 'pendiente']);
+        $detalle = DetalleOrden::create(['orden_id' => $orden->id, 'examen_id' => $examen->id, 'nombre_examen' => 'Glucosa', 'precio_examen' => 10, 'status' => 'pendiente']);
+
+        return [$orden, $detalle, $muestra, $examen];
+    }
+
+    public function test_las_acciones_cambian_a_la_pestana_del_nuevo_estado_al_cerrar_el_modal(): void
+    {
+        [$orden, $detalle, $muestra] = $this->orden();
+        $pagina = Livewire::test(ListOrdens::class)
+            ->callTableAction('gestionarMuestras', $orden, ['muestras_recibidas_list' => ['d'.$detalle->id.'_m'.$muestra->id]])
+            ->assertHasNoTableActionErrors()->assertSet('activeTab', 'en proceso')->assertSet('mountedTableActions', []);
+        $this->assertSame('en proceso', $orden->fresh()->estado);
+        $pagina->callTableAction('pausarOrden', $orden->fresh(), ['motivo_pausa' => 'Esperando muestra adicional'])
+            ->assertSet('activeTab', 'pausada')->assertSet('mountedTableActions', []);
+        $pagina->callTableAction('reanudarOrden', $orden->fresh())
+            ->assertSet('activeTab', 'en proceso')->assertSet('mountedTableActions', []);
+        $pagina->callTableAction('finalizarOrden', $orden->fresh())
+            ->assertSet('activeTab', 'finalizado')->assertSet('mountedTableActions', []);
+        $this->assertSame('finalizado', $orden->fresh()->estado);
+        $pagina->callTableAction('restaurarOrden', $orden->fresh())->assertSet('activeTab', 'en proceso');
+        $pagina->callTableAction('cancelarOrden', $orden->fresh())->assertSet('activeTab', 'cancelado');
+    }
+
+    public function test_crear_orden_regresa_a_pendientes_sin_kanban_ni_busqueda_por_id(): void
+    {
+        [$orden, , , $examen] = $this->orden();
+        config(['laboratorio.impresion_etiquetas_habilitada' => false]);
+        Livewire::test(CreateOrden::class)->fillForm([
+            'cliente_id' => $orden->cliente_id,
+            'examenes_seleccionados' => [['examen_id' => $examen->id, 'nombre_examen' => 'Glucosa', 'precio_hidden' => 10, 'recipiente' => 'pendiente']],
+        ])->call('create')->assertHasNoFormErrors()->assertRedirect('/admin/ordenes?activeTab=pendiente');
+        $this->assertSame(2, Orden::count());
+    }
+
+    public function test_completar_desde_resultados_regresa_a_finalizadas(): void
+    {
+        [$orden] = $this->orden();
+        $orden->update(['estado' => 'en proceso']);
+        Livewire::test(IngresarResultados::class, ['record' => $orden])
+            ->callAction('completar')->assertRedirect('/admin/ordenes?activeTab=finalizado');
+        $this->assertSame('finalizado', $orden->fresh()->estado);
+    }
+
+    public function test_guarda_varios_paises_y_busca_por_un_numero_secundario(): void
+    {
+        Livewire::test(CreateClientes::class)->fillForm([
+            'nombre' => 'Contacto', 'apellido' => 'Múltiple', 'genero' => 'Femenino',
+            'telefonos' => [
+                ['numero_codigo_pais' => '503', 'numero' => '7777-8888', 'tipo' => 'movil'],
+                ['numero_codigo_pais' => '1', 'numero' => '202-555-0123', 'tipo' => 'fijo'],
+                ['numero_codigo_pais' => 'otro', 'numero_codigo_otro' => '81', 'numero' => '90-1234-5678', 'tipo' => 'movil'],
+            ],
+        ])->call('create')->assertHasNoFormErrors();
+        $cliente = Cliente::where('nombre', 'Contacto')->firstOrFail();
+        $this->assertSame('50377778888', $cliente->telefono);
+        $this->assertSame(['50377778888', '12025550123', '819012345678'], $cliente->telefonos_contacto);
+        $this->assertSame('fijo', $cliente->telefonos[1]->tipo);
+        $this->assertSame($cliente->id, Cliente::buscarTelefono('+1 (202) 555-0123')->sole()->id);
+        Livewire::test(\App\Filament\Resources\ClientesResource\Pages\ListClientes::class)
+            ->searchTable('9012345678')->assertCanSeeTableRecords([$cliente]);
+        $general = Medico::where('portal_usuario', 'medicos')->firstOrFail();
+        $this->assertSame($cliente->id, app(\App\Services\ExpedienteMedicoService::class)->buscar($general, ['q' => '+819012345678'])->sole()->id);
+
+        $pagina = Livewire::test(EditClientes::class, ['record' => $cliente->getRouteKey()]);
+        $filas = $pagina->get('data.telefonos');
+        $ultima = array_key_last($filas);
+        $pagina->assertSet('data.telefonos.'.$ultima.'.numero_codigo_pais', 'otro')
+            ->assertSet('data.telefonos.'.$ultima.'.numero_codigo_otro', '81')
+            ->assertSet('data.telefonos.'.$ultima.'.numero', '9012345678')
+            ->call('save')->assertHasNoFormErrors();
+        $this->assertSame(['50377778888', '12025550123', '819012345678'], $cliente->fresh()->telefonos_contacto);
+    }
+
+    public function test_quitar_un_telefono_conserva_los_demas_y_actualiza_el_principal(): void
+    {
+        $cliente = Cliente::create(['nombre' => 'Paciente', 'apellido' => 'Contacto', 'genero' => 'Femenino']);
+        $primero = $cliente->telefonos()->create(['numero' => '50377778888', 'codigo_pais' => '503', 'tipo' => 'movil', 'orden' => 0]);
+        $segundo = $cliente->telefonos()->create(['numero' => '12025550123', 'codigo_pais' => '1', 'tipo' => 'fijo', 'orden' => 1]);
+        $pagina = Livewire::test(EditClientes::class, ['record' => $cliente->getRouteKey()]);
+        $filas = $pagina->get('data.telefonos');
+        array_shift($filas);
+        $pagina->set('data.telefonos', $filas)->call('save')->assertHasNoFormErrors();
+        $this->assertDatabaseMissing('cliente_telefonos', ['id' => $primero->id]);
+        $this->assertDatabaseHas('cliente_telefonos', ['id' => $segundo->id, 'numero' => '12025550123']);
+        $this->assertSame('12025550123', $cliente->fresh()->telefono);
+    }
+
+    public function test_acceso_medico_general_es_repetible_con_password_hash_y_sin_aparecer_como_medico_clinico(): void
+    {
+        Storage::fake('local');
+        $this->artisan('oncosavi:portal-medicos-general')->assertSuccessful();
+        $general = Medico::where('portal_usuario', 'medicos')->sole();
+        $credenciales = json_decode(Storage::disk('local')->get('portal-medicos-general.json'), true);
+        $this->assertSame('medicos', $credenciales['usuario']);
+        $this->assertTrue(Hash::check($credenciales['password'], $general->password));
+        $hash = $general->password;
+        $this->artisan('oncosavi:portal-medicos-general')->assertSuccessful();
+        $this->assertSame($hash, $general->fresh()->password);
+        $this->assertNull(MedicoResource::getEloquentQuery()->find($general->id));
+        Livewire::test(ListMedicos::class)->assertCanNotSeeTableRecords([$general]);
+    }
+
+    public function test_general_consulta_todos_los_expedientes_y_pdf_y_sigue_sin_acceso_administrativo(): void
+    {
+        Storage::fake('public');
+        [$orden] = $this->orden();
+        $otro = Medico::create(['nombre' => 'Dra. Referente']);
+        $orden->update(['medico_id' => $otro->id, 'estado' => 'finalizado']);
+        Storage::disk('public')->put($orden->reporteGuardadoPath(), '%PDF-1.7 resultados firmados originales');
+        $general = Medico::where('portal_usuario', 'medicos')->sole();
+        app(AccesoMedicoService::class)->configurarGeneral(true, 'ClaveCompartida2026');
+        auth('web')->logout();
+        $this->post('/expediente/ingresar', ['usuario' => 'medicos', 'password' => 'ClaveCompartida2026'])->assertRedirect('/expediente');
+        $this->assertAuthenticatedAs($general, 'medico');
+        $this->get('/expediente')->assertOk()->assertSee('Paciente Prueba');
+        $this->get('/expediente/pacientes/'.$orden->cliente_id)->assertOk();
+        $pdf = $this->get('/expediente/ordenes/'.$orden->id.'/pdf')->assertOk();
+        $this->assertSame('%PDF-1.7 resultados firmados originales', file_get_contents($pdf->baseResponse->getFile()->getPathname()));
+        $this->get('/admin')->assertRedirect('/admin/login');
+        $general->refresh();
+        $general->password = 'OtraClaveCompartida2026';
+        $general->save();
+        $this->get('/expediente')->assertRedirect('/expediente/ingresar');
+    }
+
+    public function test_recepcion_no_configura_el_acceso_general_desde_una_accion_oculta(): void
+    {
+        $usuario = User::factory()->create();
+        $usuario->assignRole('Recepcion');
+        $this->actingAs($usuario);
+        $this->expectException(\Illuminate\Auth\Access\AuthorizationException::class);
+        app(AccesoMedicoService::class)->configurarGeneral(true, 'UnaClave2026');
+    }
+}

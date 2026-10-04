@@ -147,7 +147,7 @@ public static function canAccess(): bool
         $query->when($filtros['fecha_nacimiento'], fn($q, $v) => $q->whereDate('fecha_nacimiento', $v));
 
         // Búsqueda parcial por Teléfono
-        $query->when($filtros['telefono'], fn($q, $v) => $q->where('telefono', 'like', "%{$v}%"));
+        $query->when($filtros['telefono'], fn($q, $v) => $q->buscarTelefono($v));
 
         // Búsqueda parcial por Correo
         $query->when($filtros['correo'], fn($q, $v) => $q->where('correo', 'like', "%{$v}%"));
@@ -156,7 +156,7 @@ public static function canAccess(): bool
         $query->when($filtros['estado'], fn($q, $v) => $q->where('estado', $v));
 
         // Obtenemos resultados (limitamos a 20 para rendimiento)
-        $this->resultados = $query->latest()->limit(24)->get();
+        $this->resultados = $query->with('telefonos')->latest()->limit(24)->get();
     }
 
     public function limpiar(): void

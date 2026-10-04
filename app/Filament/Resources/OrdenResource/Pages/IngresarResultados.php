@@ -479,7 +479,7 @@ if (!$valorRef && $grupoTodasEdades) {
                     ->success()
                     ->send();
 
-                return redirect(static::getResource()::getUrl('index'));
+                return redirect(static::getResource()::getUrl('index', ['activeTab' => 'finalizado']));
             }),
              
             ActionGroup::make([
@@ -595,7 +595,7 @@ if (!$valorRef && $grupoTodasEdades) {
                     $this->record->estado = 'finalizado';
                     $this->record->save();
                     Notification::make()->title('Orden Completada')->success()->send();
-                    return redirect(static::getResource()::getUrl('index'));
+                    return redirect(static::getResource()::getUrl('index', ['activeTab' => 'finalizado']));
                 }),
             Action::make('regresar')->label('Regresar a Órdenes')->color('gray')->icon('heroicon-o-arrow-left')
                 ->url(static::getResource()::getUrl('index')),
@@ -827,6 +827,7 @@ public function generarPdfParcial()
         'cliente',
         'medico',
         'detalleOrden.examen.tipoExamen',
+        'detalleOrden.examen.muestras',
         'detalleOrden.examen.pruebas.tipoPrueba',
         'resultados'
     ]);

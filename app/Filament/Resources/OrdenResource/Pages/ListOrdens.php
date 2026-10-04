@@ -28,6 +28,16 @@ protected $listeners = [
         // sobre el registro específico.
         $this->mountTableAction('enviarWhatsapp', \App\Models\Orden::find($data['recordId']));
     }
+
+    public function mostrarEstado(string $estado): void
+    {
+        if (! in_array($estado, ['pendiente', 'en proceso', 'pausada', 'finalizado', 'cancelado'], true)) {
+            return;
+        }
+
+        $this->activeTab = $estado;
+        $this->resetPage();
+    }
     public function getTabs(): array
     {
         $count = OrdenResource::getEloquentQuery()

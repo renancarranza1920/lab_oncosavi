@@ -8,10 +8,10 @@ use Illuminate\Validation\ValidationException;
 
 class CatalogoExamenesPdf
 {
-    public const COLUMN_HEIGHT = 690;
+    public const COLUMN_HEIGHT = 612;
     public const COLUMN_WIDTH = 178.33;
 
-    public function organizar(iterable $areas, iterable $perfiles): array
+    public function organizar(iterable $areas, iterable $perfiles, bool $mostrarPrecios = false): array
     {
         $metrics = (new Dompdf())->getFontMetrics();
         $font = $metrics->getFont('DejaVu Sans', 'normal');
@@ -35,11 +35,11 @@ class CatalogoExamenesPdf
         foreach ([8.5, 8.2, 8.0, 7.8] as $size) {
             $prepared = [];
             foreach ($sections as $section) {
-                $section['lineas'] = $this->lineas(mb_strtoupper($section['titulo']), $section['perfil'] ? 121 : 175, $size, $bold, $metrics);
+                $section['lineas'] = $this->lineas(mb_strtoupper($section['titulo']), $section['perfil'] ? ($mostrarPrecios ? 121 : 153) : 168, $size, $bold, $metrics);
                 $section['alto_titulo'] = count($section['lineas']) * ($size + 1.5) + 10;
                 foreach ($section['filas'] as &$row) {
-                    $row['lineas'] = $this->lineas($row['nombre'], $row['precio'] === null ? 158 : 121, $size, $font, $metrics);
-                    $row['alto'] = max(13, count($row['lineas']) * ($size + 1.5) + 2);
+                    $row['lineas'] = $this->lineas($row['nombre'], ! $mostrarPrecios || $row['precio'] === null ? 158 : 121, $size, $font, $metrics);
+                    $row['alto'] = max($mostrarPrecios ? 11.5 : 13, count($row['lineas']) * ($size + 1.5) + 2);
                 }
                 unset($row);
                 $prepared[] = $section;
@@ -65,7 +65,7 @@ class CatalogoExamenesPdf
                 else $low = $mid;
             }
             $columns = $this->distribuir($prepared, $high);
-            return ['paginas' => array_chunk($columns, 3), 'tamano' => $size, 'interlineado' => $size + 1.5];
+            return ['paginas' => array_chunk($columns, 3), 'tamano' => $size, 'interlineado' => $size + 1.5, 'mostrarPrecios' => $mostrarPrecios];
         }
 
         throw ValidationException::withMessages([
@@ -140,9 +140,9 @@ class CatalogoExamenesPdf
         return $columns;
     }
 
-    public function generar(iterable $areas, iterable $perfiles): \Barryvdh\DomPDF\PDF
+    public function generar(iterable $areas, iterable $perfiles, bool $mostrarPrecios = false): \Barryvdh\DomPDF\PDF
     {
-        $layout = $this->organizar($areas, $perfiles);
+        $layout = $this->organizar($areas, $perfiles, $mostrarPrecios);
         $pdf = Pdf::setOptions(['isRemoteEnabled' => false, 'dpi' => 96, 'chroot' => base_path()])
             ->loadView('pdf.reporte-examenes', $layout + [
                 'logoPath' => public_path(config('laboratorio.logo')),

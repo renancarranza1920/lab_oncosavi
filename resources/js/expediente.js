@@ -3,6 +3,18 @@ document.getElementById('portal-theme')?.addEventListener('click', () => {
     try { localStorage.setItem('theme', oscuro ? 'dark' : 'light'); } catch (_) {}
 });
 
+document.querySelectorAll('[data-password-toggle]').forEach(button => {
+    button.addEventListener('click', () => {
+        const input = document.getElementById(button.dataset.passwordToggle);
+        const visible = input.type === 'password';
+        input.type = visible ? 'text' : 'password';
+        button.setAttribute('aria-label', visible ? 'Ocultar contraseña' : 'Mostrar contraseña');
+        button.setAttribute('aria-pressed', String(visible));
+        button.querySelector('.portal-password-show').toggleAttribute('hidden', visible);
+        button.querySelector('.portal-password-hide').toggleAttribute('hidden', !visible);
+    });
+});
+
 const visor = document.getElementById('portal-pdf-viewer');
 if (visor && typeof visor.showModal === 'function') {
     const frame = document.getElementById('portal-pdf-frame');

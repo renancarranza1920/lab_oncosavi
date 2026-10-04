@@ -46,6 +46,11 @@
     .dark .fi-sidebar-item:not(.fi-sidebar-item-active) .fi-sidebar-item-icon { color: rgb(var(--gray-400)); }
     .ui-table-row:hover { background-color: rgb(var(--gray-50)); }
     .dark .ui-table-row:hover { background-color: rgb(var(--gray-700)); }
+    .orden-detail { color: var(--ui-text); }
+    .orden-detail-table tbody { background: var(--ui-surface); }
+    .orden-detail-table .orden-detail-row { background: var(--ui-surface); }
+    .orden-detail-table .orden-detail-row:hover { background: var(--ui-subtle); }
+    .orden-detail-table .orden-detail-row td { color: var(--ui-text); }
 
     /* Componentes propios: mismos tokens que Filament, sin redefinir Tailwind. */
     @foreach (['primary', 'success', 'warning', 'danger', 'info', 'gray'] as $tipo)

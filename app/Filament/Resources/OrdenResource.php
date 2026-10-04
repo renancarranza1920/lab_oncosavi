@@ -490,7 +490,7 @@ class OrdenResource extends Resource
 
                 ->schema([
 
-                    \App\Support\TelefonoCliente::campo(),
+                    \App\Support\TelefonoCliente::lista(),
 
 
 
@@ -586,11 +586,14 @@ class OrdenResource extends Resource
 
                     name: 'medico',
 
-                    titleAttribute: 'nombre'
+                    titleAttribute: 'nombre',
+                    modifyQueryUsing: fn (Builder $query) => $query->whereNull('portal_usuario')
 
                 )
 
                 ->searchable(['nombre'])
+
+                ->rules([\Illuminate\Validation\Rule::exists('medicos', 'id')->whereNull('portal_usuario')])
 
                 ->preload()
 
@@ -1018,10 +1021,10 @@ public static function getOrdenStep(): array
                             ->sortable(),
                             
                         TextColumn::make('cliente.telefono')
-    ->label('Teléfono')
+    ->label('Teléfonos')->getStateUsing(fn (Orden $record) => $record->cliente->telefonos_contacto)->listWithLineBreaks()
     ->icon('heroicon-o-phone')
     ->color('gray')
-    ->searchable()
+    ->searchable(query: fn (Builder $query, string $search) => $query->whereHas('cliente', fn (Builder $clientes) => $clientes->buscarTelefono($search)))
     ->sortable(),
 
                         TextColumn::make('cliente.nombre')
@@ -1157,6 +1160,11 @@ public static function getOrdenStep(): array
             ->actions([
 
                 Tables\Actions\Action::make('gestionarMuestras')
+                    ->after(function (Orden $record, $livewire): void {
+                        if ($livewire instanceof Pages\ListOrdens) {
+                            $livewire->mostrarEstado($record->estado);
+                        }
+                    })
 
                     ->label('Gestionar Muestras')
 
@@ -1522,6 +1530,11 @@ public static function getOrdenStep(): array
                 
 
                 Tables\Actions\Action::make('pausarOrden')
+                    ->after(function (Orden $record, $livewire): void {
+                        if ($livewire instanceof Pages\ListOrdens) {
+                            $livewire->mostrarEstado($record->estado);
+                        }
+                    })
 
                     ->tooltip('Pausar Orden')
 
@@ -1554,6 +1567,11 @@ public static function getOrdenStep(): array
 
 
                 Tables\Actions\Action::make('reanudarOrden')
+                    ->after(function (Orden $record, $livewire): void {
+                        if ($livewire instanceof Pages\ListOrdens) {
+                            $livewire->mostrarEstado($record->estado);
+                        }
+                    })
 
                     ->tooltip('Reanudar Orden')
 
@@ -1584,6 +1602,11 @@ public static function getOrdenStep(): array
 
 
                 Tables\Actions\Action::make('finalizarOrden')
+                    ->after(function (Orden $record, $livewire): void {
+                        if ($livewire instanceof Pages\ListOrdens) {
+                            $livewire->mostrarEstado($record->estado);
+                        }
+                    })
 
                     ->tooltip('Finalizar Orden')
 
@@ -1679,6 +1702,7 @@ $record->update([
             'cliente',
             'medico',
             'detalleOrden.examen.tipoExamen',
+            'detalleOrden.examen.muestras',
             'detalleOrden.examen.pruebas.tipoPrueba',
             'resultados'
         ]);
@@ -2198,6 +2222,11 @@ $record->update([
     }),
 
                 Tables\Actions\Action::make('cancelarOrden')
+                    ->after(function (Orden $record, $livewire): void {
+                        if ($livewire instanceof Pages\ListOrdens) {
+                            $livewire->mostrarEstado($record->estado);
+                        }
+                    })
 
                     ->tooltip('Cancelar Orden')
 
@@ -2262,6 +2291,11 @@ $record->update([
 
 
                 Tables\Actions\Action::make('restaurarOrden')
+                    ->after(function (Orden $record, $livewire): void {
+                        if ($livewire instanceof Pages\ListOrdens) {
+                            $livewire->mostrarEstado($record->estado);
+                        }
+                    })
 
                     ->label('Restaurar')
 
@@ -2772,6 +2806,11 @@ public static function getDatosPruebaParaPdf($prueba, $orden, $detalleId): array
 
 
 
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with('cliente.telefonos');
+    }
 
     public static function getPages(): array
 

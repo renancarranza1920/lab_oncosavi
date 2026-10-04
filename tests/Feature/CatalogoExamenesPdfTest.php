@@ -8,7 +8,7 @@ use Tests\TestCase;
 
 class CatalogoExamenesPdfTest extends TestCase
 {
-    public function test_complete_catalogue_fits_two_a4_pages_without_dates_or_page_numbers(): void
+    public function test_complete_catalogue_fits_two_a4_pages_with_blank_patient_fields_and_no_automatic_date(): void
     {
         // Catálogo sin datos personales: reproduce el volumen y nombres del PDF reportado.
         $catalogue = json_decode(file_get_contents(base_path('tests/Fixtures/catalogo-examenes.json')));
@@ -51,7 +51,9 @@ class CatalogoExamenesPdfTest extends TestCase
             'logoPath' => public_path(config('laboratorio.logo')),
         ])->render();
         $this->assertSame(217, substr_count($html, '<span class="circle"></span>'));
-        $this->assertStringNotContainsString('Fecha:', $html);
+        $this->assertStringContainsString('Fecha: <span class="write-line"', $html);
+        $this->assertStringContainsString('Firma y sello del médico', $html);
+        $this->assertStringContainsString('INDICACIONES GENERALES', $html);
         $this->assertStringNotContainsString('Página', $html);
         $this->assertStringNotContainsString(now()->format('d/m/Y'), $html);
         $pdf = $service->generar($catalogue->areas, $catalogue->perfiles);
@@ -70,5 +72,18 @@ class CatalogoExamenesPdfTest extends TestCase
         ];
         $this->expectException(ValidationException::class);
         app(CatalogoExamenesPdf::class)->organizar([$area], []);
+    }
+
+    public function test_optional_price_list_keeps_all_exams_and_profiles_in_two_pages(): void
+    {
+        $catalogue = json_decode(file_get_contents(base_path('tests/Fixtures/catalogo-examenes.json')));
+        $service = app(CatalogoExamenesPdf::class);
+        $layout = $service->organizar($catalogue->areas, $catalogue->perfiles, true);
+        $this->assertTrue($layout['mostrarPrecios']);
+        $rows = collect($layout['paginas'])->flatten(1)->flatMap(fn ($column) => $column)->sum(fn ($section) => count($section['filas']));
+        $this->assertSame(210, $rows);
+        $pdf = $service->generar($catalogue->areas, $catalogue->perfiles, true);
+        $this->assertSame(2, $pdf->getDomPDF()->getCanvas()->get_page_count());
+        $this->assertStringStartsWith('%PDF-', $pdf->output());
     }
 }

@@ -38,7 +38,7 @@ class FlujosAtencionTest extends TestCase
         Livewire::test(CreateClientes::class)->assertStatus(200)
             ->fillForm([
                 'nombre' => 'Paciente', 'apellido' => 'USA', 'genero' => 'Femenino',
-                'telefono_codigo_pais' => '1', 'telefono' => '202-555-0123',
+                'telefonos' => [['numero_codigo_pais' => '1', 'numero' => '202-555-0123', 'tipo' => 'movil']],
                 'edad' => 40, 'grupo_etario' => '123',
             ])
             ->set('data.fecha_nacimiento', '1990-05-20')
@@ -58,17 +58,18 @@ class FlujosAtencionTest extends TestCase
         Livewire::test(CreateClientes::class)->assertStatus(200)
             ->fillForm([
                 'nombre' => 'Paciente', 'apellido' => 'Prueba', 'genero' => 'Femenino',
-                'telefono_codigo_pais' => '1', 'telefono' => '77777777',
+                'telefonos' => [['numero_codigo_pais' => '1', 'numero' => '77777777', 'tipo' => 'movil']],
             ])
-            ->call('create')->assertHasFormErrors(['telefono']);
+            ->call('create')->assertHasFormErrors(['telefonos.0.numero']);
 
         $cliente = Cliente::create([
             'nombre' => 'Paciente', 'apellido' => 'Local', 'genero' => 'Femenino',
             'telefono' => '77777777',
         ]);
-        Livewire::test(EditClientes::class, ['record' => $cliente->getRouteKey()])
-            ->assertSet('data.telefono_codigo_pais', '503')
-            ->assertSet('data.telefono', '77777777')
+        $pagina = Livewire::test(EditClientes::class, ['record' => $cliente->getRouteKey()]);
+        $clave = array_key_first($pagina->get('data.telefonos'));
+        $pagina->assertSet('data.telefonos.'.$clave.'.numero_codigo_pais', '503')
+            ->assertSet('data.telefonos.'.$clave.'.numero', '77777777')
             ->call('save')->assertHasNoFormErrors();
         $this->assertSame('50377777777', $cliente->fresh()->telefono);
     }

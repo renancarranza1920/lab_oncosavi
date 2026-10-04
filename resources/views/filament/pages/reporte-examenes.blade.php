@@ -41,11 +41,15 @@
     </style>
 
     <div class="catalog-dashboard">
+        <label class="flex items-center gap-3 text-sm" style="color: var(--ui-text)">
+            <input type="checkbox" wire:model.live="mostrarPrecios" class="rounded border-gray-300">
+            Incluir precios en la solicitud de exámenes
+        </label>
         <section class="catalog-panel">
             <div class="catalog-hero">
                 <div class="catalog-eyebrow">Catálogo institucional</div>
                 <div class="catalog-title">Reporte de Exámenes y Perfiles</div>
-                <div class="catalog-description">Genera la solicitud impresa del laboratorio con precios actualizados, espacios para datos del paciente y selección manual de servicios.</div>
+                <div class="catalog-description">Genera la solicitud impresa con el membrete del laboratorio, datos del paciente y selección manual de exámenes.</div>
             </div>
         </section>
 

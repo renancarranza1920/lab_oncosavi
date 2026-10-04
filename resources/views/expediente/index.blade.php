@@ -35,7 +35,7 @@
                 <div class="portal-patient-top"><span class="portal-avatar">{{ mb_substr($paciente->nombre, 0, 1) }}{{ mb_substr($paciente->apellido, 0, 1) }}</span><span class="portal-badge {{ \App\Support\EstadoVisual::clase($paciente->estado) }}">{{ $paciente->estado }}</span></div>
                 <p class="portal-patient-exp">{{ $paciente->NumeroExp }}</p><h3>{{ $paciente->nombre }} {{ $paciente->apellido }}</h3>
                 <p class="portal-muted portal-small">{{ $paciente->genero }}@if ($paciente->fecha_nacimiento || $paciente->edad !== null) · {{ $paciente->edad_legible }}@endif</p>
-                <dl class="portal-patient-meta"><div><dt>DUI</dt><dd>{{ $paciente->dui ?: 'Sin registrar' }}</dd></div><div><dt>Teléfono</dt><dd>{{ $paciente->telefono ?: 'Sin registrar' }}</dd></div><div><dt>Última orden</dt><dd>{{ $paciente->ultima_orden ? \Carbon\Carbon::parse($paciente->ultima_orden)->format('d/m/Y') : 'Sin órdenes' }}</dd></div></dl>
+                <dl class="portal-patient-meta"><div><dt>DUI</dt><dd>{{ $paciente->dui ?: 'Sin registrar' }}</dd></div><div><dt>Teléfono</dt><dd>{{ implode(' · ', $paciente->telefonos_contacto) ?: 'Sin registrar' }}</dd></div><div><dt>Última orden</dt><dd>{{ $paciente->ultima_orden ? \Carbon\Carbon::parse($paciente->ultima_orden)->format('d/m/Y') : 'Sin órdenes' }}</dd></div></dl>
                 <div class="portal-patient-bottom"><span class="portal-muted portal-small">{{ $paciente->ordenes_portal_count }} {{ $paciente->ordenes_portal_count === 1 ? 'orden' : 'órdenes' }}</span><a class="portal-button portal-button-quiet" href="{{ route('expediente.show', $paciente->id) }}">Ver expediente<x-heroicon-o-arrow-right class="portal-icon" /></a></div>
             </article>
         @empty
