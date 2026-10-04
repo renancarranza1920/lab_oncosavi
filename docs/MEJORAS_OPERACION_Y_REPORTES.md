@@ -73,3 +73,11 @@ El arranque del contenedor corrige el propietario y los permisos de `storage` y
 como `www-data` evita volver a crear logs y cachés con propietario root. Es necesario
 aplicar `php artisan migrate --force` después de actualizar: la tabla
 `cliente_telefonos` se crea mediante migración, conservando los teléfonos existentes.
+
+### Fechas y posición de sellos en resultados
+
+El encabezado conserva el diseño y muestra fecha y hora de **registro** (creación de
+la orden) e **impresión** (generación del PDF), en hora de El Salvador. El bloque
+compartido de sello institucional, sello personal y firma se desplaza hacia abajo
+con espacio real en la tabla. Los documentos ya guardados se mantienen; para ver
+estos cambios es necesario regenerarlos.

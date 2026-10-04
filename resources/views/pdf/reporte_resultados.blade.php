@@ -32,7 +32,7 @@ body {
 }
 
 .firma-cell {
-    padding-top: -20px;
+    padding-top: 18px;
     padding-bottom: 5px;
     border: none;
 }
@@ -415,8 +415,8 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
         </div>
         <div class="patient-card">
             <table>
-                <tr><td colspan="2"><span class="patient-label">Fecha de ingreso:</span> {{ mb_strtoupper($orden->created_at->translatedFormat('d \d\e F \d\e Y')) }}</td></tr>
-                <tr><td colspan="2"><span class="patient-label">Fecha de impresión:</span> {{ mb_strtoupper(now()->translatedFormat('d \d\e F \d\e Y')) }}</td></tr>
+                <tr><td colspan="2"><span class="patient-label">Fecha de registro:</span> {{ $orden->created_at->timezone(config('app.timezone'))->format('d/m/Y · H:i') }}</td></tr>
+                <tr><td colspan="2"><span class="patient-label">Fecha de impresión:</span> {{ now(config('app.timezone'))->format('d/m/Y · H:i') }}</td></tr>
                 <tr><td colspan="2"><span class="patient-label">Médico:</span> {{ $orden->medico?->nombre ?: '--' }}</td></tr>
                 <tr>
                     <td style="width: 75%;"><span class="patient-label">Paciente:</span> {{ $orden->cliente->nombre }} {{ $orden->cliente->apellido }}</td>
