@@ -12,11 +12,15 @@ use Illuminate\Support\Str;
 class CrearUsuariosPrueba extends Command
 {
     protected $signature = 'oncosavi:usuarios-prueba';
-    protected $description = 'Actualiza los roles y crea únicamente la cuenta de prueba del administrador.';
+    protected $description = 'Actualiza los roles y crea las tres cuentas de prueba en el entorno test.';
 
     public function handle(): int
     {
-        $cuentas = ['prueba.admin' => 'admin'];
+        if (!app()->environment(['staging', 'testing']) || !config('test_demo.enabled')) {
+            $this->error('Este comando solo está habilitado con APP_ENV=staging y TEST_DEMO_ENABLED=true.');
+            return self::FAILURE;
+        }
+        $cuentas = ['prueba.admin' => 'admin', 'prueba.recepcion' => 'Recepcion', 'prueba.lab' => 'Laboratorista'];
         foreach ($cuentas as $nickname => $rol) {
             $usuario = User::where('nickname', $nickname)->orWhere('email', $nickname . '@oncosavi.test')->first();
             if ($usuario && ($usuario->nickname !== $nickname || $usuario->email !== $nickname . '@oncosavi.test')) {
