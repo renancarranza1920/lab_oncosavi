@@ -55,3 +55,13 @@ docker compose -f docker-compose.yml ps
 ```
 
 Las migraciones se ejecutan antes de iniciar la nueva aplicación. No se ejecutan seeders ni se eliminan volúmenes. No se necesita cambiar Caddy.
+
+### Sello institucional del laboratorio
+
+En **Mi perfil → Sello del laboratorio**, únicamente el rol `admin` puede subir,
+reemplazar o retirar el sello institucional (PNG, máximo 2 MB). Es compartido por
+el laboratorio, separado del sello y firma personales de cada usuario. Se incluye
+al generar resultados completos y parciales; los PDFs ya guardados deben regenerarse.
+La imagen y su configuración se guardan dentro de `storage`, en el volumen persistente
+`laravel_storage`, por lo que sobreviven a la reconstrucción del contenedor. No es
+necesario copiar `sello.png` por SSH: se carga desde este apartado y se pulsa Guardar.

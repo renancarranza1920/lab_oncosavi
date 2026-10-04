@@ -2176,8 +2176,8 @@ $record->update([
 
             'logo_b64' => $imgToBase64($pathLogo, 260, 210),
 
-            // No se reutiliza un sello institucional sin uno autorizado para ONCOSAVI.
-            'sello_registro_b64' => null,
+            // Sello institucional configurado por un administrador.
+            'sello_registro_b64' => \App\Support\SelloLaboratorio::base64(),
 
         ];
 

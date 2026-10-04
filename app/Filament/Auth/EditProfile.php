@@ -2,6 +2,7 @@
 
 namespace App\Filament\Auth;
 
+use App\Support\SelloLaboratorio;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
@@ -11,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class EditProfile extends \Filament\Pages\Auth\EditProfile
 {
+    protected ?string $selloLaboratorioPendiente = null;
+
     public static function getLabel(): string
     {
         return 'Mi perfil';
@@ -26,6 +29,14 @@ class EditProfile extends \Filament\Pages\Auth\EditProfile
                 $this->getPasswordFormComponent(),
                 $this->getPasswordConfirmationFormComponent(),
             ]),
+            Section::make('Sello del laboratorio')
+                ->description('Sello institucional compartido para los nuevos reportes de resultados. PNG de hasta 2 MB.')
+                ->visible(fn () => auth()->user()->hasRole('admin'))
+                ->schema([
+                    FileUpload::make('sello_laboratorio')->label('Sello del laboratorio (PNG)')
+                        ->image()->acceptedFileTypes(['image/png'])->maxSize(2048)
+                        ->disk('public')->directory('sellos/laboratorio'),
+                ]),
             Section::make('Mi firma y sello')
                 ->description('Imágenes PNG de hasta 2 MB para los reportes de resultados.')
                 ->visible(fn () => auth()->user()->can('gestionar_firma_sello_propio'))
@@ -40,8 +51,27 @@ class EditProfile extends \Filament\Pages\Auth\EditProfile
         ]);
     }
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        if (auth()->user()->hasRole('admin')) {
+            $data['sello_laboratorio'] = SelloLaboratorio::path();
+        }
+
+        return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        if (auth()->user()->hasRole('admin')) {
+            SelloLaboratorio::guardar($this->selloLaboratorioPendiente);
+        }
+    }
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        if (auth()->user()->hasRole('admin')) {
+            $this->selloLaboratorioPendiente = $data['sello_laboratorio'] ?? null;
+        }
         $data = Arr::only($data, ['name', 'email', 'password', 'firma_path', 'sello_path']);
         foreach (['firma_path' => 'firmas', 'sello_path' => 'sellos'] as $campo => $directorio) {
             if (!auth()->user()->can('gestionar_firma_sello_propio')) {

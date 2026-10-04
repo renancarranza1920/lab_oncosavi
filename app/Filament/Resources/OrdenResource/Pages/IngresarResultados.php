@@ -1138,7 +1138,7 @@ public function generarPdfParcial()
         'logo_b64' => $imgToBase64(public_path(config('laboratorio.logo')), 260, 210),
 
 
-        'sello_registro_b64' => null,
+        'sello_registro_b64' => \App\Support\SelloLaboratorio::base64(),
     ];
 
     $pdf = Pdf::setOptions([
