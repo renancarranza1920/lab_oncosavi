@@ -31,7 +31,7 @@ class BitacoraSoporteTest extends TestCase
 
     private function usuario(bool $soporte = false): User
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['nickname' => 'auditoria.'.\Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(12))]);
         $user->assignRole('admin');
         if ($soporte) $user->assignRole(Role::findOrCreate('super_admin', 'web'));
         return $user;
@@ -98,6 +98,49 @@ class BitacoraSoporteTest extends TestCase
         $this->artisan('oncosavi:proteger-bitacora-soporte')->assertSuccessful();
         $this->assertSame(1, RegistroSoporte::count());
         $this->assertDatabaseHas('activity_log', ['id' => $registro->id, 'causer_id' => $soporte->id]);
+    }
+
+    public function test_admin_no_autorizado_no_puede_autoconcederse_soporte_ni_tomar_su_cuenta(): void
+    {
+        $soporte = $this->usuario(true);
+        $admin = $this->usuario();
+        $this->actingAs($admin);
+        $rol = Role::findByName('super_admin');
+        $this->get('/admin/users/'.$soporte->id.'/edit')->assertForbidden();
+        $this->get('/admin/shield/roles/'.$rol->id.'/edit')->assertForbidden();
+        $this->assertFalse($admin->can('delete', $soporte));
+        $this->assertFalse($admin->can('delete', $rol));
+        Livewire::test(\App\Filament\Resources\UserResource\Pages\CreateUser::class)->fillForm([
+            'name' => 'Cuenta indebida', 'nickname' => 'indebida', 'email' => 'indebida@example.invalid',
+            'password' => 'Contraseña segura de prueba', 'roles' => $rol->id,
+        ])->call('create')->assertHasFormErrors(['roles']);
+        $this->assertDatabaseMissing('users', ['nickname' => 'indebida']);
+        $this->artisan('oncosavi:autorizar-bitacora-soporte', ['usuario' => $admin->nickname])->assertSuccessful();
+        $this->assertTrue(\App\Support\AccesoSoporte::autorizado($admin->fresh()));
+        $this->assertTrue($admin->fresh()->can('update', $soporte));
+        $this->actingAs($admin->fresh());
+        $this->get('/admin/users/'.$soporte->id.'/edit')->assertOk();
+        $this->get('/admin/shield/roles/'.$rol->id.'/edit')->assertOk();
+    }
+
+    public function test_no_se_puede_renombrar_un_rol_normal_a_super_admin_desde_la_web(): void
+    {
+        $this->actingAs($this->usuario());
+        $role = Role::findOrCreate('Rol ordinario', 'web');
+        $flag = new \ReflectionProperty($this->app, 'isRunningInConsole');
+        $original = $flag->getValue($this->app);
+        $flag->setValue($this->app, false);
+        try {
+            try {
+                $role->update(['name' => 'super_admin']);
+                $this->fail('El rol reservado no debe poder crearse desde una cuenta sin autorización.');
+            } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+                $this->assertSame(403, $exception->getStatusCode());
+            }
+        } finally {
+            $flag->setValue($this->app, $original);
+        }
+        $this->assertSame('Rol ordinario', $role->fresh()->name);
     }
 
     public function test_fallo_al_guardar_el_detalle_no_deja_un_registro_general_incompleto(): void

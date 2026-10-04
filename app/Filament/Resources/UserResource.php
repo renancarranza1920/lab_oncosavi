@@ -59,8 +59,9 @@ protected static ?int $navigationSort = 1;
 
                         Forms\Components\Select::make('roles')
                             ->label('Rol')
-                            ->relationship('roles', 'name') // Filament maneja la relación y muestra el valor actual
-                            ->options(\Spatie\Permission\Models\Role::pluck('name', 'id'))
+                            ->relationship('roles', 'name', modifyQueryUsing: fn ($query) => $query->when(!\App\Support\AccesoSoporte::autorizado(auth()->user()), fn ($q) => $q->where('name', '!=', 'super_admin'))) // Filament maneja la relación y muestra el valor actual
+                            ->options(fn () => \Spatie\Permission\Models\Role::query()->when(!\App\Support\AccesoSoporte::autorizado(auth()->user()), fn ($q) => $q->where('name', '!=', 'super_admin'))->pluck('name', 'id'))
+                            ->rules(fn () => [\Illuminate\Validation\Rule::exists('roles', 'id')->where(fn ($q) => $q->where('guard_name', 'web')->when(!\App\Support\AccesoSoporte::autorizado(auth()->user()), fn ($q) => $q->where('name', '!=', 'super_admin')))])
                             ->required()
                             ->preload()
                             ->multiple(false)

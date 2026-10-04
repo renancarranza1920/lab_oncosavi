@@ -27,8 +27,8 @@ La contraseña aleatoria se almacena como hash en la base de datos. El archivo d
 acceso está en el almacenamiento privado, con permisos 600, y no se incluye en Git.
 Se puede cambiar la contraseña desde Usuarios. Repetir el comando conserva la cuenta
 existente, su contraseña y sus roles. Si el identificador ya pertenece a otra cuenta,
-el comando se detiene sin reasignarla. Se pueden revocar los permisos o eliminar la
-cuenta desde Usuarios mediante los permisos administrativos normales.
+el comando se detiene sin reasignarla. El propietario autorizado puede modificar los permisos o eliminar la
+cuenta desde Usuarios.
 
 ## Detalle reservado de los ajustes
 
@@ -63,3 +63,11 @@ el detalle original a la auditoría privada y reemplaza el detalle general por e
 aviso genérico dentro de la misma transacción. Repetirlo no duplica registros ni
 cambia los datos clínicos. La migración de auditoría crea una tabla adicional y
 conserva esa tabla si se revierte: no se elimina el historial privado.
+
+La cuenta y el rol de soporte siguen visibles, pero su edición o eliminación en
+el panel requiere ser soporte o propietario autorizado. Otros administradores no
+pueden asignarse `super_admin`, renombrar un rol normal a ese nombre ni usar la
+eliminación masiva de usuarios o roles. Conservan la gestión individual de usuarios
+y roles ordinarios. Esto evita obtener el detalle privado tomando la cuenta o el rol
+de soporte. El propietario debe usar la autorización directa anterior para gestionar
+estas operaciones desde su cuenta habitual.

@@ -25,9 +25,7 @@ class RegistroSoporteResource extends Resource
 
     public static function canViewAny(): bool
     {
-        $user = auth()->user();
-        return $user && $user->can('view_any_activity::log')
-            && ($user->hasRole('super_admin') || $user->getDirectPermissions()->contains('name', 'ver_bitacora_soporte'));
+        return \App\Support\AccesoSoporte::autorizado(auth()->user());
     }
 
     public static function canView(Model $record): bool { return static::canViewAny(); }
