@@ -49,9 +49,9 @@ class UserPolicy
      * @param  \App\Models\User  $user
      * @return bool
      */
-    public function update(User $user): bool
+    public function update(User $user, ?User $target = null): bool
     {
-        return $user->can('update_user');
+        return $user->can('update_user') && (!$target?->hasRole('super_admin') || \App\Support\AccesoSoporte::autorizado($user));
     }
 
     /**
@@ -60,9 +60,9 @@ class UserPolicy
      * @param  \App\Models\User  $user
      * @return bool
      */
-    public function delete(User $user): bool
+    public function delete(User $user, ?User $target = null): bool
     {
-        return $user->can('delete_user');
+        return $user->can('delete_user') && (!$target?->hasRole('super_admin') || \App\Support\AccesoSoporte::autorizado($user));
     }
 
     /**
@@ -73,7 +73,7 @@ class UserPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_user');
+        return $user->can('delete_any_user') && \App\Support\AccesoSoporte::autorizado($user);
     }
 
     /**

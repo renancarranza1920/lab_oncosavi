@@ -13,6 +13,10 @@ class AutorizarBitacoraSoporte extends Command
 
     public function handle(): int
     {
+        if (blank($this->argument('usuario'))) {
+            $this->error('Debe indicar el nombre de usuario del propietario.');
+            return self::FAILURE;
+        }
         $user = User::where('nickname', $this->argument('usuario'))->first();
         if (!$user || !$user->hasRole('admin')) {
             $this->error('Debe indicar un usuario existente con rol admin.');
