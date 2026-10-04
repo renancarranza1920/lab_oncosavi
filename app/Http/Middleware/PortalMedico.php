@@ -13,9 +13,11 @@ class PortalMedico
     {
         $medico = Auth::guard('medico')->user()?->fresh();
         if (! $medico || ! $medico->portal_activo || ! $medico->password
-            || $request->session()->get('medico_portal_version') !== $medico->portal_version) {
+            || $request->session()->get('medico_portal_version') !== $medico->portal_version
+            || $request->session()->get('medico_portal_reinicio', '') !== \App\Support\SesionPortalMedico::version()) {
             Auth::guard('medico')->logout();
             $request->session()->forget('medico_portal_version');
+            $request->session()->forget('medico_portal_reinicio');
 
             return redirect()->route('expediente.login');
         }

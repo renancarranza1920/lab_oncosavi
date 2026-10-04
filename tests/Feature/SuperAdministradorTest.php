@@ -29,7 +29,8 @@ class SuperAdministradorTest extends TestCase
         $this->actingAs($usuario);
         $this->get('/admin/users')->assertOk()->assertSee('soporte.superadmin');
         $cliente = Cliente::create(['nombre' => 'Paciente', 'apellido' => 'Ejemplo', 'genero' => 'Femenino']);
-        $this->assertTrue(Activity::where('subject_type', Cliente::class)->where('subject_id', $cliente->id)->where('causer_id', $usuario->id)->exists());
+        $this->assertTrue(\App\Models\RegistroSoporte::where('datos->subject_type', Cliente::class)->where('datos->subject_id', $cliente->id)->where('datos->causer_id', $usuario->id)->exists());
+        $this->assertTrue(Activity::where('causer_id', $usuario->id)->where('description', 'Ajuste de soporte técnico')->exists());
         $this->artisan('oncosavi:crear-superadmin')->assertSuccessful();
         $this->assertSame($usuario->password, $usuario->fresh()->password);
         $this->assertSame(1, User::where('nickname', 'soporte.superadmin')->count());

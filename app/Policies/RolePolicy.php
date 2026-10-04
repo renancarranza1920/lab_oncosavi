@@ -39,7 +39,7 @@ class RolePolicy
      */
     public function update(User $user, Role $role): bool
     {
-        return $user->can('update_role');
+        return $user->can('update_role') && ($role->name !== 'super_admin' || \App\Support\AccesoSoporte::autorizado($user));
     }
 
     /**
@@ -47,7 +47,7 @@ class RolePolicy
      */
     public function delete(User $user, Role $role): bool
     {
-        return $user->can('delete_role');
+        return $user->can('delete_role') && ($role->name !== 'super_admin' || \App\Support\AccesoSoporte::autorizado($user));
     }
 
     /**
@@ -55,7 +55,7 @@ class RolePolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_role');
+        return $user->can('delete_any_role') && \App\Support\AccesoSoporte::autorizado($user);
     }
 
     /**

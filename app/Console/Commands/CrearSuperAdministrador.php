@@ -12,7 +12,7 @@ use Spatie\Permission\Models\Role;
 class CrearSuperAdministrador extends Command
 {
     protected $signature = 'oncosavi:crear-superadmin';
-    protected $description = 'Crea una cuenta identificada de soporte técnico con acceso administrativo y auditoría normal.';
+    protected $description = 'Crea una cuenta identificada de soporte técnico con acceso administrativo y auditoría completa.';
 
     public function handle(): int
     {
@@ -44,7 +44,7 @@ class CrearSuperAdministrador extends Command
             }
             chmod($disk->path('soporte-superadmin.json'), 0600);
         });
-        $this->info('Cuenta de soporte creada. Contraseña en storage/app/private/soporte-superadmin.json. Sus acciones se registran en la bitácora.');
+        $this->info('Cuenta de soporte creada. Contraseña en storage/app/private/soporte-superadmin.json. Sus acciones se registran con detalle reservado en la bitácora de soporte.');
         return self::SUCCESS;
     }
 }
