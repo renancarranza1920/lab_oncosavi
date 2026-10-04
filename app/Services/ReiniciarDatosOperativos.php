@@ -52,7 +52,12 @@ class ReiniciarDatosOperativos
         $local = Storage::disk('local');
         $respaldo = 'reinicios/'.now()->format('Ymd-His').'-'.Str::uuid();
         $datos = ['fecha' => now()->toIso8601String(), 'tablas' => []];
-        foreach (self::TABLAS as $tabla) {
+        $tablasRespaldo = self::TABLAS;
+        if ($conexion->getSchemaBuilder()->hasTable('envios_whatsapp')) {
+            // Una instalación anterior puede conservar este historial aunque el módulo ya no exista.
+            $tablasRespaldo[] = 'envios_whatsapp';
+        }
+        foreach ($tablasRespaldo as $tabla) {
             $datos['tablas'][$tabla] = DB::table($tabla)->orderBy('id')->get()->all();
         }
         if (!$local->put($respaldo.'/datos.json', json_encode($datos, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR))) {
@@ -95,7 +100,9 @@ class ReiniciarDatosOperativos
                 }
             }
             activity('Administración')->event('reinicio_operativo')
-                ->withProperties(['ejecucion' => 'Consola', 'registros_retirados' => array_map('count', $datos['tablas']), 'respaldo' => $respaldo])
+                ->withProperties(['ejecucion' => 'Consola',
+                    'registros_retirados' => array_map('count', array_intersect_key($datos['tablas'], array_flip(self::TABLAS))),
+                    'envios_whatsapp_conservados' => count($datos['tablas']['envios_whatsapp'] ?? []), 'respaldo' => $respaldo])
                 ->log('Reinicio de órdenes, clientes y médicos para iniciar operaciones');
         } catch (\Throwable $error) {
             if (!$datosEliminados && $archivado && !rename($archivoReportes, $reportes)) {
@@ -118,6 +125,13 @@ class ReiniciarDatosOperativos
             foreach ($schema->getForeignKeys($tabla['name']) as $clave) {
                 if (in_array($clave['foreign_table'], self::TABLAS, true)
                     && ($clave['foreign_schema'] === null || $clave['foreign_schema'] === $nombreSchema)) {
+                    if ($tabla['name'] === 'envios_whatsapp' && $clave['foreign_table'] === 'ordens'
+                        && $clave['columns'] === ['orden_id'] && $clave['foreign_columns'] === ['id']
+                        && strtolower($clave['on_delete']) === 'set null') {
+                        // La FK histórica deja orden_id vacío al borrar la orden: conserva el envío
+                        // y evita asociarlo al reutilizar el ID. No se crea ni se borra esta tabla.
+                        continue;
+                    }
                     throw new \LogicException('La tabla '.$tabla['name'].' depende de los datos operativos y no está incluida. No se borró ningún registro.');
                 }
             }

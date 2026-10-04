@@ -30,12 +30,19 @@ cotizaciones ni configuración. Conserva la bitácora y registra el reinicio.
 Desvincula las referencias de auditoría a los registros eliminados, conservando
 sus IDs anteriores en el detalle, para no atribuirlas a los nuevos registros.
 
-Antes de borrar, guarda las filas de las siete tablas en
+Antes de borrar, guarda las filas de las tablas operativas en
 `storage/app/private/reinicios/FECHA-IDENTIFICADOR/datos.json` y mueve la carpeta de
 PDFs de órdenes a ese mismo respaldo privado. Los PDFs antiguos dejan de estar
 publicados y no se reutilizan al empezar de nuevo los IDs. Las imágenes y sellos
 permanecen en sus ubicaciones. Este respaldo es de los datos operativos y sus
 PDFs; no sustituye una copia completa de la base y el volumen.
+
+Si la instalación conserva `envios_whatsapp` de la prueba anterior, incluye ese
+historial en el respaldo. Conserva los envíos y sus referencias al personal; la
+relación histórica `orden_id` queda vacía al borrar las órdenes. Así no se atribuye
+un envío anterior a una nueva orden con el mismo ID. No crea la tabla ni reactiva
+el módulo de WhatsApp. Solo admite la relación conocida `ON DELETE SET NULL`;
+una relación diferente se considera inesperada y detiene el reinicio.
 
 El reinicio elimina **todas** las operaciones existentes al ejecutarlo; no aplica
 un corte por fecha. Es una operación puntual para antes de iniciar las ventas
@@ -56,6 +63,7 @@ eliminar datos ajenos al alcance solicitado.
 Desde SSH, en el servidor que ya tiene la aplicación y sus volúmenes:
 
 ```bash
+(
 set -e
 cd ~/lab_oncosavi
 git switch main
@@ -68,11 +76,13 @@ docker compose exec -T --user www-data app php artisan optimize:clear
 docker compose exec -T --user www-data app php artisan filament:clear-cached-components
 docker compose exec -T --user www-data app php artisan oncosavi:reiniciar-operaciones --ejecutar
 docker compose exec -T --user www-data app php artisan up
+)
 ```
 
 La reconstrucción se hace antes del mantenimiento. El volumen de `storage`
-conserva el mantenimiento al recrear el contenedor. `set -e` detiene la secuencia
-si algún comando falla; no reabras el sistema hasta corregir ese fallo. Al
+conserva el mantenimiento al recrear el contenedor. `set -e` dentro de los
+paréntesis detiene la secuencia si falla un comando, sin cerrar la sesión SSH;
+no reabras el sistema hasta corregir ese fallo. Al
 terminar, el comando imprime la ruta del respaldo privado. Guarda esa ruta.
 
 No ejecutes `migrate:fresh`, `db:seed` ni `docker compose down -v`: no forman parte

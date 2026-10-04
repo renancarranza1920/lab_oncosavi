@@ -15,6 +15,7 @@ use Database\Seeders\RolesPermisosSeeder;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -138,6 +139,77 @@ class ReiniciarOperacionesTest extends TestCase
         $this->assertSame(1, Orden::count());
         $this->assertSame(1, DB::table('dependencia_externa')->count());
         $this->assertSame([], Storage::disk('local')->allFiles('reinicios'));
+    }
+
+    public function test_reinicio_conserva_y_respalda_envios_whatsapp_heredados_sin_asociarlos_a_ordenes_nuevas(): void
+    {
+        $this->preparar();
+        $this->crearTablaWhatsAppAnterior();
+        $envios = [
+            ['id' => '11111111-1111-4111-8111-111111111111', 'orden_id' => Orden::first()->id, 'tipo' => 'reporte_final'],
+            ['id' => '22222222-2222-4222-8222-222222222222', 'orden_id' => null, 'tipo' => 'cotizacion'],
+        ];
+        foreach ($envios as $envio) {
+            DB::table('envios_whatsapp')->insert($envio + [
+                'user_id' => User::first()->id, 'telefono' => Crypt::encryptString('50370000001'),
+                'huella' => hash('sha256', $envio['id']), 'estado' => 'enviado', 'message_id' => 'Mensaje anterior',
+                'created_at' => now(), 'updated_at' => now(), 'enviado_at' => now(),
+            ]);
+        }
+        $originales = DB::table('envios_whatsapp')->orderBy('id')->get()->map(fn ($row) => (array) $row)->all();
+        $personal = DB::table('users')->get()->toJson();
+        $this->artisan('oncosavi:reiniciar-operaciones')->assertSuccessful();
+        $this->assertSame($originales, DB::table('envios_whatsapp')->orderBy('id')->get()->map(fn ($row) => (array) $row)->all());
+        $this->artisan('oncosavi:reiniciar-operaciones', ['--ejecutar' => true])->assertSuccessful();
+        $this->assertSame(0, Orden::count());
+        $this->assertSame(0, Cliente::count());
+        $this->assertSame(2, DB::table('envios_whatsapp')->count());
+        foreach ($originales as $envio) {
+            $this->assertSame(array_replace($envio, ['orden_id' => null]), (array) DB::table('envios_whatsapp')->where('id', $envio['id'])->first());
+        }
+        $json = collect(Storage::disk('local')->allFiles('reinicios'))->first(fn ($path) => str_ends_with($path, '/datos.json'));
+        $backup = json_decode(Storage::disk('local')->get($json), true);
+        $this->assertSame($originales, $backup['tablas']['envios_whatsapp']);
+        $this->assertSame($personal, DB::table('users')->get()->toJson());
+        $this->assertSame('Firma existente', Storage::disk('public')->get('firmas/real.png'));
+        $cliente = Cliente::create(['nombre' => 'Nuevo', 'apellido' => 'Paciente', 'genero' => 'Femenino']);
+        $orden = Orden::create(['cliente_id' => $cliente->id, 'total' => 10, 'fecha' => now(), 'estado' => 'pendiente']);
+        $this->assertSame(1, $orden->id);
+        $this->assertSame(0, DB::table('envios_whatsapp')->where('orden_id', $orden->id)->count());
+        $log = Actividad::where('event', 'reinicio_operativo')->firstOrFail();
+        $this->assertSame(2, $log->properties['envios_whatsapp_conservados']);
+        $this->assertArrayNotHasKey('envios_whatsapp', $log->properties['registros_retirados']);
+    }
+
+    public function test_una_tabla_whatsapp_con_cascada_inesperada_detiene_el_reinicio_sin_borrar(): void
+    {
+        $this->preparar();
+        $this->crearTablaWhatsAppAnterior('cascade');
+        DB::table('envios_whatsapp')->insert([
+            'id' => '11111111-1111-4111-8111-111111111111', 'orden_id' => Orden::first()->id,
+            'tipo' => 'reporte_final', 'telefono' => Crypt::encryptString('50370000001'), 'huella' => hash('sha256', 'Anterior'),
+        ]);
+        $this->artisan('oncosavi:reiniciar-operaciones', ['--ejecutar' => true])->assertFailed();
+        $this->assertSame(1, Orden::count());
+        $this->assertSame(1, DB::table('envios_whatsapp')->count());
+        $this->assertSame([], Storage::disk('local')->allFiles('reinicios'));
+    }
+
+    private function crearTablaWhatsAppAnterior(string $onDelete = 'set null'): void
+    {
+        Schema::create('envios_whatsapp', function (Blueprint $table) use ($onDelete): void {
+            $table->uuid('id')->primary();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('orden_id')->nullable()->constrained('ordens')->onDelete($onDelete);
+            $table->string('tipo', 30);
+            $table->text('telefono');
+            $table->char('huella', 64)->index();
+            $table->string('estado', 20)->default('enviando')->index();
+            $table->string('codigo', 40)->nullable();
+            $table->string('message_id', 150)->nullable();
+            $table->timestamp('enviado_at')->nullable();
+            $table->timestamps();
+        });
     }
 
     public function test_sesiones_medicas_anteriores_al_reinicio_no_reutilizan_ids(): void
