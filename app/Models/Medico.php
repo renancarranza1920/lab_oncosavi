@@ -40,7 +40,7 @@ class Medico extends Authenticatable
 
     public function getUsuarioPortalAttribute(): string
     {
-        return 'MED-'.$this->id;
+        return $this->portal_usuario ?: 'MED-'.$this->id;
     }
 
     /**

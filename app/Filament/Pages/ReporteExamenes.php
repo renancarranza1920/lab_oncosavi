@@ -21,6 +21,8 @@ class ReporteExamenes extends Page
     protected static ?string $title = 'Reporte de Exámenes y Perfiles';
     protected static string $view = 'filament.pages.reporte-examenes';
 
+    public bool $mostrarPrecios = false;
+
     public static function canAccess(): bool
     {
         return auth()->user()?->can('ver_catalogo_pdf') ?? false;
@@ -83,7 +85,7 @@ class ReporteExamenes extends Page
             ->get();
 
         try {
-            $pdf = app(CatalogoExamenesPdf::class)->generar($areas, $perfiles);
+            $pdf = app(CatalogoExamenesPdf::class)->generar($areas, $perfiles, $this->mostrarPrecios);
         } catch (ValidationException $exception) {
             Notification::make()
                 ->title('El catálogo no cabe en dos páginas A4')

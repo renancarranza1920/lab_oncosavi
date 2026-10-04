@@ -10,10 +10,16 @@
         <form method="post" action="{{ route('expediente.login.store') }}" class="portal-login-form">
             @csrf
             <label class="portal-field">Usuario
-                <input name="usuario" value="{{ old('usuario') }}" placeholder="MED-12" autocomplete="username" autocapitalize="characters" required maxlength="32" autofocus>
+                <input name="usuario" value="{{ old('usuario', 'medicos') }}" placeholder="medicos" autocomplete="username" required maxlength="32" autofocus>
             </label>
             <label class="portal-field">Contraseña
-                <input name="password" type="password" autocomplete="current-password" required maxlength="128">
+                <span class="portal-password-field">
+                    <input id="portal-password" name="password" type="password" autocomplete="current-password" required maxlength="128">
+                    <button type="button" class="portal-password-toggle" data-password-toggle="portal-password" aria-label="Mostrar contraseña" aria-pressed="false">
+                        <x-heroicon-o-eye class="portal-icon portal-password-show" />
+                        <x-heroicon-o-eye-slash class="portal-icon portal-password-hide" hidden />
+                    </button>
+                </span>
             </label>
             <button class="portal-button portal-button-primary" type="submit">Entrar al expediente<x-heroicon-o-arrow-right class="portal-icon" /></button>
         </form>

@@ -490,7 +490,7 @@ class OrdenResource extends Resource
 
                 ->schema([
 
-                    \App\Support\TelefonoCliente::campo(),
+                    \App\Support\TelefonoCliente::lista(),
 
 
 
@@ -586,11 +586,14 @@ class OrdenResource extends Resource
 
                     name: 'medico',
 
-                    titleAttribute: 'nombre'
+                    titleAttribute: 'nombre',
+                    modifyQueryUsing: fn (Builder $query) => $query->whereNull('portal_usuario')
 
                 )
 
                 ->searchable(['nombre'])
+
+                ->rules([\Illuminate\Validation\Rule::exists('medicos', 'id')->whereNull('portal_usuario')])
 
                 ->preload()
 
@@ -1018,10 +1021,10 @@ public static function getOrdenStep(): array
                             ->sortable(),
                             
                         TextColumn::make('cliente.telefono')
-    ->label('Teléfono')
+    ->label('Teléfonos')->getStateUsing(fn (Orden $record) => $record->cliente->telefonos_contacto)->listWithLineBreaks()
     ->icon('heroicon-o-phone')
     ->color('gray')
-    ->searchable()
+    ->searchable(query: fn (Builder $query, string $search) => $query->whereHas('cliente', fn (Builder $clientes) => $clientes->buscarTelefono($search)))
     ->sortable(),
 
                         TextColumn::make('cliente.nombre')
@@ -1679,6 +1682,7 @@ $record->update([
             'cliente',
             'medico',
             'detalleOrden.examen.tipoExamen',
+            'detalleOrden.examen.muestras',
             'detalleOrden.examen.pruebas.tipoPrueba',
             'resultados'
         ]);
@@ -2152,8 +2156,8 @@ $record->update([
 
             'logo_b64' => $imgToBase64($pathLogo, 260, 210),
 
-            // No se reutiliza un sello institucional sin uno autorizado para ONCOSAVI.
-            'sello_registro_b64' => null,
+            // Sello institucional configurado por un administrador.
+            'sello_registro_b64' => \App\Support\SelloLaboratorio::base64(),
 
         ];
 
@@ -2335,6 +2339,10 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
     ->color('primary')
 
+    ->modalHeading('Elegir destinatario del PDF')
+    ->modalSubmitActionLabel('Continuar')
+    ->form(fn (Orden $record) => \App\Support\DestinoWhatsApp::formulario($record->cliente))
+
     ->visible(function (Orden $record) {
 
         $expediente = $record->cliente->NumeroExp ?? 'SinExp';
@@ -2354,7 +2362,9 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
     })
 
-    ->action(function (Orden $record) {
+    ->action(function (Orden $record, array $data) {
+
+        $telefonoCliente = \App\Support\DestinoWhatsApp::resolver($record->cliente, $data);
 
         // --- 1. CONFIGURACIÓN DE DATOS DEL LABORATORIO ---
 
@@ -2411,15 +2421,13 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
         // --- 4. GENERACIÓN DE LINKS ---
 
-        $telefonoCliente = $record->cliente->telefono;
-
         $correoCliente = $record->cliente->correo;
 
 
 
         // rawurlencode asegura que los espacios y saltos de línea funcionen en todos los dispositivos
 
-        $linkWhatsapp = 'https://wa.me/' . $telefonoCliente . '?text=' . rawurlencode($mensajeBase);
+        $linkWhatsapp = $telefonoCliente ? 'https://wa.me/' . $telefonoCliente . '?text=' . rawurlencode($mensajeBase) : null;
 
         $linkCorreo = 'mailto:' . $correoCliente . '?subject=' . rawurlencode($asuntoCorreo) . '&body=' . rawurlencode($mensajeBase);
 
@@ -2437,9 +2445,9 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
             ->persistent() // Obliga a cerrar manual
 
-            ->actions([
+            ->actions(array_filter([
 
-                \Filament\Notifications\Actions\Action::make('whatsapp')
+                $linkWhatsapp ? \Filament\Notifications\Actions\Action::make('whatsapp')
 
                     ->label('WhatsApp')
 
@@ -2447,7 +2455,7 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
                     ->button()
 
-                    ->color('gray'),
+                    ->color('gray') : null,
 
 
 
@@ -2461,7 +2469,7 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
                     ->color('gray'),
 
-            ])
+            ]))
 
             ->send();
 
@@ -2772,6 +2780,11 @@ public static function getDatosPruebaParaPdf($prueba, $orden, $detalleId): array
 
 
 
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with('cliente.telefonos');
+    }
 
     public static function getPages(): array
 

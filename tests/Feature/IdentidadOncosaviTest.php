@@ -50,9 +50,11 @@ class IdentidadOncosaviTest extends TestCase
         $this->assertStringContainsString('oncosavi@gmail.com', $html);
         $this->assertStringContainsString('+503 2393 0239', $html);
         $this->assertStringContainsString('Calle 1 de Julio #23', $html);
-        preg_match('/<div class="watermark">(.*?)<\/div>/s', $html, $watermark);
-        $this->assertStringContainsString('ONCOSAVI', $watermark[1]);
+        preg_match('/<div class="brand-watermark">(.*?)<\/div>/s', $html, $watermark);
+        $this->assertSame('ONCOSAVI', strip_tags($watermark[1]));
         $this->assertStringNotContainsString('<img', $watermark[1]);
+        $this->assertStringContainsString('images/pdf-crab.svg', $html);
+        $this->assertStringContainsString('Documento de demostración, sin datos clínicos reales.', $html);
         $pdf = Pdf::loadHTML($html)->setPaper('letter');
         $output = $pdf->output();
         $this->assertStringStartsWith('%PDF-', $output);

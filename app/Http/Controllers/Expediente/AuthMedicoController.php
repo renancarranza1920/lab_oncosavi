@@ -37,7 +37,10 @@ class AuthMedicoController extends Controller
         }
 
         $id = preg_match('/^MED-([1-9][0-9]*)$/', $usuario, $matches) ? $matches[1] : 0;
-        if (! Auth::guard('medico')->attempt(['id' => $id, 'password' => $data['password'], 'portal_activo' => true])) {
+        $credenciales = $usuario === 'MEDICOS'
+            ? ['portal_usuario' => 'medicos']
+            : ['id' => $id, 'portal_usuario' => null];
+        if (! Auth::guard('medico')->attempt($credenciales + ['password' => $data['password'], 'portal_activo' => true])) {
             RateLimiter::hit($key, 60);
             throw ValidationException::withMessages(['usuario' => 'El usuario o la contraseña no son correctos, o tu acceso no está habilitado.']);
         }

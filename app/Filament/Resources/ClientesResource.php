@@ -142,7 +142,7 @@ class ClientesResource extends Resource
                             ->schema([
                                 Forms\Components\Grid::make(2)
                                     ->schema([
-                                        \App\Support\TelefonoCliente::campo(),
+                                        \App\Support\TelefonoCliente::lista(),
 
                                         Forms\Components\TextInput::make('correo')
                                             ->label('Correo Electrónico')
@@ -240,7 +240,7 @@ class ClientesResource extends Resource
                     ->icon('heroicon-o-phone')
                     ->schema([
                         Grid::make(2)->schema([
-                            TextEntry::make('telefono')
+                            TextEntry::make('telefonos_contacto')->listWithLineBreaks()
                                 ->label('Teléfono')
                                 ->icon('heroicon-m-phone')
                                 ->copyable(),
@@ -298,9 +298,9 @@ class ClientesResource extends Resource
                         return $record->edad_legible; 
                     }),
     
-                Tables\Columns\TextColumn::make('telefono')
-                    ->label('Teléfono')
-                     ->searchable()
+                Tables\Columns\TextColumn::make('telefono')->getStateUsing(fn (Cliente $record) => $record->telefonos_contacto)->listWithLineBreaks()
+                    ->label('Teléfonos')
+                    ->searchable(query: fn (\Illuminate\Database\Eloquent\Builder $query, string $search) => $query->buscarTelefono($search))
                     ->icon('heroicon-m-phone'),
     
                 Tables\Columns\TextColumn::make('correo')
@@ -371,6 +371,11 @@ class ClientesResource extends Resource
     public static function getRelations(): array
     {
         return [];
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->with('telefonos');
     }
 
     public static function getPages(): array

@@ -23,7 +23,7 @@ class ExpedienteMedicoService
 
     public function buscar(Medico $medico, array $filtros): Builder
     {
-        $query = $this->pacientes($medico);
+        $query = $this->pacientes($medico)->with('telefonos');
         $terminos = preg_split('/\s+/u', trim($filtros['q'] ?? ''), -1, PREG_SPLIT_NO_EMPTY);
         foreach ($terminos as $termino) {
             $query->where(function (Builder $q) use ($termino, $medico): void {
@@ -32,6 +32,7 @@ class ExpedienteMedicoService
                 }
                 $digitos = preg_replace('/\D/', '', $termino);
                 if ($digitos !== '' && preg_match('/^[\d()+\-]+$/', $termino)) {
+                    $q->orWhereHas('telefonos', fn (Builder $telefonos) => $telefonos->where('numero', 'like', '%'.$digitos.'%'));
                     $q->orWhereRaw("REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(telefono, '+', ''), '-', ''), ' ', ''), '(', ''), ')', '') LIKE ?", ['%'.$digitos.'%'])
                         ->orWhereRaw("REPLACE(dui, '-', '') LIKE ?", ['%'.$digitos.'%']);
                 }

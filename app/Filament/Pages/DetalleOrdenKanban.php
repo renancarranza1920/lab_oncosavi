@@ -147,10 +147,7 @@ class DetalleOrdenKanban extends KanbanBoard
 
             Action::make('Volver a Ordenes')
     ->label('Volver a Ordenes')
-    // Inyectamos el parámetro de búsqueda en la URL
-    ->url(route('filament.admin.resources.ordenes.index', [
-        'tableSearch' => $this->ordenId // <--- Esto pre-carga la búsqueda
-    ]))
+    ->url(route('filament.admin.resources.ordenes.index'))
     ->icon('heroicon-o-arrow-left') // Opcional: Un icono para volver
     ->color('gray') // Opcional: Color neutral
     ->openUrlInNewTab(false),

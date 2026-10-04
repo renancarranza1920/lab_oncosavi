@@ -8,7 +8,7 @@
         <div><dt>Fecha de nacimiento</dt><dd>{{ $cliente->fecha_nacimiento ? \Carbon\Carbon::parse($cliente->fecha_nacimiento)->format('d/m/Y') : 'Sin registrar' }}</dd></div>
         <div><dt>Edad</dt><dd>{{ $cliente->fecha_nacimiento || $cliente->edad !== null ? $cliente->edad_legible : 'Sin registrar' }}</dd></div>
         <div><dt>Género</dt><dd>{{ $cliente->genero }}</dd></div>
-        <div><dt>Teléfono</dt><dd>{{ $cliente->telefono ?: 'Sin registrar' }}</dd></div>
+        <div><dt>Teléfono</dt><dd>{{ implode(' · ', $cliente->telefonos_contacto) ?: 'Sin registrar' }}</dd></div>
         <div><dt>Correo</dt><dd>{{ $cliente->correo ?: 'Sin registrar' }}</dd></div>
         <div class="portal-info-address"><dt>Dirección</dt><dd>{{ $cliente->direccion ?: 'Sin registrar' }}</dd></div>
     </dl></section>

@@ -9,7 +9,7 @@
     $statusColor = \App\Support\EstadoVisual::clase($record->estado);
 @endphp
 
-<div class="space-y-6 text-sm">
+<div class="orden-detail space-y-6 text-sm">
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
@@ -51,7 +51,7 @@
     <div>
         <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200 mb-2">Detalles de la Orden</h3>
         <div class="border rounded-lg overflow-hidden dark:border-gray-700 shadow-sm">
-            <table class="w-full text-left border-collapse">
+            <table class="orden-detail-table w-full text-left border-collapse">
                 <thead class="bg-gray-100 dark:bg-gray-800 border-b dark:border-gray-700">
                     <tr>
                         <th class="p-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -113,7 +113,7 @@
                     {{-- EXÁMENES INDIVIDUALES --}}
                     @if ($agrupadoPorPerfil->has(null) || $agrupadoPorPerfil->has(''))
                         @foreach ($agrupadoPorPerfil[null] ?? [] as $detalle)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                            <tr class="orden-detail-row transition-colors">
                                 <td class="p-3 pl-4">
                                     <div class="flex items-center gap-3">
                                         <x-heroicon-o-beaker class="w-5 h-5 text-gray-400 dark:text-gray-500"/>

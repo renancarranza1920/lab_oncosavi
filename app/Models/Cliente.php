@@ -69,6 +69,40 @@ protected static function booted(): void
         return $this->hasMany(Orden::class);
     }
 
+    public function telefonos(): HasMany
+    {
+        return $this->hasMany(ClienteTelefono::class)->orderBy('orden')->orderBy('id');
+    }
+
+    public function sincronizarTelefonoPrincipal(): void
+    {
+        $principal = $this->telefonos()->value('numero');
+        if ($this->telefono !== $principal) {
+            $this->update(['telefono' => $principal]);
+        }
+    }
+
+    public function getTelefonosContactoAttribute(): array
+    {
+        $numeros = $this->telefonos->pluck('numero')->all();
+
+        return $numeros ?: ($this->telefono ? [\App\Support\TelefonoCliente::normalizarExistente($this->telefono)] : []);
+    }
+
+    public function scopeBuscarTelefono(\Illuminate\Database\Eloquent\Builder $query, string $telefono): void
+    {
+        $digitos = preg_replace('/\D/', '', $telefono);
+        if ($digitos === '') {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+        $query->where(function ($q) use ($digitos): void {
+            $q->whereRaw("REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(telefono, '+', ''), '-', ''), ' ', ''), '(', ''), ')', '') LIKE ?", ['%'.$digitos.'%'])
+                ->orWhereHas('telefonos', fn ($telefonos) => $telefonos->where('numero', 'like', '%'.$digitos.'%'));
+        });
+    }
+
     public function setDuiAttribute($value): void
     {
         $digits = preg_replace('/\D/', '', (string) $value);

@@ -67,7 +67,7 @@ class Expediente extends Page implements HasTable
                         ]),
 
                         Grid::make(3)->schema([
-                            TextEntry::make('telefono'),
+                            TextEntry::make('telefonos_contacto')->label('Teléfonos')->listWithLineBreaks(),
                             TextEntry::make('correo'),
                             TextEntry::make('fecha_nacimiento')
                                 ->label('Edad')

@@ -25,6 +25,11 @@
 .portal-disabled { color: var(--ui-muted); opacity: .55; }
 .portal-button:focus-visible, .portal-back:focus-visible, .portal-filters summary:focus-visible { outline: 2px solid rgb(var(--primary-500)); outline-offset: 3px; }
 .portal-field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ui-text); }
+.portal-password-field { position: relative; display: block; }
+.portal-body .portal-password-field input { padding-right: 48px; }
+.portal-password-toggle { position: absolute; right: 4px; top: 3px; padding: 9px; border: 0; border-radius: 6px; color: var(--ui-muted); background: transparent; cursor: pointer; }
+.portal-password-toggle:hover { color: var(--ui-text); background: var(--ui-subtle); }
+.portal-password-toggle [hidden] { display: none; }
 .portal-body input, .portal-body select { width: 100%; min-width: 0; min-height: 42px; border: 1px solid var(--ui-border); border-radius: 8px; padding: 9px 12px; background: var(--ui-surface); color: var(--ui-text); font-size: 14px; font-weight: 400; }
 .portal-body input:focus, .portal-body select:focus { outline: 2px solid rgb(var(--primary-400)); outline-offset: 1px; }
 .portal-body input::placeholder { color: var(--ui-muted); }

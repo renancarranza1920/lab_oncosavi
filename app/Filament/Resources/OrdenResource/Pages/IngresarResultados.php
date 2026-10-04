@@ -506,7 +506,10 @@ if (!$valorRef && $grupoTodasEdades) {
         return Storage::disk('public')
             ->exists("reportes/{$fileName}");
     })
-    ->action(fn() => $this->enviarPdfParcial()),
+    ->modalHeading('Elegir destinatario del PDF parcial')
+    ->modalSubmitActionLabel('Continuar')
+    ->form(fn () => \App\Support\DestinoWhatsApp::formulario($this->record->cliente))
+    ->action(fn (array $data) => $this->enviarPdfParcial($data)),
         
         ])
         ->label('PDF')
@@ -626,7 +629,10 @@ if (!$valorRef && $grupoTodasEdades) {
         return Storage::disk('public')
             ->exists("reportes/{$fileName}");
     })
-    ->action(fn() => $this->enviarPdfParcial()),
+    ->modalHeading('Elegir destinatario del PDF parcial')
+    ->modalSubmitActionLabel('Continuar')
+    ->form(fn () => \App\Support\DestinoWhatsApp::formulario($this->record->cliente))
+    ->action(fn (array $data) => $this->enviarPdfParcial($data)),
         
         ])
         ->label('PDF')
@@ -827,6 +833,7 @@ public function generarPdfParcial()
         'cliente',
         'medico',
         'detalleOrden.examen.tipoExamen',
+        'detalleOrden.examen.muestras',
         'detalleOrden.examen.pruebas.tipoPrueba',
         'resultados'
     ]);
@@ -1131,7 +1138,7 @@ public function generarPdfParcial()
         'logo_b64' => $imgToBase64(public_path(config('laboratorio.logo')), 260, 210),
 
 
-        'sello_registro_b64' => null,
+        'sello_registro_b64' => \App\Support\SelloLaboratorio::base64(),
     ];
 
     $pdf = Pdf::setOptions([
@@ -1158,10 +1165,11 @@ $fileName = strtoupper("{$nombreCliente} - {$orden->id} P.pdf");
     );
 }
 
-public function enviarPdfParcial()
+public function enviarPdfParcial(array $data = [])
 {
     abort_unless(auth()->user()?->can('enviar_reporte_orden'), 403);
     $record = $this->record;
+    $telefonoCliente = \App\Support\DestinoWhatsApp::resolver($record->cliente, $data);
 
     $labNombre = config('laboratorio.nombre');
     $labTelefonos = config('laboratorio.telefono');
@@ -1174,7 +1182,7 @@ public function enviarPdfParcial()
     $fileName = strtoupper("{$nombreCliente} - {$record->id} P.pdf");
 
     $filePath = "reportes/{$fileName}";
-    $fullPath = storage_path("app/public/{$filePath}");
+    $fullPath = Storage::disk('public')->path($filePath);
 
     if (!file_exists($fullPath)) {
         Notification::make()
@@ -1196,7 +1204,6 @@ public function enviarPdfParcial()
     $mensajeBase .= "Correo: {$labCorreo}\n\n";
     $mensajeBase .= "Gracias por confiar en nosotros.";
 
-    $telefonoCliente = $record->cliente->telefono;
     $correoCliente = $record->cliente->correo;
 
     $linkWhatsapp = $telefonoCliente
@@ -1214,21 +1221,19 @@ public function enviarPdfParcial()
         ->body("El archivo se ha guardado en tu equipo.\nRecuerda adjuntar el PDF manualmente.")
         ->success()
         ->persistent()
-        ->actions([
-            \Filament\Notifications\Actions\Action::make('whatsapp')
+        ->actions(array_filter([
+            $linkWhatsapp ? \Filament\Notifications\Actions\Action::make('whatsapp')
                 ->label('WhatsApp')
                 ->url($linkWhatsapp, shouldOpenInNewTab: true)
                 ->button()
-                ->color('gray')
-                ->visible(fn() => $linkWhatsapp !== null),
+                ->color('gray') : null,
 
-            \Filament\Notifications\Actions\Action::make('email')
+            $linkCorreo ? \Filament\Notifications\Actions\Action::make('email')
                 ->label('Correo')
                 ->url($linkCorreo)
                 ->button()
-                ->color('gray')
-                ->visible(fn() => $linkCorreo !== null),
-        ])
+                ->color('gray') : null,
+        ]))
         ->send();
 
     return response()->download($fullPath);

@@ -27,4 +27,10 @@ class AccesoMedicoService
             ->withProperties(['activo' => $activo, 'todos_pacientes' => $todosPacientes])
             ->log("Acceso al portal de {$medico->nombre} ".($activo ? 'habilitado o actualizado' : 'deshabilitado'));
     }
+
+    public function configurarGeneral(bool $activo, ?string $password): void
+    {
+        $general = Medico::where('portal_usuario', 'medicos')->firstOrFail();
+        $this->configurar($general, $activo, true, $password);
+    }
 }
