@@ -19,7 +19,7 @@ class EntornoTestTest extends TestCase
         Storage::fake('public');
         Storage::fake('local');
         config(['test_demo.enabled' => true]);
-        $this->artisan('oncosavi:preparar-test')->assertSuccessful();
+        $this->artisan('db:seed', ['--force' => true])->assertSuccessful();
         $this->assertSame(12, Cliente::count());
         $this->assertSame(12, Orden::count());
         $this->assertSame(4, User::count());
@@ -36,9 +36,12 @@ class EntornoTestTest extends TestCase
             $this->assertStringStartsWith('%PDF-', Storage::disk('public')->get($orden->reporteGuardadoPath()));
             $this->assertNotEmpty($orden->resultados);
         }
+        $this->assertTrue(\App\Models\Medico::where('portal_usuario', 'medicos')->firstOrFail()->portal_activo);
+        $this->assertTrue(\App\Support\AccesoSoporte::autorizado(User::where('nickname', 'prueba.admin')->firstOrFail()));
+        $this->assertTrue(Storage::disk('local')->exists('portal-medicos-general.json'));
         $this->assertSame(3, count(json_decode(Storage::disk('local')->get('usuarios-prueba.json'), true)));
         $hash = User::where('nickname', 'prueba.admin')->value('password');
-        $this->artisan('oncosavi:preparar-test')->assertFailed();
+        $this->artisan('db:seed', ['--force' => true])->assertSuccessful();
         $this->assertSame(12, Cliente::count());
         $this->assertSame($hash, User::where('nickname', 'prueba.admin')->value('password'));
     }

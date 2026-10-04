@@ -1,0 +1,24 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-C_2NEOZ0.css",
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/css/expediente.css": {
+    "file": "assets/expediente-DbwoPqcK.css",
+    "src": "resources/css/expediente.css",
+    "isEntry": true
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-Bxsdna5p.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/expediente.js": {
+    "file": "assets/expediente-DGBhtc2f.js",
+    "name": "expediente",
+    "src": "resources/js/expediente.js",
+    "isEntry": true
+  }
+}

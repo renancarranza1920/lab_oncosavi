@@ -6,7 +6,7 @@ URL: `https://applab.oncosavi.com/expediente`. Usa el mismo dominio y contenedor
 
 El acceso compartido usa el usuario **medicos**. Después de migrar, entra a **Atención al Paciente → Médicos → Acceso médico general**, habilítalo y define una contraseña para compartir. Consulta todos los expedientes y PDFs, sin acceso al administrador. El comando `oncosavi:portal-medicos-general` también permite habilitarlo con una contraseña aleatoria guardada en `storage/app/private/portal-medicos-general.json`.
 
-Cambiar la contraseña cierra las sesiones existentes. Los botones de contraseña permiten mostrar u ocultar lo escrito; no revelan contraseñas guardadas. Consulta [la guía de actualización](MEJORAS_OPERACION_Y_REPORTES.md) para los comandos de Oracle y la gestión de la cuenta compartida.
+Cambiar la contraseña cierra las sesiones existentes. Los botones de contraseña permiten mostrar u ocultar lo escrito; no revelan contraseñas guardadas. Consulta [la guía de actualización](MEJORAS_OPERACION_Y_REPORTES.md) para los instalación en Hostinger y la gestión de la cuenta compartida.
 
 ## Accesos individuales opcionales
 
@@ -28,37 +28,6 @@ Los accesos empiezan deshabilitados. Cambiar la contraseña, el alcance o el est
 
 El portal no permite editar pacientes, ingresar resultados ni guardar consultas o indicaciones médicas. Sus cuentas no tienen acceso al panel administrativo. La búsqueda y los PDFs requieren sesión activa; las respuestas no permiten caché ni indexación. Apache impide el acceso directo a `/storage/reportes/`, conservando las rutas autenticadas del panel y del portal.
 
-## Actualizar Oracle sin borrar volúmenes
+## Instalación y actualización en test
 
-Ejecutar desde la sesión SSH del servidor:
-
-```bash
-set -e
-cd ~/lab_oncosavi
-git switch main
-git pull --ff-only origin main
-docker compose -f docker-compose.yml build app
-docker compose -f docker-compose.yml up -d --wait db
-docker compose -f docker-compose.yml run --rm --no-deps app php artisan migrate --force
-docker compose -f docker-compose.yml up -d --remove-orphans
-docker compose -f docker-compose.yml exec -T app php artisan optimize:clear
-docker compose -f docker-compose.yml exec -T app php artisan filament:clear-cached-components
-docker compose -f docker-compose.yml ps
-```
-
-No ejecuta seeders ni elimina datos, PDFs o volúmenes. Después de actualizar, configurar el acceso general o los accesos individuales desde el panel.
-
-## Integración de dev-manuel
-
-Se hizo un merge con la rama `dev-manuel`, conservando solo el alcance solicitado de reportes: cierre diario, retiro del ticket promedio y simplificación de la vista del catálogo. Se conservaron los tokens de color claro/oscuro de `main` y se corrigió el límite de fechas del cierre diario. La actualización posterior de atención agrega teléfonos múltiples y nuevos diseños de documentos, manteniendo los permisos y el flujo manual de WhatsApp.
-
-## Verificación
-
-`PortalMedicosTest` verifica autenticación, aislamiento del administrador, revocación, ambos alcances, búsquedas, filtros de día/hora, rechazo de escrituras, PDF original, descargas, límites de login y gestión de accesos con contraseña compartida. `CierreCajaServiceTest` cubre el cierre diario y sus cancelaciones, además de los períodos mensual, trimestral y anual.
-
-```bash
-DB_CONNECTION=sqlite DB_DATABASE=:memory: php -d memory_limit=512M vendor/bin/phpunit
-npm run build
-```
-
-Usar siempre bases de prueba aisladas para PHPUnit; nunca la base desplegada.
+Consulta [la guía de Hostinger](ENTORNO_TEST_HOSTINGER.md).

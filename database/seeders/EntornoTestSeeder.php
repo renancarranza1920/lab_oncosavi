@@ -24,6 +24,10 @@ class EntornoTestSeeder extends Seeder
         if (!app()->environment(['staging', 'testing']) || !config('test_demo.enabled')) {
             throw new \LogicException('Solo permitido con APP_ENV=staging y TEST_DEMO_ENABLED=true.');
         }
+        if (DB::table('instalacion_test')->where('id', 1)->exists()) {
+            $this->command?->info('Los ejemplos ya están instalados. Se conservan los datos, archivos y contraseñas.');
+            return;
+        }
         foreach (['users', 'clientes', 'ordens', 'examens', 'pruebas', 'muestras', 'resultados'] as $table) {
             if (DB::table($table)->exists()) {
                 throw new \LogicException('La base debe estar vacía. No se borró ni modificó ningún registro. Use una base nueva y exclusiva para test.');
@@ -33,18 +37,11 @@ class EntornoTestSeeder extends Seeder
             throw new \LogicException('Ya existen médicos o un sello institucional. Use una base y storage exclusivos de test.');
         }
         DB::transaction(function (): void {
-            $this->call(DatabaseSeeder::class);
-            $passwordAdmin = \Illuminate\Support\Str::password(24);
-            User::where('nickname', 'oncosavi')->firstOrFail()->update([
-                'name' => 'Prueba administrador', 'nickname' => 'prueba.admin',
-                'email' => 'prueba.admin@oncosavi.test', 'password' => $passwordAdmin,
-            ]);
-            Artisan::call('oncosavi:usuarios-prueba');
-            $credenciales = json_decode(Storage::disk('local')->get('usuarios-prueba.json'), true);
-            array_unshift($credenciales, ['usuario' => 'prueba.admin', 'rol' => 'admin', 'password' => $passwordAdmin]);
-            Storage::disk('local')->put('usuarios-prueba.json', json_encode($credenciales, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-            chmod(Storage::disk('local')->path('usuarios-prueba.json'), 0600);
-            Artisan::call('oncosavi:crear-superadmin');
+            $this->call(CatalogoTestSeeder::class);
+            $this->ejecutar('oncosavi:usuarios-prueba');
+            $this->ejecutar('oncosavi:crear-superadmin');
+            $this->ejecutar('oncosavi:portal-medicos-general');
+            $this->ejecutar('oncosavi:autorizar-bitacora-soporte', ['usuario' => 'prueba.admin']);
             $lab = User::where('nickname', 'prueba.lab')->firstOrFail();
             $admin = User::where('nickname', 'prueba.admin')->firstOrFail();
             Auth::login($admin);
@@ -94,7 +91,15 @@ class EntornoTestSeeder extends Seeder
             } finally {
                 Auth::logout();
             }
+            DB::table('instalacion_test')->insert(['id' => 1, 'created_at' => now(), 'updated_at' => now()]);
         });
+    }
+
+    private function ejecutar(string $comando, array $argumentos = []): void
+    {
+        if (Artisan::call($comando, $argumentos) !== 0) {
+            throw new \RuntimeException("No se pudo completar {$comando}. La instalación de ejemplo no se confirmó.");
+        }
     }
 
     private function imagen(string $path, string $texto, bool $firma): string

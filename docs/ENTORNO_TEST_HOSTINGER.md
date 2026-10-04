@@ -1,97 +1,117 @@
-# Rama test: instalación independiente sin Docker
+# Instalar la rama test en Hostinger compartido
 
-Esta rama parte de `main` con el PDF actualizado y el acceso identificado de soporte.
-Añade únicamente la preparación de datos ficticios para un alojamiento separado.
-No conecta con Oracle ni incorpora datos reales, archivos `.env`, claves o contraseñas
-de la instalación actual. Los Dockerfiles se conservan como parte del proyecto, pero
-esta instalación no los necesita.
+## Preparar el alojamiento
 
-## Requisitos
+Selecciona PHP **8.3 o superior** tanto en hPanel como en SSH, con PDO MySQL,
+mbstring, intl, GD, DOM/XML, cURL, ZIP y fileinfo. Necesitas Composer 2 y MySQL.
+Los recursos de frontend ya están compilados en `public/build`: npm es opcional,
+únicamente para volver a compilar después de editar CSS o JavaScript.
 
-PHP 8.3 o superior con PDO MySQL, mbstring, intl, GD, DOM/XML, cURL, ZIP y fileinfo;
-MySQL compatible; Composer 2. Para compilar el frontend, Node 22 o superior y npm.
-La compilación puede realizarse en tu computadora y luego subir `public/build`.
-La web necesita una URL: usa la dirección temporal que el alojamiento te facilite,
-sin necesidad de registrar un dominio nuevo.
-
-## Instalación inicial
-
-1. En GitHub selecciona la rama **test** y descarga el ZIP, o clona con
-   `git clone --branch test --single-branch https://github.com/renancarranza1920/lab_oncosavi.git`.
-2. Crea una **base nueva y vacía** y un usuario MySQL exclusivo para pruebas.
-3. En una carpeta nueva copia `.env.hostinger-test.example` a `.env` y completa
-   `APP_URL`, `DB_HOST`, `DB_DATABASE`, `DB_USERNAME` y `DB_PASSWORD` con los valores
-   de ese alojamiento. Conserva `APP_ENV=staging` y `TEST_DEMO_ENABLED=true`.
-4. Desde la carpeta del proyecto, con PHP 8.3 o superior ejecuta:
+Descarga el ZIP de la rama `test` o clónala:
 
 ```bash
-composer install --no-dev --optimize-autoloader --no-interaction
-npm ci
-npm run build
-php artisan key:generate
-php artisan migrate --force
-php artisan storage:link
-php artisan oncosavi:preparar-test
-php artisan optimize:clear
-php artisan filament:clear-cached-components
+git clone --branch test --single-branch https://github.com/renancarranza1920/lab_oncosavi.git oncosavi
+cd oncosavi
+cp .env.example .env
 ```
 
-Si no tienes Node en Hostinger, ejecuta `npm ci` y `npm run build` en tu computadora
-y sube `public/build`, incluyendo `manifest.json`. Si no tienes Composer en el
-alojamiento, prepara `vendor` con PHP 8.3 y sube esa carpeta también. Artisan debe
-ejecutarse con la versión de PHP del proyecto.
+En `.env` completa `APP_URL` (la URL temporal HTTPS de Hostinger sirve), `DB_HOST`,
+`DB_DATABASE`, `DB_USERNAME` y `DB_PASSWORD`. Usa una base nueva para pruebas.
+El ejemplo ya configura sesiones y caché en archivos, cola inmediata y correos
+en el registro local. Conserva `APP_ENV=staging` y `TEST_DEMO_ENABLED=true`.
 
-5. Configura la raíz pública del sitio para que apunte a **`public`**, no a la raíz
-   del proyecto. `storage` y `bootstrap/cache` deben ser escribibles por el usuario
-   de PHP del alojamiento. En Hostinger son carpetas del proyecto: no hay volumen
-   Docker. Conserva `storage` entre despliegues para mantener PDFs, sellos y accesos.
+## Instalar
 
-## Datos incluidos
+Estructura recomendada en la carpeta de ese sitio:
 
-`oncosavi:preparar-test` crea el catálogo de ONCOSAVI, tres usuarios de prueba,
-un superadministrador de soporte identificado, 12 pacientes ficticios, 12 órdenes
-repartidas entre todos los estados, resultados y 4 PDFs de órdenes finalizadas.
-También crea un médico ficticio y PNG de sello personal, firma y sello institucional
-marcados **SOLO DEMOSTRACIÓN**. Los correos usan `example.invalid`; los teléfonos usan
-el rango de ejemplo estadounidense 202-555-01xx. No se envía ningún mensaje al preparar.
+```text
+carpeta-del-sitio/
+├── oncosavi/       ← proyecto, .env, vendor y storage privados
+└── public_html/    ← únicamente la entrada web y recursos públicos
+```
 
-| Usuario | Rol |
-| --- | --- |
-| `prueba.admin` | Administrador |
-| `prueba.recepcion` | Recepción |
-| `prueba.lab` | Laboratorista |
-| `soporte.superadmin` | Soporte identificado, con auditoría |
+Desde `oncosavi` ejecuta:
 
-Las contraseñas se generan aleatoriamente, no están en Git. Léelas por SSH o en el
-administrador de archivos **privado** del alojamiento:
+```bash
+composer install --no-dev --optimize-autoloader
+php artisan key:generate
+php artisan migrate --seed --force
+php hostinger/publicar.php ../public_html
+```
+
+La carpeta `public_html` debe estar vacía o contener una publicación anterior
+hecha con este script. Si hay un `index.php` de otro sitio, el script se detiene.
+No subas la raíz completa del proyecto a `public_html`. El script copia solo
+`public`, prepara `index.php` y enlaza los archivos persistentes de `storage`.
+No copia `.env`, credenciales ni código privado; los PDFs se consultan mediante
+las rutas autenticadas. También conserva la protección de reportes de `.htaccess`.
+
+Si tu alojamiento permite apuntar la raíz web directamente a `oncosavi/public`,
+usa esa opción en lugar del script y ejecuta `php artisan storage:link`.
+`storage` y `bootstrap/cache` deben ser escribibles por tu usuario PHP. No uses
+permisos 777. En este alojamiento los archivos viven en esas carpetas; conserva
+`storage` y `.env` al actualizar. No hay volúmenes ni contenedores.
+
+## Qué prepara el seeder
+
+`php artisan db:seed --force` (incluido en `migrate --seed`) instala:
+
+- Catálogo completo de exámenes, pruebas, referencias y perfiles.
+- `prueba.admin`, `prueba.recepcion` y `prueba.lab`, con sus permisos por acción.
+- `soporte.superadmin`, con acceso de soporte y auditoría reservada.
+- Acceso médico general `medicos`, activo en `/expediente`.
+- 12 pacientes y 12 órdenes ficticias en los cinco estados; cuatro órdenes
+  finalizadas con resultados y PDFs firmados de ejemplo.
+- Firma, sello personal y sello institucional marcados SOLO DEMOSTRACIÓN.
+- Teléfonos internacionales y varios números por paciente de ejemplo.
+
+Se conserva el diseño de los PDFs, fechas y horas, ubicación de los tres sellos,
+modo claro y oscuro, selección del teléfono de destino y WhatsApp manual.
+No se envía correo ni WhatsApp durante la preparación. Los datos no tienen
+validez clínica.
+
+Las contraseñas son aleatorias, generadas en tu alojamiento, y se consultan por
+SSH o con el administrador de archivos privado:
 
 ```bash
 cat storage/app/private/usuarios-prueba.json
 cat storage/app/private/soporte-superadmin.json
-```
-
-El portal general `medicos` puede habilitarse para probar los expedientes con:
-
-```bash
-php artisan oncosavi:portal-medicos-general
 cat storage/app/private/portal-medicos-general.json
 ```
 
-En `/admin/login` usa uno de los usuarios de prueba. Recepción no puede ingresar
-resultados y Laboratorista tiene firma y sello de ejemplo en su perfil. Los permisos
-son los mismos que en `main`. El superadministrador se muestra en Usuarios y Roles. Sus operaciones figuran como
-«Ajuste de soporte técnico» en la bitácora general; el detalle está reservado en
-Bitácora de soporte. Para probar el acceso del propietario con `prueba.admin`,
-ejecuta `php artisan oncosavi:autorizar-bitacora-soporte prueba.admin`.
+La bitácora general presenta «Ajuste de soporte técnico», sin acciones ni campos.
+El detalle se conserva en Bitácora de soporte. En esta demo `prueba.admin` tiene
+el acceso del propietario a ese detalle, además del usuario de soporte.
 
-## Repetición y separación
+## Actualizaciones
 
-El comando exige el entorno `staging` (o `testing` para PHPUnit), la bandera de demo
-y tablas vacías. Si encuentra usuarios, pacientes, catálogo o un sello institucional,
-se detiene **antes** de crear datos. Repetirlo no borra ni reinicia información.
-Para empezar otra prueba usa otra base vacía y otro `storage`. No ejecutes
-`migrate:fresh`, `db:seed` ni comandos de prueba sobre la base de Oracle.
+Desde la carpeta del proyecto:
 
-La creación de datos es explícita: instalar, arrancar o migrar no ejecuta el demo.
-No fusionar la preparación de esta rama en `main`; los cambios funcionales compartidos
-se incorporan primero en `main` y después se pueden llevar a `test`.
+```bash
+git pull --ff-only origin test
+composer install --no-dev --optimize-autoloader
+php artisan migrate --force
+php artisan optimize:clear
+php artisan filament:clear-cached-components
+php hostinger/publicar.php ../public_html
+```
+
+Si actualizas mediante ZIP, reemplaza el código y los recursos, conservando tu
+`.env` y `storage`. No vuelvas a generar `APP_KEY`: se genera solo en la primera
+instalación. Repetir `db:seed` después de una preparación completa no reinicia
+los ejemplos ni las contraseñas. Si la base contiene datos previos sin una
+preparación completa registrada, se detiene antes de cambiar esos datos.
+
+Para volver a empezar utiliza otra base vacía y otro directorio de instalación.
+La rama `main` y los datos reales de Oracle se mantienen separados.
+
+Para editar el frontend y actualizar los recursos incluidos, en tu computadora
+(o en el alojamiento si tiene Node 22+):
+
+```bash
+npm ci
+npm run build
+```
+
+Después vuelve a publicar `public` con el script. No necesitas ejecutar `npm run dev`
+ni mantener Node encendido en Hostinger.

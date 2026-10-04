@@ -18,45 +18,16 @@ Se conservan también los permisos heredados de reactivos aunque este checkout n
 
 Los accesos se validan en las páginas, rutas y acciones. Compartir PDF abre los enlaces existentes de WhatsApp/correo; estas pruebas no envían mensajes a destinatarios reales.
 
-## Actualizar Oracle sin borrar volúmenes
+## Instalación en test
 
-Desde `~/lab_oncosavi`, con el repositorio limpio y en `main`:
-
-```bash
-git pull --ff-only origin main
-docker compose build app
-docker compose up -d --no-deps --force-recreate app
-docker compose exec app php artisan optimize:clear
-docker compose exec app php artisan migrate --force
-docker compose exec app php artisan oncosavi:eliminar-usuarios-prueba
-docker compose exec app php artisan permission:cache-reset
-```
-
-La migración retira las cuentas de personal de prueba existentes. El comando de limpieza se puede repetir y también retira sus entradas del archivo privado de credenciales. Se identifican por los pares de usuario/correo `prueba.lab`, `prueba.recepcion` y `prueba.laboratorista` con correo `@oncosavi.test`, o por los nombres exactos `Prueba Lab`, `Prueba Recepcion`, `Prueba Recepción` y `Prueba Laboratorista`.
-
-Se conservan los administradores, el personal real, todos los roles y sus permisos. Las órdenes, pacientes, resultados, PDFs guardados, firmas y eventos de bitácora permanecen; las referencias al usuario de prueba retirado quedan vacías, sin atribuirlas a otro empleado. Se retiran sus sesiones y enlaces de restablecimiento de contraseña.
-
-`oncosavi:usuarios-prueba` ahora crea **únicamente `prueba.admin`**, conserva su contraseña si existe y sincroniza los tres roles. No vuelve a crear Recepción ni Laboratorista de prueba. No ejecuta el seeder completo ni modifica el catálogo. Si encuentra una cuenta ajena con el mismo usuario o correo, se detiene antes de cambiar datos.
-
-Consultar las contraseñas nuevas únicamente en la terminal del servidor:
-
-```bash
-docker compose exec app cat storage/app/private/usuarios-prueba.json
-```
-
-El archivo permanece en el volumen `laravel_storage`, con permisos 0600, y no se publica en Git. Usar la pestaña **Nombre de Usuario** del login. Firma y sello se encuentran en el menú de usuario → **Mi perfil**; archivos PNG de hasta 2 MB.
-
-Si solo se necesitan actualizar permisos, sin crear las cuentas:
-
-```bash
-docker compose exec app php artisan db:seed --class=RolesPermisosSeeder --force
-```
+El seeder de esta rama crea automáticamente las tres cuentas de prueba y conserva
+sus contraseñas al repetirlo. Consulta [la guía de Hostinger](ENTORNO_TEST_HOSTINGER.md).
 
 ## Verificación
 
-`RolesAccionesTest` comprueba los tres roles con usuarios temporales de una base aislada: URLs directas, llamadas a acciones ocultas, generación/descarga real del PDF, permisos de widgets, firma/sello propios, rechazo de rutas ajenas y bitácora filtrada. `RetirarUsuariosPruebaTest` verifica la limpieza repetible, la conservación de administradores, roles, permisos y registros clínicos, y la retirada de sesiones y credenciales de las cuentas eliminadas. Las pruebas no crean usuarios en Oracle.
+`RolesAccionesTest` comprueba los tres roles con usuarios temporales de una base aislada: URLs directas, llamadas a acciones ocultas, generación/descarga real del PDF, permisos de widgets, firma/sello propios, rechazo de rutas ajenas y bitácora filtrada. `RetirarUsuariosPruebaTest` verifica la limpieza repetible, la conservación de administradores, roles, permisos y registros clínicos, y la retirada de sesiones y credenciales de las cuentas eliminadas. Las pruebas usan una base aislada.
 
-Para ejecutar la suite local, se requiere el límite PHP de 512 MB que ya configura `docker/php.ini`:
+Para ejecutar la suite local, se requiere un límite PHP de 512 MB:
 
 ```bash
 DB_CONNECTION=sqlite DB_DATABASE=:memory: php -d memory_limit=512M vendor/bin/phpunit

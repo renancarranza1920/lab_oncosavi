@@ -9,11 +9,11 @@ a soporte y al propietario autorizado. No hay cuentas ocultas, excepciones para 
 credenciales preestablecidas en el repositorio. El rol adicional identifica soporte;
 los permisos operativos siguen siendo los del rol `admin` existente.
 
-En Oracle, después de actualizar el contenedor:
+En Hostinger, desde la carpeta del proyecto (el seeder de test ya lo prepara):
 
 ```bash
-docker compose exec -T --user www-data app php artisan oncosavi:crear-superadmin
-docker compose exec -T --user www-data app cat storage/app/private/soporte-superadmin.json
+php artisan oncosavi:crear-superadmin
+cat storage/app/private/soporte-superadmin.json
 ```
 
 En otro alojamiento con PHP CLI:

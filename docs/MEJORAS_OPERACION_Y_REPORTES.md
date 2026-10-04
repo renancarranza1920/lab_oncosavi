@@ -18,11 +18,11 @@ La cuenta general tiene usuario **medicos** y consulta todos los pacientes en `/
 
 En **Atención al Paciente → Médicos → Acceso médico general**, un administrador puede habilitarla, definir una contraseña compartida o cambiarla. Dejar la contraseña vacía conserva la actual. Cambiarla cierra las sesiones anteriores. Se mantienen disponibles los accesos médicos individuales ya configurados.
 
-Para habilitar la cuenta inicialmente desde Oracle:
+Para habilitar la cuenta inicialmente en Hostinger:
 
 ```bash
-docker compose -f docker-compose.yml exec -T app php artisan oncosavi:portal-medicos-general
-docker compose -f docker-compose.yml exec -T app cat storage/app/private/portal-medicos-general.json
+php artisan oncosavi:portal-medicos-general
+cat storage/app/private/portal-medicos-general.json
 ```
 
 El comando genera una contraseña aleatoria, guarda su hash en la base y deja los datos de acceso en ese archivo privado. Repetirlo conserva una cuenta ya configurada. `--renovar` genera otra contraseña y revoca sesiones. Si cambias la contraseña desde el panel, utiliza la nueva contraseña: el archivo contiene únicamente la generada por el comando.
@@ -37,47 +37,6 @@ El catálogo imprimible se presenta como una solicitud con espacios para pacient
 
 Los PDFs ya guardados conservan su contenido. Para aplicar el nuevo diseño a una orden existente, vuelve a generar su PDF desde Órdenes; el portal y las descargas mostrarán ese mismo archivo actualizado.
 
-## Despliegue en Oracle sin borrar volúmenes
+## Instalación y actualización en test
 
-```bash
-set -e
-cd ~/lab_oncosavi
-git switch main
-git pull --ff-only origin main
-docker compose -f docker-compose.yml build app
-docker compose -f docker-compose.yml up -d --wait db
-docker compose -f docker-compose.yml run --rm --no-deps app php artisan migrate --force
-docker compose -f docker-compose.yml up -d --no-deps --force-recreate app
-docker compose -f docker-compose.yml exec -T app php artisan optimize:clear
-docker compose -f docker-compose.yml exec -T app php artisan filament:clear-cached-components
-docker compose -f docker-compose.yml exec -T app php artisan oncosavi:portal-medicos-general
-docker compose -f docker-compose.yml ps
-```
-
-Las migraciones se ejecutan antes de iniciar la nueva aplicación. No se ejecutan seeders ni se eliminan volúmenes. No se necesita cambiar Caddy.
-
-### Sello institucional del laboratorio
-
-En **Mi perfil → Sello del laboratorio**, únicamente el rol `admin` puede subir,
-reemplazar o retirar el sello institucional (PNG, máximo 2 MB). Es compartido por
-el laboratorio, separado del sello y firma personales de cada usuario. Se incluye
-al generar resultados completos y parciales; los PDFs ya guardados deben regenerarse.
-La imagen y su configuración se guardan dentro de `storage`, en el volumen persistente
-`laravel_storage`, por lo que sobreviven a la reconstrucción del contenedor. No es
-necesario copiar `sello.png` por SSH: se carga desde este apartado y se pulsa Guardar.
-
-## Actualización segura del contenedor
-
-El arranque del contenedor corrige el propietario y los permisos de `storage` y
-`bootstrap/cache`, incluyendo archivos preexistentes del volumen. Ejecutar Artisan
-como `www-data` evita volver a crear logs y cachés con propietario root. Es necesario
-aplicar `php artisan migrate --force` después de actualizar: la tabla
-`cliente_telefonos` se crea mediante migración, conservando los teléfonos existentes.
-
-### Fechas y posición de sellos en resultados
-
-El encabezado conserva el diseño y muestra fecha y hora de **registro** (creación de
-la orden) e **impresión** (generación del PDF), en hora de El Salvador. El bloque
-compartido de sello institucional, sello personal y firma se desplaza hacia abajo
-con espacio real en la tabla. Los documentos ya guardados se mantienen; para ver
-estos cambios es necesario regenerarlos.
+Consulta [la guía de Hostinger](ENTORNO_TEST_HOSTINGER.md).

@@ -1,20 +1,33 @@
-# ONCOSAVI · rama test
+# ONCOSAVI · test para Hostinger
 
-Copia de `main` para pruebas en un alojamiento independiente. Incluye tres usuarios
-de prueba, soporte identificado con auditoría, pacientes y órdenes ficticias, PDFs,
-firma personal y sellos de ejemplo. Los datos se crean explícitamente en una base
-nueva; no se conecta a la instalación real de Oracle.
+Aplicación completa para pruebas en hosting compartido con PHP y MySQL.
+Esta rama incluye los estilos y scripts compilados; no necesita Docker, Node,
+Redis, procesos de cola ni servicios adicionales para funcionar.
 
-La instalación en Hostinger no requiere Docker. Sigue
-[la guía de instalación y accesos](docs/ENTORNO_TEST_HOSTINGER.md).
-Las contraseñas se generan en el alojamiento y no están en el repositorio.
-
-Después de configurar `.env`, instalar dependencias y aplicar las migraciones:
+1. Usa PHP **8.3 o superior** y crea una base MySQL vacía para este sitio.
+2. Sube el proyecto fuera de `public_html`, por ejemplo a la carpeta `oncosavi`.
+3. Copia `.env.example` a `.env` y completa la URL temporal y los datos MySQL.
+4. Desde la carpeta del proyecto ejecuta:
 
 ```bash
-php artisan oncosavi:preparar-test
+composer install --no-dev --optimize-autoloader
+php artisan key:generate
+php artisan migrate --seed --force
+php hostinger/publicar.php ../public_html
 ```
 
-El comando solo funciona con `APP_ENV=staging` y `TEST_DEMO_ENABLED=true`, y se
-detiene si encuentra datos existentes. Usa siempre una base y un storage separados
-para esta rama. Los resultados de ejemplo no tienen validez clínica.
+Abre `/admin/login` o `/expediente`. El seeder prepara los usuarios de prueba,
+el acceso médico general, soporte, catálogo, pacientes, órdenes, resultados,
+PDFs, firma y sellos de ejemplo. Repetir el seeder conserva los datos y contraseñas.
+
+Los accesos se guardan en archivos privados:
+
+```bash
+cat storage/app/private/usuarios-prueba.json
+cat storage/app/private/soporte-superadmin.json
+cat storage/app/private/portal-medicos-general.json
+```
+
+Consulta [la guía de Hostinger](docs/ENTORNO_TEST_HOSTINGER.md) para configurar
+`public_html`, actualizar el sitio y conservar los archivos. Esta rama usa una
+base separada de la instalación real de Oracle; no se fusiona en `main`.
