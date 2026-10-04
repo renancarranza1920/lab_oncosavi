@@ -54,41 +54,41 @@ class MejorasOperacionTest extends TestCase
         return [$orden, $detalle, $muestra, $examen];
     }
 
-    public function test_las_acciones_cambian_a_la_pestana_del_nuevo_estado_al_cerrar_el_modal(): void
+    public function test_las_acciones_actualizan_estado_sin_cambiar_pestana(): void
     {
         [$orden, $detalle, $muestra] = $this->orden();
-        $pagina = Livewire::test(ListOrdens::class)
+        $pagina = Livewire::test(ListOrdens::class)->set('activeTab', 'todas')
             ->callTableAction('gestionarMuestras', $orden, ['muestras_recibidas_list' => ['d'.$detalle->id.'_m'.$muestra->id]])
-            ->assertHasNoTableActionErrors()->assertSet('activeTab', 'en proceso')->assertSet('mountedTableActions', []);
+            ->assertHasNoTableActionErrors()->assertSet('activeTab', 'todas')->assertSet('mountedTableActions', []);
         $this->assertSame('en proceso', $orden->fresh()->estado);
         $pagina->callTableAction('pausarOrden', $orden->fresh(), ['motivo_pausa' => 'Esperando muestra adicional'])
-            ->assertSet('activeTab', 'pausada')->assertSet('mountedTableActions', []);
+            ->assertSet('activeTab', 'todas')->assertSet('mountedTableActions', []);
         $pagina->callTableAction('reanudarOrden', $orden->fresh())
-            ->assertSet('activeTab', 'en proceso')->assertSet('mountedTableActions', []);
+            ->assertSet('activeTab', 'todas')->assertSet('mountedTableActions', []);
         $pagina->callTableAction('finalizarOrden', $orden->fresh())
-            ->assertSet('activeTab', 'finalizado')->assertSet('mountedTableActions', []);
+            ->assertSet('activeTab', 'todas')->assertSet('mountedTableActions', []);
         $this->assertSame('finalizado', $orden->fresh()->estado);
-        $pagina->callTableAction('restaurarOrden', $orden->fresh())->assertSet('activeTab', 'en proceso');
-        $pagina->callTableAction('cancelarOrden', $orden->fresh())->assertSet('activeTab', 'cancelado');
+        $pagina->callTableAction('restaurarOrden', $orden->fresh())->assertSet('activeTab', 'todas');
+        $pagina->callTableAction('cancelarOrden', $orden->fresh())->assertSet('activeTab', 'todas');
     }
 
-    public function test_crear_orden_regresa_a_pendientes_sin_kanban_ni_busqueda_por_id(): void
+    public function test_crear_orden_regresa_al_listado_sin_kanban_ni_filtros(): void
     {
         [$orden, , , $examen] = $this->orden();
         config(['laboratorio.impresion_etiquetas_habilitada' => false]);
         Livewire::test(CreateOrden::class)->fillForm([
             'cliente_id' => $orden->cliente_id,
             'examenes_seleccionados' => [['examen_id' => $examen->id, 'nombre_examen' => 'Glucosa', 'precio_hidden' => 10, 'recipiente' => 'pendiente']],
-        ])->call('create')->assertHasNoFormErrors()->assertRedirect('/admin/ordenes?activeTab=pendiente');
+        ])->call('create')->assertHasNoFormErrors()->assertRedirect('/admin/ordenes');
         $this->assertSame(2, Orden::count());
     }
 
-    public function test_completar_desde_resultados_regresa_a_finalizadas(): void
+    public function test_completar_desde_resultados_regresa_al_listado_sin_filtros(): void
     {
         [$orden] = $this->orden();
         $orden->update(['estado' => 'en proceso']);
         Livewire::test(IngresarResultados::class, ['record' => $orden])
-            ->callAction('completar')->assertRedirect('/admin/ordenes?activeTab=finalizado');
+            ->callAction('completar')->assertRedirect('/admin/ordenes');
         $this->assertSame('finalizado', $orden->fresh()->estado);
     }
 

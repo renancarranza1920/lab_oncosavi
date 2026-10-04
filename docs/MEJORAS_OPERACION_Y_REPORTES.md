@@ -2,9 +2,9 @@
 
 ## Órdenes
 
-Con `IMPRESION_ETIQUETAS_HABILITADA=false` (valor predeterminado), crear una orden regresa al listado de Pendientes. El regreso desde Kanban tampoco añade una búsqueda por ID. Las etiquetas se conservan ocultas y se pueden reactivar con esa misma opción.
+Con `IMPRESION_ETIQUETAS_HABILITADA=false` (valor predeterminado), crear una orden regresa al listado sin filtros. El regreso desde Kanban tampoco añade una búsqueda por ID. Las etiquetas se conservan ocultas y se pueden reactivar con esa misma opción.
 
-Al guardar y cerrar las acciones de muestras, pausa, reanudación, finalización, cancelación o restauración, el listado cambia a la pestaña del estado guardado. Completar desde Ingresar resultados regresa a Finalizadas. El detalle de una orden usa los colores del tema también al pasar el cursor en modo oscuro.
+Las acciones de muestras, pausa, reanudación, finalización, cancelación o restauración conservan la pestaña elegida. Completar desde Ingresar resultados regresa al listado sin seleccionar una pestaña. El detalle de una orden usa los colores del tema también al pasar el cursor en modo oscuro.
 
 ## Teléfonos
 
@@ -65,3 +65,11 @@ al generar resultados completos y parciales; los PDFs ya guardados deben regener
 La imagen y su configuración se guardan dentro de `storage`, en el volumen persistente
 `laravel_storage`, por lo que sobreviven a la reconstrucción del contenedor. No es
 necesario copiar `sello.png` por SSH: se carga desde este apartado y se pulsa Guardar.
+
+## Actualización segura del contenedor
+
+El arranque del contenedor corrige el propietario y los permisos de `storage` y
+`bootstrap/cache`, incluyendo archivos preexistentes del volumen. Ejecutar Artisan
+como `www-data` evita volver a crear logs y cachés con propietario root. Es necesario
+aplicar `php artisan migrate --force` después de actualizar: la tabla
+`cliente_telefonos` se crea mediante migración, conservando los teléfonos existentes.

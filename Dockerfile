@@ -100,3 +100,8 @@ RUN chown -R www-data:www-data \
     bootstrap/cache
 
 EXPOSE 80
+
+COPY docker/app-entrypoint.sh /usr/local/bin/oncosavi-entrypoint
+RUN chmod +x /usr/local/bin/oncosavi-entrypoint
+ENTRYPOINT ["oncosavi-entrypoint"]
+CMD ["apache2-foreground"]

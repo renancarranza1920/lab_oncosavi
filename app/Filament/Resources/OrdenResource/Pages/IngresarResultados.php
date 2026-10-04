@@ -479,7 +479,7 @@ if (!$valorRef && $grupoTodasEdades) {
                     ->success()
                     ->send();
 
-                return redirect(static::getResource()::getUrl('index', ['activeTab' => 'finalizado']));
+                return redirect(static::getResource()::getUrl('index'));
             }),
              
             ActionGroup::make([
@@ -598,7 +598,7 @@ if (!$valorRef && $grupoTodasEdades) {
                     $this->record->estado = 'finalizado';
                     $this->record->save();
                     Notification::make()->title('Orden Completada')->success()->send();
-                    return redirect(static::getResource()::getUrl('index', ['activeTab' => 'finalizado']));
+                    return redirect(static::getResource()::getUrl('index'));
                 }),
             Action::make('regresar')->label('Regresar a Órdenes')->color('gray')->icon('heroicon-o-arrow-left')
                 ->url(static::getResource()::getUrl('index')),

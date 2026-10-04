@@ -1160,11 +1160,6 @@ public static function getOrdenStep(): array
             ->actions([
 
                 Tables\Actions\Action::make('gestionarMuestras')
-                    ->after(function (Orden $record, $livewire): void {
-                        if ($livewire instanceof Pages\ListOrdens) {
-                            $livewire->mostrarEstado($record->estado);
-                        }
-                    })
 
                     ->label('Gestionar Muestras')
 
@@ -1530,11 +1525,6 @@ public static function getOrdenStep(): array
                 
 
                 Tables\Actions\Action::make('pausarOrden')
-                    ->after(function (Orden $record, $livewire): void {
-                        if ($livewire instanceof Pages\ListOrdens) {
-                            $livewire->mostrarEstado($record->estado);
-                        }
-                    })
 
                     ->tooltip('Pausar Orden')
 
@@ -1567,11 +1557,6 @@ public static function getOrdenStep(): array
 
 
                 Tables\Actions\Action::make('reanudarOrden')
-                    ->after(function (Orden $record, $livewire): void {
-                        if ($livewire instanceof Pages\ListOrdens) {
-                            $livewire->mostrarEstado($record->estado);
-                        }
-                    })
 
                     ->tooltip('Reanudar Orden')
 
@@ -1602,11 +1587,6 @@ public static function getOrdenStep(): array
 
 
                 Tables\Actions\Action::make('finalizarOrden')
-                    ->after(function (Orden $record, $livewire): void {
-                        if ($livewire instanceof Pages\ListOrdens) {
-                            $livewire->mostrarEstado($record->estado);
-                        }
-                    })
 
                     ->tooltip('Finalizar Orden')
 
@@ -2222,11 +2202,6 @@ $record->update([
     }),
 
                 Tables\Actions\Action::make('cancelarOrden')
-                    ->after(function (Orden $record, $livewire): void {
-                        if ($livewire instanceof Pages\ListOrdens) {
-                            $livewire->mostrarEstado($record->estado);
-                        }
-                    })
 
                     ->tooltip('Cancelar Orden')
 
@@ -2291,11 +2266,6 @@ $record->update([
 
 
                 Tables\Actions\Action::make('restaurarOrden')
-                    ->after(function (Orden $record, $livewire): void {
-                        if ($livewire instanceof Pages\ListOrdens) {
-                            $livewire->mostrarEstado($record->estado);
-                        }
-                    })
 
                     ->label('Restaurar')
 

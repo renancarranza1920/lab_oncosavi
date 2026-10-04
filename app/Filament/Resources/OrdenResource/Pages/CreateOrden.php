@@ -325,7 +325,7 @@ protected function handleRecordCreation(array $data): \Illuminate\Database\Eloqu
     protected function getRedirectUrl(): string
     {
         if (! config('laboratorio.impresion_etiquetas_habilitada')) {
-            return static::getResource()::getUrl('index', ['activeTab' => 'pendiente']);
+            return static::getResource()::getUrl('index');
         }
 
         return DetalleOrdenKanban::getUrl(['ordenId' => $this->record->id]);

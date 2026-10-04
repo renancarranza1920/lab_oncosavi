@@ -10,7 +10,6 @@ use Filament\Resources\Pages\ListRecords;
 class ListOrdens extends ListRecords
 {
     protected static string $resource = OrdenResource::class;
-    public ?string $activeTab = 'pendiente';
 
     protected function getHeaderActions(): array
     {
@@ -29,15 +28,6 @@ protected $listeners = [
         $this->mountTableAction('enviarWhatsapp', \App\Models\Orden::find($data['recordId']));
     }
 
-    public function mostrarEstado(string $estado): void
-    {
-        if (! in_array($estado, ['pendiente', 'en proceso', 'pausada', 'finalizado', 'cancelado'], true)) {
-            return;
-        }
-
-        $this->activeTab = $estado;
-        $this->resetPage();
-    }
     public function getTabs(): array
     {
         $count = OrdenResource::getEloquentQuery()
