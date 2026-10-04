@@ -33,8 +33,17 @@ try {
         if (realpath($enlace) !== realpath($almacen)) {
             throw new RuntimeException('El enlace storage pertenece a otra instalación.');
         }
-    } elseif (file_exists($enlace) || !symlink($almacen, $enlace)) {
-        throw new RuntimeException('No se pudo enlazar storage. Configure la raíz del sitio en la carpeta public del proyecto.');
+    } elseif (file_exists($enlace)) {
+        throw new RuntimeException('Ya existe una carpeta storage en el destino. Use una carpeta pública nueva o configure la raíz del sitio en public.');
+    } else {
+        if (!function_exists('symlink')) {
+            throw new RuntimeException("Hostinger tiene deshabilitado symlink en PHP. Desde SSH cree el enlace con:\nln -s "
+                .escapeshellarg($almacen).' '.escapeshellarg($enlace)
+                ."\nDespués vuelva a ejecutar este script. No repita key:generate ni las migraciones.");
+        }
+        if (!symlink($almacen, $enlace)) {
+            throw new RuntimeException('No se pudo enlazar storage. Configure la raíz del sitio en la carpeta public del proyecto.');
+        }
     }
 
     $archivos = new RecursiveIteratorIterator(

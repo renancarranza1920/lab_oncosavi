@@ -46,6 +46,19 @@ No subas la raíz completa del proyecto a `public_html`. El script copia solo
 No copia `.env`, credenciales ni código privado; los PDFs se consultan mediante
 las rutas autenticadas. También conserva la protección de reportes de `.htaccess`.
 
+Si aparece «Hostinger tiene deshabilitado symlink en PHP», crea el enlace mediante
+SSH, desde `oncosavi`, y vuelve a publicar:
+
+```bash
+mkdir -p ../public_html
+ln -s ../oncosavi/storage/app/public ../public_html/storage
+php hostinger/publicar.php ../public_html
+```
+
+Este enlace se crea solo una vez. No repitas `key:generate` ni el seeder para
+resolver este problema. Los comandos `cat storage/...` también se ejecutan
+desde `oncosavi`, no desde la carpeta del dominio.
+
 Si tu alojamiento permite apuntar la raíz web directamente a `oncosavi/public`,
 usa esa opción en lugar del script y ejecuta `php artisan storage:link`.
 `storage` y `bootstrap/cache` deben ser escribibles por tu usuario PHP. No uses
