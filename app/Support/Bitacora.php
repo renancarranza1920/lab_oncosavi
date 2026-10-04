@@ -4,6 +4,13 @@ namespace App\Support;
 
 class Bitacora
 {
+    public static function datosParaMostrar(array $datos): array
+    {
+        return array_map(static fn ($valor) => is_array($valor)
+            ? json_encode($valor, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            : (is_bool($valor) ? ($valor ? 'Sí' : 'No') : $valor), self::datosVisibles($datos));
+    }
+
     public static function datosVisibles(array $datos): array
     {
         foreach ($datos as $campo => $valor) {
