@@ -660,6 +660,115 @@ public static function getOrdenStep(): array
 
                 /*
                 |--------------------------------------------------------------------------
+                | TAB EXÁMENES
+                |--------------------------------------------------------------------------
+                */
+
+                Tabs\Tab::make('Exámenes')
+                    ->schema([
+
+                       Select::make('buscar_examen')
+    ->label('Buscar Examen')
+    ->searchable()
+    ->reactive()
+
+    ->options(
+    \App\Models\Examen::where('estado',1)
+        ->pluck('nombre','id')
+)
+    ->afterStateUpdated(function ($state, $set, $get) {
+
+        if(!$state) return;
+
+        $examen = \App\Models\Examen::find($state);
+
+        if (!$examen) {
+            $set('buscar_examen', null);
+            return;
+        }
+
+        $lista = $get('examenes_seleccionados') ?? [];
+
+        if (collect($lista)->contains(fn ($item) => (int) ($item['examen_id'] ?? 0) === (int) $examen->id)) {
+            Notification::make()
+                ->title('Examen ya agregado')
+                ->body('Este examen ya esta en la orden.')
+                ->warning()
+                ->send();
+
+            $set('buscar_examen', null);
+            return;
+        }
+
+        $examenesCubiertos = OrdenSelectionService::examenesCubiertosPorPerfiles($get('perfiles_seleccionados') ?? []);
+
+        if (in_array((int) $examen->id, $examenesCubiertos, true)) {
+            Notification::make()
+                ->title('Examen incluido en perfil')
+                ->body('Este examen ya esta cubierto por un perfil seleccionado y no se cobrara aparte.')
+                ->info()
+                ->send();
+
+            $set('buscar_examen', null);
+            return;
+        }
+
+        $lista[] = [
+            'examen_id' => $examen->id,
+            'nombre_examen' => $examen->nombre,
+            'precio' => $examen->precio,
+            'precio_hidden' => $examen->precio,
+            'recipiente' => $examen->recipiente,
+            'tipo' => 'examen',
+        ];
+
+        $set('examenes_seleccionados',$lista);
+
+        $set('buscar_examen',null);
+        //dd($lista);
+
+    }),
+
+
+
+                        Forms\Components\Repeater::make('examenes_seleccionados')
+                            ->label('Exámenes agregados')
+                            ->addable(false)
+                            ->default([])
+                            ->reorderable(false)
+                            ->deletable(true)
+                            ->schema([
+
+                                Forms\Components\Grid::make(3)
+                                    ->schema([
+
+                                        Forms\Components\TextInput::make('nombre_examen')
+                                            ->label('Examen')
+                                            ->disabled()
+                                            ->dehydrated(true),
+
+                                        Forms\Components\TextInput::make('precio')
+                                            ->label('Precio')
+                                            ->disabled(),
+
+                                           Hidden::make('nombre_examen')
+
+                                                ->dehydrated(true),
+                                        Hidden::make('examen_id'),
+
+                                        Hidden::make('tipo')
+                                            ->default('examen'),
+
+                                        Hidden::make('precio_hidden'),
+
+                                        Hidden::make('recipiente')->dehydrated(true),
+
+                                    ])
+
+                            ])
+                    ]),
+                /*
+                |--------------------------------------------------------------------------
                 | TAB PERFILES
                 |--------------------------------------------------------------------------
                 */
@@ -737,7 +846,7 @@ public static function getOrdenStep(): array
 
     }),
 
-                      
+
 
                         Forms\Components\Repeater::make('perfiles_seleccionados')
                             ->label('Perfiles agregados')
@@ -770,115 +879,6 @@ public static function getOrdenStep(): array
                             ])
                     ]),
 
-                /*
-                |--------------------------------------------------------------------------
-                | TAB EXÁMENES
-                |--------------------------------------------------------------------------
-                */
-
-                Tabs\Tab::make('Exámenes')
-                    ->schema([
-
-                       Select::make('buscar_examen')
-    ->label('Buscar Examen')
-    ->searchable()
-    ->reactive()
-    
-    ->options(
-    \App\Models\Examen::where('estado',1)
-        ->pluck('nombre','id')
-)
-    ->afterStateUpdated(function ($state, $set, $get) {
-
-        if(!$state) return;
-
-        $examen = \App\Models\Examen::find($state);
-
-        if (!$examen) {
-            $set('buscar_examen', null);
-            return;
-        }
-
-        $lista = $get('examenes_seleccionados') ?? [];
-
-        if (collect($lista)->contains(fn ($item) => (int) ($item['examen_id'] ?? 0) === (int) $examen->id)) {
-            Notification::make()
-                ->title('Examen ya agregado')
-                ->body('Este examen ya esta en la orden.')
-                ->warning()
-                ->send();
-
-            $set('buscar_examen', null);
-            return;
-        }
-
-        $examenesCubiertos = OrdenSelectionService::examenesCubiertosPorPerfiles($get('perfiles_seleccionados') ?? []);
-
-        if (in_array((int) $examen->id, $examenesCubiertos, true)) {
-            Notification::make()
-                ->title('Examen incluido en perfil')
-                ->body('Este examen ya esta cubierto por un perfil seleccionado y no se cobrara aparte.')
-                ->info()
-                ->send();
-
-            $set('buscar_examen', null);
-            return;
-        }
-
-        $lista[] = [
-            'examen_id' => $examen->id,
-            'nombre_examen' => $examen->nombre,
-            'precio' => $examen->precio,
-            'precio_hidden' => $examen->precio,
-            'recipiente' => $examen->recipiente,
-            'tipo' => 'examen',
-        ];
-
-        $set('examenes_seleccionados',$lista);
-
-        $set('buscar_examen',null);
-        //dd($lista);
-
-    }),
-
-                        
-
-                        Forms\Components\Repeater::make('examenes_seleccionados')
-                            ->label('Exámenes agregados')
-                            ->addable(false)
-                            ->default([])
-                            ->reorderable(false)
-                            ->deletable(true)
-                            ->schema([
-
-                                Forms\Components\Grid::make(3)
-                                    ->schema([
-
-                                        Forms\Components\TextInput::make('nombre_examen')
-                                            ->label('Examen')
-                                            ->disabled()
-                                            ->dehydrated(true),
-
-                                        Forms\Components\TextInput::make('precio')
-                                            ->label('Precio')
-                                            ->disabled(),
-
-                                           Hidden::make('nombre_examen')
-
-                                                ->dehydrated(true),
-                                        Hidden::make('examen_id'),
-
-                                        Hidden::make('tipo')
-                                            ->default('examen'),
-
-                                        Hidden::make('precio_hidden'),
-
-                                        Hidden::make('recipiente')->dehydrated(true),
-
-                                    ])
-
-                            ])
-                    ]),
 
             ]),
 

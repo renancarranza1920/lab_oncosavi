@@ -17,7 +17,8 @@ class AuthMedicoController extends Controller
     {
         $medico = Auth::guard('medico')->user();
         if ($medico?->portal_activo && $medico->password
-            && $request->session()->get('medico_portal_version') === $medico->portal_version) {
+            && $request->session()->get('medico_portal_version') === $medico->portal_version
+            && $request->session()->get('medico_portal_reinicio', '') === \App\Support\SesionPortalMedico::version()) {
             return redirect()->route('expediente.index');
         }
 
@@ -48,6 +49,7 @@ class AuthMedicoController extends Controller
         RateLimiter::clear($key);
         $request->session()->regenerate();
         $request->session()->put('medico_portal_version', Auth::guard('medico')->user()->portal_version);
+        $request->session()->put('medico_portal_reinicio', \App\Support\SesionPortalMedico::version());
 
         return redirect()->route('expediente.index');
     }
@@ -56,6 +58,7 @@ class AuthMedicoController extends Controller
     {
         Auth::guard('medico')->logout();
         $request->session()->forget('medico_portal_version');
+        $request->session()->forget('medico_portal_reinicio');
         $request->session()->regenerate(true);
         $request->session()->regenerateToken();
 

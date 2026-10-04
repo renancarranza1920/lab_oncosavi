@@ -143,14 +143,17 @@ class RolesAccionesTest extends TestCase
         Livewire::test(\App\Filament\Widgets\ExamenesPopularesChart::class)->assertForbidden();
     }
 
-    public function test_bitacora_laboratorio_solo_muestra_resultados_y_no_expone_passwords(): void
+    public function test_bitacora_solo_permite_admin_incluso_con_permisos_directos_anteriores(): void
     {
         $resultado = Resultado::create(['detalle_orden_id' => $this->detalle->id, 'resultado' => '12', 'es_externo' => true]);
         $registro = Activity::where('subject_type', Resultado::class)->firstOrFail();
         $privado = Activity::create(['log_name' => 'Usuarios', 'description' => 'Registro privado', 'subject_type' => User::class,
             'subject_id' => $this->usuarios['admin']->id, 'properties' => ['old' => ['password' => 'HASH_ANTIGUO'], 'attributes' => ['password' => 'HASH_NUEVO', 'name' => 'Administrador']]]);
         $this->actingAs($this->usuarios['Laboratorista']);
-        Livewire::test(ListActivityLogs::class)->assertCanSeeTableRecords([$registro])->assertCanNotSeeTableRecords([$privado]);
+        $this->usuarios['Laboratorista']->givePermissionTo(['view_any_activity::log', 'view_activity::log', 'ver_bitacora_completa', \Spatie\Permission\Models\Permission::findOrCreate('ver_bitacora_soporte', 'web')]);
+        Livewire::test(ListActivityLogs::class)->assertForbidden();
+        $this->get(ActivityLogResource::getUrl())->assertForbidden();
+        $this->get('/admin/bitacora-soporte')->assertForbidden();
         $this->assertFalse($this->usuarios['Laboratorista']->can('view', $privado));
         $this->actingAs($this->usuarios['Recepcion']);
         $this->get(ActivityLogResource::getUrl())->assertForbidden();

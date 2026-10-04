@@ -159,8 +159,6 @@ return [
         'ver_pruebas_conjuntas',
         'ver_pruebas_orden',
         'ver_reporte_orden',
-        'view_activity::log',
-        'view_any_activity::log',
         'view_any_clientes',
         'view_any_codigo',
         'view_any_cotizacion',

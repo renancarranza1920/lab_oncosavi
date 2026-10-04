@@ -32,6 +32,10 @@ cuenta desde Usuarios.
 
 ## Detalle reservado de los ajustes
 
+La bitácora general y la bitácora de soporte requieren el rol `admin`; Recepción
+y Laboratorista no tienen acceso. La cuenta de soporte conserva sus roles
+`admin` y `super_admin`.
+
 Los eventos cuyo autor tiene el rol `super_admin` se muestran en la bitácora general
 como **Ajuste de soporte técnico**, con fecha y usuario. El módulo, la acción original,
 el modelo, los campos y los valores se conservan en `registros_soporte`, y no se

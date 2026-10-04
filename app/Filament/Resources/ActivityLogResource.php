@@ -31,6 +31,7 @@ protected static ?int $navigationSort = 3;
 
     public static function getEloquentQuery(): Builder
     {
+        abort_unless(static::canViewAny(), 403);
         $query = parent::getEloquentQuery();
         if (!auth()->user()->can('ver_bitacora_completa')) {
             $query->where('subject_type', \App\Models\Resultado::class);

@@ -12,7 +12,7 @@ La base de asignaciones es la lista compartida de la BD existente. `config/roles
 | Catálogos | Administrar | Consultar; administrar muestras | Consultar; gestionar valores de referencia |
 | Dashboard | Todos los indicadores | Indicadores operativos, sin ingresos | Indicadores operativos, sin ingresos |
 | Mi perfil | Cuenta, firma y sello propios | Cuenta propia | Cuenta, firma y sello propios |
-| Bitácora | Todos los eventos, solo lectura | Sin acceso | Eventos de resultados, solo lectura |
+| Bitácora | Todos los eventos, solo lectura | Sin acceso | Sin acceso |
 
 Se conservan también los permisos heredados de reactivos aunque este checkout no tenga ese recurso. Los permisos de impresión siguen asignados, pero los botones del Kanban continúan ocultos mediante la configuración de impresión existente.
 
@@ -54,7 +54,7 @@ docker compose exec app php artisan db:seed --class=RolesPermisosSeeder --force
 
 ## Verificación
 
-`RolesAccionesTest` comprueba los tres roles con usuarios temporales de una base aislada: URLs directas, llamadas a acciones ocultas, generación/descarga real del PDF, permisos de widgets, firma/sello propios, rechazo de rutas ajenas y bitácora filtrada. `RetirarUsuariosPruebaTest` verifica la limpieza repetible, la conservación de administradores, roles, permisos y registros clínicos, y la retirada de sesiones y credenciales de las cuentas eliminadas. Las pruebas no crean usuarios en Oracle.
+`RolesAccionesTest` comprueba los tres roles con usuarios temporales de una base aislada: URLs directas, llamadas a acciones ocultas, generación/descarga real del PDF, permisos de widgets, firma/sello propios y rechazo de la bitácora para Recepción y Laboratorista, incluso si conservan permisos antiguos. `RetirarUsuariosPruebaTest` verifica la limpieza repetible, la conservación de administradores, roles, permisos y registros clínicos, y la retirada de sesiones y credenciales de las cuentas eliminadas. Las pruebas no crean usuarios en Oracle.
 
 Para ejecutar la suite local, se requiere el límite PHP de 512 MB que ya configura `docker/php.ini`:
 

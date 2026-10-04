@@ -15,7 +15,7 @@ class ActivityPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_activity::log');
+        return $user->hasRole('admin') && $user->can('view_any_activity::log');
     }
 
     /**
@@ -23,7 +23,7 @@ class ActivityPolicy
      */
     public function view(User $user, Activity $activity): bool
     {
-        return $user->can('view_activity::log')
+        return $this->viewAny($user) && $user->can('view_activity::log')
             && ($user->can('ver_bitacora_completa') || $activity->subject_type === \App\Models\Resultado::class);
     }
 
