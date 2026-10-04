@@ -10,7 +10,7 @@ Al guardar y cerrar las acciones de muestras, pausa, reanudación, finalización
 
 En Clientes y en la creación rápida de pacientes desde una orden, Contacto permite **Agregar otro teléfono**, seleccionar país y distinguir Móvil/Fijo. Hay códigos de países frecuentes y **Otro país**, donde se introduce el código internacional. El número se ingresa sin ese código; el sistema valida y almacena ambos juntos.
 
-La migración copia el teléfono existente como primer contacto. El primer teléfono de la lista sigue siendo el utilizado al compartir por WhatsApp. Se puede cambiar el orden de los contactos. Clientes, órdenes y expedientes muestran la lista; las búsquedas encuentran también los teléfonos secundarios. Las cotizaciones admiten los mismos países para su teléfono de WhatsApp.
+La migración copia el teléfono existente como primer contacto. Al compartir resultados finales o parciales se pregunta a qué número enviar: se debe elegir un contacto o escribir otro, sin selección automática, incluso si hay un único teléfono. También se puede elegir solo correo si el paciente tiene uno registrado. Se puede cambiar el orden de los contactos. Clientes, órdenes y expedientes muestran la lista; las búsquedas encuentran también los teléfonos secundarios. Las cotizaciones admiten los mismos países para su teléfono de WhatsApp.
 
 ## Acceso médico compartido y contraseñas
 

@@ -95,7 +95,7 @@ class TelefonoCliente
             ])->columns(['default' => 1, 'md' => 2])->columnSpanFull()
             ->defaultItems(0)->orderColumn('orden')->reorderableWithButtons()
             ->addActionLabel('Agregar otro teléfono')
-            ->helperText('El primer número se usa al compartir por WhatsApp. Puedes agregar móviles y teléfonos fijos de otros países.')
+            ->helperText('Puedes agregar móviles y teléfonos fijos de otros países. Al compartir por WhatsApp se te preguntará qué número usar.')
             ->mutateRelationshipDataBeforeCreateUsing(fn (array $data) => filled($data['numero'] ?? null) ? $data : null)
             ->mutateRelationshipDataBeforeSaveUsing(fn (array $data) => filled($data['numero'] ?? null) ? $data : null)
             ->afterStateHydrated(function (Repeater $component): void {

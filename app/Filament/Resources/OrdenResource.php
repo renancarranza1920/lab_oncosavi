@@ -2369,6 +2369,10 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
     ->color('primary')
 
+    ->modalHeading('Elegir destinatario del PDF')
+    ->modalSubmitActionLabel('Continuar')
+    ->form(fn (Orden $record) => \App\Support\DestinoWhatsApp::formulario($record->cliente))
+
     ->visible(function (Orden $record) {
 
         $expediente = $record->cliente->NumeroExp ?? 'SinExp';
@@ -2388,7 +2392,9 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
     })
 
-    ->action(function (Orden $record) {
+    ->action(function (Orden $record, array $data) {
+
+        $telefonoCliente = \App\Support\DestinoWhatsApp::resolver($record->cliente, $data);
 
         // --- 1. CONFIGURACIÓN DE DATOS DEL LABORATORIO ---
 
@@ -2445,15 +2451,13 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
         // --- 4. GENERACIÓN DE LINKS ---
 
-        $telefonoCliente = $record->cliente->telefono;
-
         $correoCliente = $record->cliente->correo;
 
 
 
         // rawurlencode asegura que los espacios y saltos de línea funcionen en todos los dispositivos
 
-        $linkWhatsapp = 'https://wa.me/' . $telefonoCliente . '?text=' . rawurlencode($mensajeBase);
+        $linkWhatsapp = $telefonoCliente ? 'https://wa.me/' . $telefonoCliente . '?text=' . rawurlencode($mensajeBase) : null;
 
         $linkCorreo = 'mailto:' . $correoCliente . '?subject=' . rawurlencode($asuntoCorreo) . '&body=' . rawurlencode($mensajeBase);
 
@@ -2471,9 +2475,9 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
             ->persistent() // Obliga a cerrar manual
 
-            ->actions([
+            ->actions(array_filter([
 
-                \Filament\Notifications\Actions\Action::make('whatsapp')
+                $linkWhatsapp ? \Filament\Notifications\Actions\Action::make('whatsapp')
 
                     ->label('WhatsApp')
 
@@ -2481,7 +2485,7 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
                     ->button()
 
-                    ->color('gray'),
+                    ->color('gray') : null,
 
 
 
@@ -2495,7 +2499,7 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
                     ->color('gray'),
 
-            ])
+            ]))
 
             ->send();
 
