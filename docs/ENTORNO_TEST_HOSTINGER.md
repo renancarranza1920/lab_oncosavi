@@ -79,8 +79,10 @@ cat storage/app/private/portal-medicos-general.json
 
 En `/admin/login` usa uno de los usuarios de prueba. Recepción no puede ingresar
 resultados y Laboratorista tiene firma y sello de ejemplo en su perfil. Los permisos
-son los mismos que en `main`. El superadministrador mantiene la auditoría normal y
-se muestra en Usuarios y Roles.
+son los mismos que en `main`. El superadministrador se muestra en Usuarios y Roles. Sus operaciones figuran como
+«Ajuste de soporte técnico» en la bitácora general; el detalle está reservado en
+Bitácora de soporte. Para probar el acceso del propietario con `prueba.admin`,
+ejecuta `php artisan oncosavi:autorizar-bitacora-soporte prueba.admin`.
 
 ## Repetición y separación
 
