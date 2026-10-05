@@ -51,7 +51,7 @@ class ReporteResultadosDisenoTest extends TestCase
             preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $contenido, $imagenes, PREG_SET_ORDER);
             foreach ($imagenes as $imagen) {
                 // El origen del PDF está abajo: las imágenes quedan sobre el pie.
-                $this->assertGreaterThanOrEqual(72, (float) $imagen[4]);
+                $this->assertGreaterThanOrEqual(57, (float) $imagen[4]);
             }
             $this->assertCount(3, $imagenes);
             [$institucional, $sello, $firma] = $imagenes;
@@ -72,6 +72,31 @@ class ReporteResultadosDisenoTest extends TestCase
             $this->assertLessThanOrEqual(191.25, (float) $institucional[4] + (float) $institucional[2]);
             $this->assertLessThanOrEqual(191.25, (float) $sello[4] + (float) $sello[2]);
         }
+    }
+
+    public function test_firma_horizontal_esta_centrada_en_la_zona_marcada_sin_reducir_su_tamano(): void
+    {
+        $datos = $this->datosReporte();
+        $datos['grupos_por_usuario'][0]['datos'] = ['ELECTROLITOS' => $this->examen('Potasio', 2)];
+        // Dimensiones y márgenes del ejemplo; imágenes sintéticas sin datos personales.
+        $datos['grupos_por_usuario'][0]['firma_b64'] = self::imagenTransparente(420, 242, [21, 12, 408, 234], [0, 0, 200]);
+        $datos['grupos_por_usuario'][0]['sello_b64'] = self::imagenTransparente(420, 165, [10, 10, 410, 148], [0, 0, 200]);
+        $pdf = ReporteResultadosPdf::generar($datos);
+        $pdf->output();
+        $paginas = $this->contenidoPaginas($pdf);
+        $this->assertCount(1, $paginas);
+        preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $paginas[0], $imagenes, PREG_SET_ORDER);
+        $this->assertCount(3, $imagenes);
+        [, $sello, $firma] = $imagenes;
+        $this->assertEqualsWithDelta(127.5, (float) $firma[1], 0.001);
+        $this->assertEqualsWithDelta(127.5 * 242 / 420, (float) $firma[2], 0.001);
+        $abajoFirma = (float) $firma[4] + (float) $firma[2] * (1 - 235 / 242);
+        $arribaFirma = (float) $firma[4] + (float) $firma[2] * (1 - 12 / 242);
+        $arribaSello = (float) $sello[4] + (float) $sello[2] * (1 - 10 / 165);
+        $this->assertEqualsWithDelta(6, $abajoFirma - $arribaSello, 0.002);
+        $centroFirma = $pdf->getDomPDF()->getCanvas()->get_height() - ($arribaFirma + $abajoFirma) / 2;
+        $this->assertEqualsWithDelta((657.30 + 720.58) / 2, $centroFirma, 0.5);
+        $this->assertGreaterThanOrEqual(57, (float) $sello[4]);
     }
 
     public function test_firma_con_fondo_opaco_conserva_tamano_sin_tapar_sello_ni_resultados(): void

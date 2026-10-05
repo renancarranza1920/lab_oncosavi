@@ -82,6 +82,8 @@ institucional y personal se imprimen en la franja inferior de cada página. La f
 personal queda centrada encima de su sello, con separación para que el logo y el
 texto sean legibles. La firma conserva sus medidas anteriores: solo cambia su
 posición vertical, respetando los márgenes transparentes de la imagen.
+El conjunto de firma y sellos queda 5 mm más abajo, en la posición marcada en la
+referencia del laboratorio, conservando la separación y el espacio del pie de página.
 Las tablas extensas reservan esta franja para conservar sus
 resultados y firmas en la misma página. Los documentos ya guardados se mantienen;
 para ver estos cambios es necesario regenerarlos.
