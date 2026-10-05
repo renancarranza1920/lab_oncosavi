@@ -53,8 +53,14 @@ class ReporteResultadosDisenoTest extends TestCase
                 // El origen del PDF está abajo: todas las firmas deben quedar entre
                 // el membrete inferior y el límite reservado para los resultados.
                 $this->assertGreaterThanOrEqual(72, (float) $imagen[4]);
-                $this->assertLessThanOrEqual(168.75, (float) $imagen[4] + (float) $imagen[2]);
+                $this->assertLessThanOrEqual(191.25, (float) $imagen[4] + (float) $imagen[2]);
             }
+            $this->assertCount(3, $imagenes);
+            [$institucional, $sello, $firma] = $imagenes;
+            // Las coordenadas del PDF crecen hacia arriba. El borde inferior
+            // de la firma debe quedar sobre el borde superior del sello.
+            $this->assertGreaterThanOrEqual((float) $sello[4] + (float) $sello[2] + 8, (float) $firma[4]);
+            $this->assertGreaterThanOrEqual((float) $institucional[4] + (float) $institucional[2] + 8, (float) $firma[4]);
         }
     }
 

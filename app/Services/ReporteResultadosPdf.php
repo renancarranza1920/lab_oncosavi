@@ -46,7 +46,9 @@ class ReporteResultadosPdf
                     // Coordenadas en puntos. Esta franja está reservada por el margen inferior.
                     self::dibujar($canvas, $dompdf, $datos['sello_registro_b64'] ?? null, $derecha - 248, $abajo - 140, 97.5, 67.5);
                     self::dibujar($canvas, $dompdf, $grupo['sello_b64'] ?? null, $derecha - 127.5, $abajo - 140, 127.5, 67.5);
-                    self::dibujar($canvas, $dompdf, $grupo['firma_b64'] ?? null, $derecha - 127.5, $abajo - 160, 127.5, 78.75);
+                    // Firma sobre el sello, con 8 puntos de separación incluso
+                    // si la imagen cargada es alta. No tapa el logo ni su texto.
+                    self::dibujar($canvas, $dompdf, $grupo['firma_b64'] ?? null, $derecha - 127.5, $abajo - 188, 127.5, 40);
                 },
             ],
         ]);

@@ -8,7 +8,7 @@
 
 @page {
     /* La franja inferior contiene las firmas sin convertirse en una fila de resultados. */
-    margin: 235px 48px 225px 48px;
+    margin: 235px 48px 255px 48px;
 }
 
 /* ================= BASE ================= */
@@ -149,8 +149,8 @@ body {
 }
 
 .results-table--extensa .result-row td {
-    padding-top: 2.5px;
-    padding-bottom: 2.5px;
+    padding-top: 1.75px;
+    padding-bottom: 1.75px;
 }
 
 .result-row {
@@ -254,7 +254,7 @@ body {
 
 /* ================= FOOTER ================= */
 
-footer { position: fixed; bottom: -205px; left: 0; right: 0; height: 66px; color: #18243b; }
+footer { position: fixed; bottom: -235px; left: 0; right: 0; height: 66px; color: #18243b; }
 footer .page-number { text-align: left; font-size: 7px; color: #697481; margin-top: 8px; }
 footer .page-number:before { content: "Página " counter(page); }
 /* ================= MISC ================= */

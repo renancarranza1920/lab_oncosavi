@@ -77,7 +77,9 @@ aplicar `php artisan migrate --force` después de actualizar: la tabla
 ### Fechas y posición de sellos en resultados
 
 El encabezado conserva el diseño y muestra fecha y hora de **registro** (creación de
-la orden) e **impresión** (generación del PDF), en hora de El Salvador. El bloque
-compartido de sello institucional, sello personal y firma se desplaza hacia abajo
-con espacio real en la tabla. Los documentos ya guardados se mantienen; para ver
-estos cambios es necesario regenerarlos.
+la orden) e **impresión** (generación del PDF), en hora de El Salvador. Los sellos
+institucional y personal se imprimen en la franja inferior de cada página. La firma
+personal queda centrada encima de su sello, con separación para que el logo y el
+texto sean legibles. Las tablas extensas reservan esta franja para conservar sus
+resultados y firmas en la misma página. Los documentos ya guardados se mantienen;
+para ver estos cambios es necesario regenerarlos.
