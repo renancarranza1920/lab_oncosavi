@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Filament\Resources\ClientesResource\Pages\CreateClientes;
 use App\Filament\Resources\ClientesResource\Pages\EditClientes;
 use App\Filament\Resources\MedicoResource;
+use App\Filament\Resources\MedicoResource\Pages\CreateMedico;
 use App\Filament\Resources\MedicoResource\Pages\ListMedicos;
+use App\Filament\Resources\OrdenResource;
 use App\Filament\Resources\OrdenResource\Pages\CreateOrden;
 use App\Filament\Resources\OrdenResource\Pages\IngresarResultados;
 use App\Filament\Resources\OrdenResource\Pages\ListOrdens;
@@ -54,41 +56,63 @@ class MejorasOperacionTest extends TestCase
         return [$orden, $detalle, $muestra, $examen];
     }
 
-    public function test_las_acciones_actualizan_estado_sin_cambiar_pestana(): void
+    public function test_crear_medico_regresa_al_listado_y_permite_crear_otro(): void
     {
-        [$orden, $detalle, $muestra] = $this->orden();
-        $pagina = Livewire::test(ListOrdens::class)->set('activeTab', 'todas')
-            ->callTableAction('gestionarMuestras', $orden, ['muestras_recibidas_list' => ['d'.$detalle->id.'_m'.$muestra->id]])
-            ->assertHasNoTableActionErrors()->assertSet('activeTab', 'todas')->assertSet('mountedTableActions', []);
-        $this->assertSame('en proceso', $orden->fresh()->estado);
-        $pagina->callTableAction('pausarOrden', $orden->fresh(), ['motivo_pausa' => 'Esperando muestra adicional'])
-            ->assertSet('activeTab', 'todas')->assertSet('mountedTableActions', []);
-        $pagina->callTableAction('reanudarOrden', $orden->fresh())
-            ->assertSet('activeTab', 'todas')->assertSet('mountedTableActions', []);
-        $pagina->callTableAction('finalizarOrden', $orden->fresh())
-            ->assertSet('activeTab', 'todas')->assertSet('mountedTableActions', []);
-        $this->assertSame('finalizado', $orden->fresh()->estado);
-        $pagina->callTableAction('restaurarOrden', $orden->fresh())->assertSet('activeTab', 'todas');
-        $pagina->callTableAction('cancelarOrden', $orden->fresh())->assertSet('activeTab', 'todas');
+        $pagina = app(CreateMedico::class);
+        $metodo = new \ReflectionMethod($pagina, 'getRedirectUrl');
+
+        $this->assertSame(MedicoResource::getUrl('index'), $metodo->invoke($pagina));
+        $this->assertTrue(CreateMedico::canCreateAnother());
     }
 
-    public function test_crear_orden_regresa_al_listado_sin_kanban_ni_filtros(): void
+    public function test_la_url_filtrada_incluye_pestana_busqueda_e_id_exacto(): void
+    {
+        [$orden] = $this->orden();
+
+        parse_str(parse_url(OrdenResource::getUrlOrdenFiltrada($orden, 'pendiente'), PHP_URL_QUERY), $query);
+
+        $this->assertSame('pendiente', $query['activeTab']);
+        $this->assertSame((string) $orden->id, $query['ordenId']);
+        $this->assertSame((string) $orden->id, $query['tableSearch']);
+    }
+
+    public function test_recepcion_y_finalizacion_abren_la_pestana_filtrada_por_orden(): void
+    {
+        [$orden, $detalle, $muestra] = $this->orden();
+        Livewire::test(ListOrdens::class)->set('activeTab', 'todas')
+            ->callTableAction('gestionarMuestras', $orden, ['muestras_recibidas_list' => ['d'.$detalle->id.'_m'.$muestra->id]])
+            ->assertRedirect(OrdenResource::getUrlOrdenFiltrada($orden->fresh(), 'en proceso'));
+        $this->assertSame('en proceso', $orden->fresh()->estado);
+
+        Livewire::test(ListOrdens::class)->set('activeTab', 'en proceso')
+            ->callTableAction('finalizarOrden', $orden->fresh())
+            ->assertRedirect(OrdenResource::getUrlOrdenFiltrada($orden->fresh(), 'finalizado'));
+        $this->assertSame('finalizado', $orden->fresh()->estado);
+    }
+
+    public function test_crear_orden_abre_pendientes_filtrando_la_nueva_orden(): void
     {
         [$orden, , , $examen] = $this->orden();
         config(['laboratorio.impresion_etiquetas_habilitada' => false]);
+        $siguienteId = ((int) Orden::max('id')) + 1;
         Livewire::test(CreateOrden::class)->fillForm([
             'cliente_id' => $orden->cliente_id,
             'examenes_seleccionados' => [['examen_id' => $examen->id, 'nombre_examen' => 'Glucosa', 'precio_hidden' => 10, 'recipiente' => 'pendiente']],
-        ])->call('create')->assertHasNoFormErrors()->assertRedirect('/admin/ordenes');
+        ])->assertHasNoFormErrors()->call('create')->assertRedirect(OrdenResource::getUrl('index', [
+            'activeTab' => 'pendiente',
+            'ordenId' => $siguienteId,
+            'tableSearch' => (string) $siguienteId,
+        ]));
         $this->assertSame(2, Orden::count());
     }
 
-    public function test_completar_desde_resultados_regresa_al_listado_sin_filtros(): void
+    public function test_completar_desde_resultados_abre_finalizadas_filtrando_la_orden(): void
     {
         [$orden] = $this->orden();
         $orden->update(['estado' => 'en proceso']);
         Livewire::test(IngresarResultados::class, ['record' => $orden])
-            ->callAction('completar')->assertRedirect('/admin/ordenes');
+            ->callAction('completar')
+            ->assertRedirect(OrdenResource::getUrlOrdenFiltrada($orden->fresh(), 'finalizado'));
         $this->assertSame('finalizado', $orden->fresh()->estado);
     }
 

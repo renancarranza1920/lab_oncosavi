@@ -31,6 +31,23 @@
     .fi-simple-main a:hover { text-decoration: underline; }
     .fi-body { accent-color: rgb(var(--primary-600)); }
 
+    /* Prefijo y número se presentan como un único control telefónico. */
+    .telefono-compuesto .fi-fo-repeater-item-content > .fi-fo-component-ctn {
+        grid-template-columns: 96px minmax(0, 1fr) !important;
+        column-gap: 0 !important;
+    }
+    .telefono-compuesto .fi-fo-repeater-item-content > .fi-fo-component-ctn > :first-child { grid-column: 1 / -1 !important; }
+    .telefono-compuesto .fi-fo-repeater-item-content > .fi-fo-component-ctn > :nth-child(2) { grid-column: 1 !important; }
+    .telefono-compuesto .fi-fo-repeater-item-content > .fi-fo-component-ctn > :nth-child(3) { grid-column: 2 !important; }
+    .telefono-prefijo .fi-input-wrp { border-top-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }
+    .telefono-numero .fi-input-wrp { margin-left: -1px; border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important; }
+    .telefono-prefijo .fi-input-wrp:focus-within, .telefono-numero .fi-input-wrp:focus-within { position: relative; z-index: 2; }
+    .telefono-requerido { color: rgb(var(--danger-600)); }
+    .telefono-badge { display: inline-flex; align-items: center; border: 1px solid; border-radius: .3rem; padding: .12rem .45rem; font-size: .68rem; font-weight: 500; line-height: 1.25; }
+    .telefono-badge-sv { border-color: #a7f3d0; color: #047857; background: #ecfdf5; }
+    .telefono-badge-us { border-color: #bfdbfe; color: #1d4ed8; background: #eff6ff; }
+    .telefono-badge-fijo { border-color: #fed7aa; color: #c2410c; background: #fff7ed; }
+
     /* Filament 3 usa el tono 400 en hover oscuro; con blanco pierde contraste.
        Sólo ajustamos botones rellenos, sin alterar badges, links ni outlined. */
     .dark .fi-btn.fi-color-custom.bg-custom-600:not(.fi-btn-outlined) { background-color: rgb(var(--c-600)); }

@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\OrdenResource\Pages;
 
-use App\Filament\Pages\DetalleOrdenKanban;
 use App\Filament\Resources\OrdenResource;
 use App\Models\cliente;
 use App\Models\Examen;
@@ -321,14 +320,9 @@ protected function handleRecordCreation(array $data): \Illuminate\Database\Eloqu
         }
     }
 
-// Mientras no haya etiquetadora, regresar al listado sin eliminar el flujo del Kanban.
     protected function getRedirectUrl(): string
     {
-        if (! config('laboratorio.impresion_etiquetas_habilitada')) {
-            return static::getResource()::getUrl('index');
-        }
-
-        return DetalleOrdenKanban::getUrl(['ordenId' => $this->record->id]);
+        return static::getResource()::getUrlOrdenFiltrada($this->record, 'pendiente');
     }
 
     // 2. Creamos la notificación personalizada con el botón de impresión
