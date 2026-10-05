@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateMedico extends CreateRecord
 {
     protected static string $resource = MedicoResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('index');
+    }
 }

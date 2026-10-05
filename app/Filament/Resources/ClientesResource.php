@@ -62,6 +62,7 @@ class ClientesResource extends Resource
                                             ->mask('99999999-9')
                                             ->placeholder('00000000-0')
                                             ->rule('regex:/^\d{8}-\d$/')
+                                            ->rule(new \App\Rules\DuiValido())
                                             ->unique(table: Cliente::class, column: 'dui', ignoreRecord: true)
                                             ->maxLength(10)
                                             ->validationMessages([

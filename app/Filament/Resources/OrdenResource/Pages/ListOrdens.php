@@ -6,10 +6,37 @@ use App\Filament\Resources\OrdenResource;
 use Filament\Actions;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Database\Eloquent\Builder;
+use Livewire\Attributes\Url;
 
 class ListOrdens extends ListRecords
 {
     protected static string $resource = OrdenResource::class;
+
+    #[Url]
+    public ?int $ordenId = null;
+
+    protected function getTableQuery(): Builder
+    {
+        return parent::getTableQuery()
+            ->when($this->ordenId, fn (Builder $query, int $ordenId) => $query->whereKey($ordenId));
+    }
+
+    public function updatedTableSearch(): void
+    {
+        if (blank($this->tableSearch)) {
+            $this->ordenId = null;
+        }
+
+        $this->resetPage();
+    }
+
+    public function updatedActiveTab(): void
+    {
+        $this->ordenId = null;
+        $this->tableSearch = '';
+        $this->resetPage();
+    }
 
     protected function getHeaderActions(): array
     {

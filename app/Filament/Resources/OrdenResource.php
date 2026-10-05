@@ -128,6 +128,15 @@ use Illuminate\Support\Facades\Storage;
 class OrdenResource extends Resource
 
 {
+    public static function getUrlOrdenFiltrada(Orden $orden, ?string $estado = null): string
+    {
+        return static::getUrl('index', [
+            'activeTab' => $estado ?? $orden->estado,
+            'ordenId' => $orden->getKey(),
+            'tableSearch' => (string) $orden->getKey(),
+        ]);
+    }
+
 
     protected static ?string $model = Orden::class;
 
@@ -341,6 +350,8 @@ class OrdenResource extends Resource
                         ->placeholder('00000000-0')
 
                         ->rule('regex:/^\d{8}-\d$/')
+
+                        ->rule(new \App\Rules\DuiValido())
 
                         ->unique(table: Cliente::class, column: 'dui')
 
@@ -1341,6 +1352,8 @@ public static function getOrdenStep(): array
 
                         $record->save();
 
+                        return redirect(static::getUrlOrdenFiltrada($record));
+
                     }),
 
 
@@ -1607,6 +1620,8 @@ public static function getOrdenStep(): array
                         $record->save();
 
                         Notification::make()->title('Orden Finalizada con Éxito')->success()->send();
+
+                        return redirect(static::getUrlOrdenFiltrada($record, 'finalizado'));
 
                     }),
 

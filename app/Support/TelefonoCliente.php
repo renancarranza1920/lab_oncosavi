@@ -4,6 +4,7 @@ namespace App\Support;
 
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -88,25 +89,94 @@ class TelefonoCliente
     {
         return Repeater::make('telefonos')->label('Teléfonos')->relationship()
             ->schema([
-                self::campo('numero', 'Número', true),
-                Hidden::make('codigo_pais')->dehydrateStateUsing(fn ($state, Get $get) => self::codigo($get, 'numero_codigo_pais')),
-                Select::make('tipo')->label('Tipo')->options(['movil' => 'Móvil', 'fijo' => 'Fijo'])
-                    ->default('movil')->required()->selectablePlaceholder(false),
-            ])->columns(['default' => 1, 'md' => 2])->columnSpanFull()
-            ->defaultItems(0)->orderColumn('orden')->reorderableWithButtons()
+                Placeholder::make('encabezado_telefono')
+                    ->label(new \Illuminate\Support\HtmlString('Número <span class="telefono-requerido">*</span>'))
+                    ->content('')
+                    ->hint(fn (Get $get): \Illuminate\Support\HtmlString => new \Illuminate\Support\HtmlString(match ($get('formato')) {
+                        'us' => '<span class="telefono-badge telefono-badge-us">Internacional</span>',
+                        'fijo' => '<span class="telefono-badge telefono-badge-fijo">Residencial</span>',
+                        default => '<span class="telefono-badge telefono-badge-sv">Móvil</span>',
+                    }))
+                    ->columnSpanFull(),
+                Select::make('formato')
+                    ->hiddenLabel()
+                    ->options(['sv' => '+503', 'us' => '+1', 'fijo' => 'Fijo'])
+                    ->default('sv')
+                    ->selectablePlaceholder(false)
+                    ->native(false)
+                    ->live()
+                    ->required()
+                    ->dehydrated(false)
+                    ->afterStateHydrated(function (Select $component): void {
+                        $telefono = $component->getRecord();
+                        $component->state(match (true) {
+                            $telefono?->codigo_pais === '1' => 'us',
+                            $telefono?->tipo === 'fijo' => 'fijo',
+                            default => 'sv',
+                        });
+                    })
+                    ->extraFieldWrapperAttributes(['class' => 'telefono-prefijo'])
+                    ->columnSpan(2),
+                TextInput::make('numero')
+                    ->hiddenLabel()
+                    ->tel()
+                    ->placeholder(fn (Get $get): string => $get('formato') === 'us' ? '(999) 999-9999' : '9999-9999')
+                    ->mask(fn (Get $get): string => $get('formato') === 'us' ? '(999) 999-9999' : '9999-9999')
+                    ->required()
+                    ->afterStateHydrated(function (TextInput $component, $state): void {
+                        $telefono = $component->getRecord();
+                        $digitos = preg_replace('/\D/', '', (string) $state);
+                        $codigo = (string) ($telefono?->codigo_pais ?? '');
+                        $component->state($codigo !== '' && str_starts_with($digitos, $codigo) ? substr($digitos, strlen($codigo)) : $digitos);
+                    })
+                    ->rules(fn (Get $get): array => [
+                        function (string $attribute, $value, \Closure $fail) use ($get): void {
+                            $esperados = $get('formato') === 'us' ? 10 : 8;
+                            if (strlen(preg_replace('/\D/', '', (string) $value)) !== $esperados) {
+                                $fail('El número no tiene la longitud correspondiente al tipo seleccionado.');
+                            }
+                        },
+                    ])
+                    ->dehydrateStateUsing(fn ($state, Get $get): string => match ($get('formato')) {
+                        'us' => '1' . preg_replace('/\D/', '', (string) $state),
+                        default => '503' . preg_replace('/\D/', '', (string) $state),
+                    })
+                    ->extraFieldWrapperAttributes(['class' => 'telefono-numero'])
+                    ->columnSpan(10),
+                Hidden::make('codigo_pais')->dehydrateStateUsing(fn ($state, Get $get): string => $get('formato') === 'us' ? '1' : '503'),
+                Hidden::make('tipo')->dehydrateStateUsing(fn ($state, Get $get): string => $get('formato') === 'fijo' ? 'fijo' : 'movil'),
+            ])->columns(12)->columnSpanFull()
+            ->extraAttributes(['class' => 'telefono-compuesto'])
+            ->defaultItems(1)->orderColumn('orden')->reorderable(false)
             ->addActionLabel('Agregar otro teléfono')
-            ->helperText('Puedes agregar móviles y teléfonos fijos de otros países. Al compartir por WhatsApp se te preguntará qué número usar.')
             ->mutateRelationshipDataBeforeCreateUsing(fn (array $data) => filled($data['numero'] ?? null) ? $data : null)
             ->mutateRelationshipDataBeforeSaveUsing(fn (array $data) => filled($data['numero'] ?? null) ? $data : null)
             ->afterStateHydrated(function (Repeater $component): void {
                 $cliente = $component->getRecord();
-                if ($cliente?->telefono && empty($component->getState())) {
+                if (! empty($component->getState())) {
+                    return;
+                }
+
+                if ($cliente?->telefono) {
                     [$codigo, $numero] = self::separar($cliente->telefono);
                     $component->state([\Illuminate\Support\Str::uuid()->toString() => [
-                        'numero' => $numero, 'numero_codigo_pais' => isset(config('telefonos')[$codigo]) ? $codigo : 'otro', 'numero_codigo_otro' => $codigo,
-                        'codigo_pais' => $codigo, 'tipo' => 'movil', 'orden' => 0,
+                        'formato' => $codigo === '1' ? 'us' : 'sv',
+                        'numero' => $numero,
+                        'codigo_pais' => $codigo,
+                        'tipo' => 'movil',
+                        'orden' => 0,
                     ]]);
+
+                    return;
                 }
+
+                $component->state([\Illuminate\Support\Str::uuid()->toString() => [
+                    'formato' => 'sv',
+                    'numero' => null,
+                    'codigo_pais' => '503',
+                    'tipo' => 'movil',
+                    'orden' => 0,
+                ]]);
             });
     }
 
