@@ -50,18 +50,51 @@ class ReporteResultadosDisenoTest extends TestCase
             $this->assertSame(3, preg_match_all('/\/I\d+ Do/', $contenido));
             preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $contenido, $imagenes, PREG_SET_ORDER);
             foreach ($imagenes as $imagen) {
-                // El origen del PDF está abajo: todas las firmas deben quedar entre
-                // el membrete inferior y el límite reservado para los resultados.
+                // El origen del PDF está abajo: las imágenes quedan sobre el pie.
                 $this->assertGreaterThanOrEqual(72, (float) $imagen[4]);
-                $this->assertLessThanOrEqual(191.25, (float) $imagen[4] + (float) $imagen[2]);
             }
             $this->assertCount(3, $imagenes);
             [$institucional, $sello, $firma] = $imagenes;
-            // Las coordenadas del PDF crecen hacia arriba. El borde inferior
-            // de la firma debe quedar sobre el borde superior del sello.
-            $this->assertGreaterThanOrEqual((float) $sello[4] + (float) $sello[2] + 8, (float) $firma[4]);
-            $this->assertGreaterThanOrEqual((float) $institucional[4] + (float) $institucional[2] + 8, (float) $firma[4]);
+            // Conservar el tamaño anterior incluso con márgenes transparentes.
+            $this->assertEqualsWithDelta(97.5, (float) $institucional[1], 0.001);
+            $this->assertEqualsWithDelta(127.5, (float) $sello[1], 0.001);
+            $this->assertEqualsWithDelta(127.5 * 190 / 420, (float) $sello[2], 0.001);
+            $this->assertEqualsWithDelta(78.75, (float) $firma[1], 0.001);
+            $this->assertEqualsWithDelta(78.75, (float) $firma[2], 0.001);
+
+            // Comprobar la tinta visible: los márgenes transparentes no deben
+            // achicar la firma ni obligar a separarla excesivamente del sello.
+            $firmaVisibleAbajo = (float) $firma[4] + (float) $firma[2] * (1 - 235 / 260);
+            $firmaVisibleArriba = (float) $firma[4] + (float) $firma[2] * (1 - 69 / 260);
+            $selloVisibleArriba = (float) $sello[4] + (float) $sello[2] * (1 - 28 / 190);
+            $this->assertEqualsWithDelta(6, $firmaVisibleAbajo - $selloVisibleArriba, 0.001);
+            $this->assertLessThanOrEqual(191.25 - 6, $firmaVisibleArriba);
+            $this->assertLessThanOrEqual(191.25, (float) $institucional[4] + (float) $institucional[2]);
+            $this->assertLessThanOrEqual(191.25, (float) $sello[4] + (float) $sello[2]);
         }
+    }
+
+    public function test_firma_con_fondo_opaco_conserva_tamano_sin_tapar_sello_ni_resultados(): void
+    {
+        $datos = $this->datosReporte();
+        $datos['grupos_por_usuario'][0]['datos'] = ['ELECTROLITOS' => $this->examen('Potasio', 2)];
+        $datos['grupos_por_usuario'][0]['firma_b64'] = self::imagen(100, 0, 150, 260, 260);
+        $datos['grupos_por_usuario'][0]['sello_b64'] = self::imagen(0, 140, 0, 420, 190);
+        $margen = null;
+        view()->composer('pdf.reporte_resultados', function ($vista) use (&$margen) {
+            $margen = $vista->getData()['margen_inferior_px'];
+        });
+        $pdf = ReporteResultadosPdf::generar($datos);
+        $pdf->output();
+        $paginas = $this->contenidoPaginas($pdf);
+        $this->assertCount(1, $paginas);
+        preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $paginas[0], $imagenes, PREG_SET_ORDER);
+        $this->assertCount(3, $imagenes);
+        [, $sello, $firma] = $imagenes;
+        $this->assertEqualsWithDelta(78.75, (float) $firma[1], 0.001);
+        $this->assertEqualsWithDelta(78.75, (float) $firma[2], 0.001);
+        $this->assertEqualsWithDelta(6, (float) $firma[4] - ((float) $sello[4] + (float) $sello[2]), 0.002);
+        $this->assertLessThanOrEqual($margen * 0.75 - 6, (float) $firma[4] + (float) $firma[2]);
     }
 
     public function test_tabla_extensa_repite_solo_las_firmas_de_su_autor_en_cada_pagina(): void
@@ -136,10 +169,26 @@ class ReporteResultadosDisenoTest extends TestCase
         return [
             'orden' => $orden, 'logo_b64' => null, 'sello_registro_b64' => self::imagen(0, 0, 200),
             'grupos_por_usuario' => [[
-                'laboratorista' => 'Laboratorista de ejemplo', 'firma_b64' => self::imagen(100, 0, 150),
-                'sello_b64' => self::imagen(0, 140, 0), 'datos' => $areas,
+                'laboratorista' => 'Laboratorista de ejemplo',
+                'firma_b64' => self::imagenTransparente(260, 260, [43, 69, 216, 234], [100, 0, 150]),
+                'sello_b64' => self::imagenTransparente(420, 190, [36, 28, 380, 159], [0, 140, 0]), 'datos' => $areas,
             ]],
         ];
+    }
+
+    private static function imagenTransparente(int $ancho, int $alto, array $limites, array $rgb): string
+    {
+        $imagen = imagecreatetruecolor($ancho, $alto);
+        imagealphablending($imagen, false);
+        imagesavealpha($imagen, true);
+        imagefill($imagen, 0, 0, imagecolorallocatealpha($imagen, 255, 255, 255, 127));
+        imagefilledrectangle($imagen, ...[...$limites, imagecolorallocate($imagen, ...$rgb)]);
+        ob_start();
+        imagepng($imagen);
+        $contenido = ob_get_clean();
+        imagedestroy($imagen);
+
+        return 'data:image/png;base64,'.base64_encode($contenido);
     }
 
     public static function imagen(int $rojo, int $verde, int $azul, int $ancho = 160, int $alto = 85): string

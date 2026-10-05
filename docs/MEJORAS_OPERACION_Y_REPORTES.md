@@ -80,6 +80,8 @@ El encabezado conserva el diseño y muestra fecha y hora de **registro** (creaci
 la orden) e **impresión** (generación del PDF), en hora de El Salvador. Los sellos
 institucional y personal se imprimen en la franja inferior de cada página. La firma
 personal queda centrada encima de su sello, con separación para que el logo y el
-texto sean legibles. Las tablas extensas reservan esta franja para conservar sus
+texto sean legibles. La firma conserva sus medidas anteriores: solo cambia su
+posición vertical, respetando los márgenes transparentes de la imagen.
+Las tablas extensas reservan esta franja para conservar sus
 resultados y firmas en la misma página. Los documentos ya guardados se mantienen;
 para ver estos cambios es necesario regenerarlos.
