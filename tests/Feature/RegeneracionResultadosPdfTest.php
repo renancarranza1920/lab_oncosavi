@@ -12,6 +12,7 @@ use App\Models\Prueba;
 use App\Models\Resultado;
 use App\Models\TipoExamen;
 use App\Models\User;
+use App\Services\RepararAutoriaResultados;
 use App\Support\ImagenPdf;
 use Database\Seeders\RolesPermisosSeeder;
 use Filament\Facades\Filament;
@@ -19,16 +20,25 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class RegeneracionResultadosPdfTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_regenerar_parcial_y_final_usa_las_imagenes_actuales_de_los_autores_sin_reasignar_resultados(): void
+    public static function casosRegeneracion(): array
+    {
+        return ['autores conservados' => [false], 'autores recuperados desde bitácora' => [true]];
+    }
+
+    #[DataProvider('casosRegeneracion')]
+    public function test_regenerar_parcial_y_final_usa_las_imagenes_actuales_de_los_autores_sin_reasignar_resultados(bool $repararAutoria): void
     {
         Storage::fake('public');
         Storage::fake('local');
+        config(['laboratorio.logo' => 'images/logo-ausente-en-prueba.png']);
         $this->seed(RolesPermisosSeeder::class);
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         Filament::bootCurrentPanel();
@@ -47,6 +57,10 @@ class RegeneracionResultadosPdfTest extends TestCase
         }
         $antes = Resultado::orderBy('id')->get()->toArray();
         $capturados = [];
+        $pdfGenerado = null;
+        $this->app->resolving('dompdf.wrapper', function ($pdf) use (&$pdfGenerado) {
+            $pdfGenerado = $pdf;
+        });
         View::composer('pdf.reporte_resultados', function ($vista) use (&$capturados) {
             $capturados = $vista->getData();
         });
@@ -54,6 +68,40 @@ class RegeneracionResultadosPdfTest extends TestCase
         $pagina->call('generarPdfParcial')->assertFileDownloaded('PACIENTE-EJEMPLO - '.$orden->id.' P.PDF');
         $this->assertCount(2, $capturados['grupos_por_usuario']);
         $this->assertNull($capturados['grupos_por_usuario'][0]['sello_b64']);
+
+        if ($repararAutoria) {
+            // Reproducir las autorías reemplazadas por la versión anterior.
+            $soporte = User::factory()->create(['name' => 'Soporte técnico']);
+            $soporte->assignRole('admin');
+            $soporte->assignRole(Role::findOrCreate('super_admin', 'web'));
+            $this->actingAs($soporte);
+            $this->travel(2)->seconds();
+            foreach (Resultado::all() as $resultado) {
+                $resultado->update(['user_id' => $soporte->id]);
+            }
+        }
+
+        // También generar el final antes de subir imágenes, desde el modal real
+        // y con sus opciones predeterminadas, sin forzar incluir_firmas=true.
+        $orden->update(['estado' => 'finalizado']);
+        $tabla = Livewire::test(ListOrdens::class)->set('activeTab', 'finalizado');
+        $tabla->callTableAction('generarReporte', $orden)->assertFileDownloaded($orden->reporteGuardadoFileName());
+        $this->assertNull($capturados['grupos_por_usuario'][0]['sello_b64']);
+
+        if ($repararAutoria) {
+            $this->assertSame('Soporte técnico', $capturados['grupos_por_usuario'][0]['laboratorista']);
+            $originales = array_column($antes, 'user_id', 'id');
+            $esperados = Resultado::orderBy('id')->get()->toArray();
+            foreach ($esperados as &$esperado) {
+                $esperado['user_id'] = $originales[$esperado['id']];
+            }
+            unset($esperado);
+            $reparacion = app(RepararAutoriaResultados::class)->ejecutar($orden->id, $soporte->id);
+            $this->assertSame(2, $reparacion['cantidad']);
+            $this->assertSame($esperados, Resultado::orderBy('id')->get()->toArray());
+            $antes = $esperados;
+            $this->actingAs($admin);
+        }
 
         // Los sellos se suben después de guardar y de generar el primer parcial.
         foreach ($autores as $i => $autor) {
@@ -72,15 +120,23 @@ class RegeneracionResultadosPdfTest extends TestCase
             $this->assertNotNull($grupo['firma_b64']);
         }
         $this->assertSame($antes, Resultado::orderBy('id')->get()->toArray());
-        $orden->update(['estado' => 'finalizado']);
-        Livewire::test(ListOrdens::class)->set('activeTab', 'finalizado')
-            ->callTableAction('generarReporte', $orden, ['incluir_firmas' => true]);
+        // Usar la misma pantalla abierta antes de subir los sellos.
+        $tabla->callTableAction('generarReporte', $orden)->assertFileDownloaded($orden->reporteGuardadoFileName());
         foreach ($autores as $i => $autor) {
             $this->assertSame($autor->name, $capturados['grupos_por_usuario'][$i]['laboratorista']);
             $this->assertNotNull($capturados['grupos_por_usuario'][$i]['sello_b64']);
         }
         $this->assertSame($antes, Resultado::orderBy('id')->get()->toArray());
         Storage::disk('public')->assertExists($orden->reporteGuardadoPath());
+
+        // Comprobar imágenes dibujadas en el documento, además de datos del Blade.
+        $objetos = $pdfGenerado->getDomPDF()->getCanvas()->get_cpdf()->objects;
+        $paginas = array_filter($objetos, fn ($objeto) => $objeto['t'] === 'page');
+        $this->assertCount(2, $paginas);
+        foreach ($paginas as $paginaPdf) {
+            $contenido = implode('', array_map(fn ($id) => $objetos[$id]['c'], $paginaPdf['info']['contents']));
+            $this->assertSame(2, preg_match_all('/\/I\d+ Do/', $contenido));
+        }
     }
 
     public function test_reemplazar_imagen_con_mismo_nombre_y_fecha_no_reutiliza_bytes_anteriores(): void
