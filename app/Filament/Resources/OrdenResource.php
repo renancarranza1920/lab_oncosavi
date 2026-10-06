@@ -2276,7 +2276,7 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
     })
 
-    ->action(function (Orden $record, array $data) {
+    ->action(function (Orden $record, array $data, \Livewire\Component $livewire) {
 
         $telefonoCliente = \App\Support\DestinoWhatsApp::resolver($record->cliente, $data);
 
@@ -2343,49 +2343,13 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
         $linkWhatsapp = $telefonoCliente ? 'https://wa.me/' . $telefonoCliente . '?text=' . rawurlencode($mensajeBase) : null;
 
-        $linkCorreo = 'mailto:' . $correoCliente . '?subject=' . rawurlencode($asuntoCorreo) . '&body=' . rawurlencode($mensajeBase);
+        $linkCorreo = $telefonoCliente === null && filled($correoCliente)
+            ? 'https://mail.google.com/mail/?view=cm&fs=1&to=' . rawurlencode($correoCliente) . '&su=' . rawurlencode($asuntoCorreo) . '&body=' . rawurlencode($mensajeBase)
+            : null;
 
 
 
-        // --- 5. NOTIFICACIÓN AL USUARIO DEL SISTEMA ---
-
-        Notification::make()
-
-            ->title('PDF Descargado')
-
-            ->body("El archivo se ha guardado en tu equipo.\nSelecciona cómo enviar el mensaje y **recuerda adjuntar el PDF manualmente**.")
-
-            ->success()
-
-            ->persistent() // Obliga a cerrar manual
-
-            ->actions(array_filter([
-
-                $linkWhatsapp ? \Filament\Notifications\Actions\Action::make('whatsapp')
-
-                    ->label('WhatsApp')
-
-                    ->url($linkWhatsapp, shouldOpenInNewTab: true)
-
-                    ->button()
-
-                    ->color('gray') : null,
-
-
-
-                \Filament\Notifications\Actions\Action::make('email')
-
-                    ->label('Correo')
-
-                    ->url($linkCorreo)
-
-                    ->button()
-
-                    ->color('gray'),
-
-            ]))
-
-            ->send();
+        $livewire->dispatch('abrir-destino-envio', url: $linkWhatsapp ?? $linkCorreo);
 
 
 

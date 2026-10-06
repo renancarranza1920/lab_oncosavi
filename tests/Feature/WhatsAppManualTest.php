@@ -37,15 +37,9 @@ class WhatsAppManualTest extends TestCase
             ->callMountedTableAction()->assertHasTableActionErrors(['destino_whatsapp' => 'required'])
             ->setTableActionData(['destino_whatsapp' => '50377778888'])
             ->callMountedTableAction()->assertHasNoTableActionErrors()
-            ->assertFileDownloaded($orden->reporteGuardadoFileName(), '%PDF-1.7 prueba manual');
+            ->assertFileDownloaded($orden->reporteGuardadoFileName(), '%PDF-1.7 prueba manual')
+            ->assertDispatched('abrir-destino-envio', fn ($name, $params) => str_starts_with($params['url'], 'https://wa.me/50377778888?text='));
         Http::assertNothingSent();
-        $notificaciones = new \Filament\Notifications\Livewire\Notifications;
-        $notificaciones->mount();
-        $aviso = $notificaciones->notifications->first(fn ($n) => $n->getTitle() === 'PDF Descargado');
-        $this->assertNotNull($aviso);
-        $whatsapp = collect($aviso->getActions())->first(fn ($a) => $a->getName() === 'whatsapp');
-        $this->assertStringStartsWith('https://wa.me/50377778888?text=', $whatsapp->getUrl());
-        $this->assertStringContainsString(rawurlencode('Estimado(a) *Paciente Prueba*'), $whatsapp->getUrl());
     }
 
     public function test_pagina_de_envios_automaticos_ya_no_esta_disponible(): void
@@ -71,23 +65,13 @@ class WhatsAppManualTest extends TestCase
         return $orden;
     }
 
-    private function avisoWhatsApp(string $titulo = 'PDF Descargado')
-    {
-        $notificaciones = new \Filament\Notifications\Livewire\Notifications;
-        $notificaciones->mount();
-        $aviso = $notificaciones->notifications->first(fn ($n) => $n->getTitle() === $titulo);
-        $this->assertNotNull($aviso);
-
-        return collect($aviso->getActions())->first(fn ($a) => $a->getName() === 'whatsapp');
-    }
-
     public function test_usa_el_segundo_contacto_elegido_y_no_el_primero(): void
     {
         $orden = $this->prepararEnvio();
         Livewire::test(ListOrdens::class)->set('activeTab', 'finalizado')
             ->callTableAction('enviarPorCorreoOWhatsApp', $orden, ['destino_whatsapp' => '12025550123'])
-            ->assertHasNoTableActionErrors()->assertFileDownloaded($orden->reporteGuardadoFileName());
-        $this->assertStringStartsWith('https://wa.me/12025550123?text=', $this->avisoWhatsApp()->getUrl());
+            ->assertHasNoTableActionErrors()->assertFileDownloaded($orden->reporteGuardadoFileName())
+            ->assertDispatched('abrir-destino-envio', fn ($name, $params) => str_starts_with($params['url'], 'https://wa.me/12025550123?text='));
         $this->assertSame('50377778888', $orden->cliente->fresh()->telefono);
     }
 
@@ -96,10 +80,22 @@ class WhatsAppManualTest extends TestCase
         $orden = $this->prepararEnvio();
         Livewire::test(ListOrdens::class)->set('activeTab', 'finalizado')
             ->callTableAction('enviarPorCorreoOWhatsApp', $orden, [
-                'destino_whatsapp' => 'otro', 'telefono_destino_codigo_pais' => '1', 'telefono_destino' => '202-555-0199',
-            ])->assertHasNoTableActionErrors()->assertFileDownloaded($orden->reporteGuardadoFileName());
-        $this->assertStringStartsWith('https://wa.me/12025550199?text=', $this->avisoWhatsApp()->getUrl());
+                'destino_whatsapp' => 'otro', 'telefono_destino_formato' => 'us', 'telefono_destino' => '(202) 555-0199',
+            ])->assertHasNoTableActionErrors()->assertFileDownloaded($orden->reporteGuardadoFileName())
+            ->assertDispatched('abrir-destino-envio', fn ($name, $params) => str_starts_with($params['url'], 'https://wa.me/12025550199?text='));
         $this->assertSame(['50377778888', '12025550123'], $orden->cliente->fresh()->telefonos_contacto);
+    }
+
+    public function test_permite_otro_pais_con_la_mascara_internacional(): void
+    {
+        $orden = $this->prepararEnvio();
+        Livewire::test(ListOrdens::class)->set('activeTab', 'finalizado')
+            ->callTableAction('enviarPorCorreoOWhatsApp', $orden, [
+                'destino_whatsapp' => 'otro',
+                'telefono_destino_formato' => 'internacional',
+                'telefono_destino' => '(502)1234-5678',
+            ])->assertHasNoTableActionErrors()->assertFileDownloaded($orden->reporteGuardadoFileName())
+            ->assertDispatched('abrir-destino-envio', fn ($name, $params) => str_starts_with($params['url'], 'https://wa.me/50212345678?text='));
     }
 
     public function test_solo_correo_no_ofrece_un_whatsapp_con_destino_automatico(): void
@@ -107,8 +103,8 @@ class WhatsAppManualTest extends TestCase
         $orden = $this->prepararEnvio();
         Livewire::test(ListOrdens::class)->set('activeTab', 'finalizado')
             ->callTableAction('enviarPorCorreoOWhatsApp', $orden, ['destino_whatsapp' => 'correo'])
-            ->assertHasNoTableActionErrors()->assertFileDownloaded($orden->reporteGuardadoFileName());
-        $this->assertNull($this->avisoWhatsApp());
+            ->assertHasNoTableActionErrors()->assertFileDownloaded($orden->reporteGuardadoFileName())
+            ->assertDispatched('abrir-destino-envio', fn ($name, $params) => str_starts_with($params['url'], 'https://mail.google.com/mail/?view=cm&fs=1&to=paciente%40example.test&'));
     }
 
     public function test_pdf_parcial_tambien_pregunta_y_usa_el_destinatario_elegido(): void
@@ -122,7 +118,7 @@ class WhatsAppManualTest extends TestCase
             ->assertActionDataSet(['destino_whatsapp' => null])
             ->callMountedAction()->assertHasActionErrors(['destino_whatsapp' => 'required'])
             ->setActionData(['destino_whatsapp' => '12025550123'])
-            ->callMountedAction()->assertHasNoActionErrors()->assertFileDownloaded($nombre);
-        $this->assertStringStartsWith('https://wa.me/12025550123?text=', $this->avisoWhatsApp('PDF Parcial Descargado')->getUrl());
+            ->callMountedAction()->assertHasNoActionErrors()->assertFileDownloaded($nombre)
+            ->assertDispatched('abrir-destino-envio', fn ($name, $params) => str_starts_with($params['url'], 'https://wa.me/12025550123?text='));
     }
 }

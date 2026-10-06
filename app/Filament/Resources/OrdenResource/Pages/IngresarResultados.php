@@ -1135,31 +1135,13 @@ public function enviarPdfParcial(array $data = [])
         ? 'https://wa.me/' . $telefonoCliente . '?text=' . rawurlencode($mensajeBase)
         : null;
 
-    $linkCorreo = $correoCliente
-        ? 'mailto:' . $correoCliente .
-            '?subject=' . rawurlencode($asuntoCorreo) .
+    $linkCorreo = $telefonoCliente === null && $correoCliente
+        ? 'https://mail.google.com/mail/?view=cm&fs=1&to=' . rawurlencode($correoCliente) .
+            '&su=' . rawurlencode($asuntoCorreo) .
             '&body=' . rawurlencode($mensajeBase)
         : null;
 
-    Notification::make()
-        ->title('PDF Parcial Descargado')
-        ->body("El archivo se ha guardado en tu equipo.\nRecuerda adjuntar el PDF manualmente.")
-        ->success()
-        ->persistent()
-        ->actions(array_filter([
-            $linkWhatsapp ? \Filament\Notifications\Actions\Action::make('whatsapp')
-                ->label('WhatsApp')
-                ->url($linkWhatsapp, shouldOpenInNewTab: true)
-                ->button()
-                ->color('gray') : null,
-
-            $linkCorreo ? \Filament\Notifications\Actions\Action::make('email')
-                ->label('Correo')
-                ->url($linkCorreo)
-                ->button()
-                ->color('gray') : null,
-        ]))
-        ->send();
+    $this->dispatch('abrir-destino-envio', url: $linkWhatsapp ?? $linkCorreo);
 
     return response()->download($fullPath);
 }

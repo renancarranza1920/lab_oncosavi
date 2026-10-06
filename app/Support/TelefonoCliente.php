@@ -13,6 +13,42 @@ use Filament\Forms\Set;
 
 class TelefonoCliente
 {
+    private const FORMATOS = [
+        'sv' => '+503',
+        'us' => '+1',
+        'internacional' => '+',
+        'fijo' => 'Fijo',
+    ];
+
+    private static function mascara(?string $formato): string
+    {
+        return match ($formato) {
+            'us' => '(999) 999-9999',
+            'internacional' => '(999)9999-9999',
+            default => '9999-9999',
+        };
+    }
+
+    private static function longitud(?string $formato): int
+    {
+        return match ($formato) {
+            'us' => 10,
+            'internacional' => 11,
+            default => 8,
+        };
+    }
+
+    private static function normalizarFormato(?string $numero, ?string $formato): string
+    {
+        $digitos = preg_replace('/\D/', '', (string) $numero);
+
+        return match ($formato) {
+            'us' => '1'.$digitos,
+            'internacional' => $digitos,
+            default => '503'.$digitos,
+        };
+    }
+
     public static function campo(string $nombre = 'telefono', string $etiqueta = 'Teléfono', bool $obligatorio = false): Group
     {
         $codigo = $nombre . '_codigo_pais';
@@ -94,13 +130,14 @@ class TelefonoCliente
                     ->content('')
                     ->hint(fn (Get $get): \Illuminate\Support\HtmlString => new \Illuminate\Support\HtmlString(match ($get('formato')) {
                         'us' => '<span class="telefono-badge telefono-badge-us">Internacional</span>',
+                        'internacional' => '<span class="telefono-badge telefono-badge-internacional">Internacional</span>',
                         'fijo' => '<span class="telefono-badge telefono-badge-fijo">Residencial</span>',
                         default => '<span class="telefono-badge telefono-badge-sv">Móvil</span>',
                     }))
                     ->columnSpanFull(),
                 Select::make('formato')
                     ->hiddenLabel()
-                    ->options(['sv' => '+503', 'us' => '+1', 'fijo' => 'Fijo'])
+                    ->options(self::FORMATOS)
                     ->default('sv')
                     ->selectablePlaceholder(false)
                     ->native(false)
@@ -112,6 +149,7 @@ class TelefonoCliente
                         $component->state(match (true) {
                             $telefono?->codigo_pais === '1' => 'us',
                             $telefono?->tipo === 'fijo' => 'fijo',
+                            filled($telefono?->codigo_pais) && $telefono?->codigo_pais !== '503' => 'internacional',
                             default => 'sv',
                         });
                     })
@@ -120,30 +158,32 @@ class TelefonoCliente
                 TextInput::make('numero')
                     ->hiddenLabel()
                     ->tel()
-                    ->placeholder(fn (Get $get): string => $get('formato') === 'us' ? '(999) 999-9999' : '9999-9999')
-                    ->mask(fn (Get $get): string => $get('formato') === 'us' ? '(999) 999-9999' : '9999-9999')
+                    ->placeholder(fn (Get $get): string => self::mascara($get('formato')))
+                    ->mask(fn (Get $get): string => self::mascara($get('formato')))
                     ->required()
                     ->afterStateHydrated(function (TextInput $component, $state): void {
                         $telefono = $component->getRecord();
                         $digitos = preg_replace('/\D/', '', (string) $state);
                         $codigo = (string) ($telefono?->codigo_pais ?? '');
-                        $component->state($codigo !== '' && str_starts_with($digitos, $codigo) ? substr($digitos, strlen($codigo)) : $digitos);
+                        $esInternacional = filled($codigo) && ! in_array($codigo, ['1', '503'], true);
+                        $component->state(! $esInternacional && $codigo !== '' && str_starts_with($digitos, $codigo) ? substr($digitos, strlen($codigo)) : $digitos);
                     })
                     ->rules(fn (Get $get): array => [
                         function (string $attribute, $value, \Closure $fail) use ($get): void {
-                            $esperados = $get('formato') === 'us' ? 10 : 8;
+                            $esperados = self::longitud($get('formato'));
                             if (strlen(preg_replace('/\D/', '', (string) $value)) !== $esperados) {
                                 $fail('El número no tiene la longitud correspondiente al tipo seleccionado.');
                             }
                         },
                     ])
-                    ->dehydrateStateUsing(fn ($state, Get $get): string => match ($get('formato')) {
-                        'us' => '1' . preg_replace('/\D/', '', (string) $state),
-                        default => '503' . preg_replace('/\D/', '', (string) $state),
-                    })
+                    ->dehydrateStateUsing(fn ($state, Get $get): string => self::normalizarFormato($state, $get('formato')))
                     ->extraFieldWrapperAttributes(['class' => 'telefono-numero'])
                     ->columnSpan(10),
-                Hidden::make('codigo_pais')->dehydrateStateUsing(fn ($state, Get $get): string => $get('formato') === 'us' ? '1' : '503'),
+                Hidden::make('codigo_pais')->dehydrateStateUsing(fn ($state, Get $get): string => match ($get('formato')) {
+                    'us' => '1',
+                    'internacional' => substr(preg_replace('/\D/', '', (string) $get('numero')), 0, 3),
+                    default => '503',
+                }),
                 Hidden::make('tipo')->dehydrateStateUsing(fn ($state, Get $get): string => $get('formato') === 'fijo' ? 'fijo' : 'movil'),
             ])->columns(12)->columnSpanFull()
             ->extraAttributes(['class' => 'telefono-compuesto'])
@@ -178,6 +218,51 @@ class TelefonoCliente
                     'orden' => 0,
                 ]]);
             });
+    }
+
+    public static function campoCompacto(string $nombre = 'telefono', bool $obligatorio = false): Group
+    {
+        $formato = $nombre.'_formato';
+
+        return Group::make([
+            Placeholder::make($nombre.'_encabezado')
+                ->label(new \Illuminate\Support\HtmlString('Número <span class="telefono-requerido">*</span>'))
+                ->content('')
+                ->hint(fn (Get $get): \Illuminate\Support\HtmlString => new \Illuminate\Support\HtmlString(match ($get($formato)) {
+                    'us', 'internacional' => '<span class="telefono-badge telefono-badge-internacional">Internacional</span>',
+                    'fijo' => '<span class="telefono-badge telefono-badge-fijo">Residencial</span>',
+                    default => '<span class="telefono-badge telefono-badge-sv">Móvil</span>',
+                }))
+                ->columnSpanFull(),
+            Select::make($formato)
+                ->hiddenLabel()
+                ->options(self::FORMATOS)
+                ->default('sv')
+                ->selectablePlaceholder(false)
+                ->native(false)
+                ->live()
+                ->required()
+                ->dehydrated(false)
+                ->extraFieldWrapperAttributes(['class' => 'telefono-prefijo'])
+                ->columnSpan(2),
+            TextInput::make($nombre)
+                ->hiddenLabel()
+                ->tel()
+                ->required($obligatorio)
+                ->nullable(! $obligatorio)
+                ->placeholder(fn (Get $get): string => self::mascara($get($formato)))
+                ->mask(fn (Get $get): string => self::mascara($get($formato)))
+                ->rules(fn (Get $get): array => [
+                    function (string $attribute, $value, \Closure $fail) use ($get, $formato): void {
+                        if (strlen(preg_replace('/\D/', '', (string) $value)) !== self::longitud($get($formato))) {
+                            $fail('El número no tiene la longitud correspondiente al tipo seleccionado.');
+                        }
+                    },
+                ])
+                ->dehydrateStateUsing(fn ($state, Get $get): string => self::normalizarFormato($state, $get($formato)))
+                ->extraFieldWrapperAttributes(['class' => 'telefono-numero'])
+                ->columnSpan(10),
+        ])->columns(12)->extraAttributes(['class' => 'telefono-destino-compuesto']);
     }
 
     public static function separar(?string $telefono): array

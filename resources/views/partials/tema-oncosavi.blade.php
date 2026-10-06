@@ -46,7 +46,15 @@
     .telefono-badge { display: inline-flex; align-items: center; border: 1px solid; border-radius: .3rem; padding: .12rem .45rem; font-size: .68rem; font-weight: 500; line-height: 1.25; }
     .telefono-badge-sv { border-color: #a7f3d0; color: #047857; background: #ecfdf5; }
     .telefono-badge-us { border-color: #bfdbfe; color: #1d4ed8; background: #eff6ff; }
+    .telefono-badge-internacional { border-color: #bfdbfe; color: #1d4ed8; background: #eff6ff; }
     .telefono-badge-fijo { border-color: #fed7aa; color: #c2410c; background: #fff7ed; }
+    .telefono-destino-compuesto > .fi-fo-component-ctn {
+        grid-template-columns: 96px minmax(0, 1fr) !important;
+        column-gap: 0 !important;
+    }
+    .telefono-destino-compuesto > .fi-fo-component-ctn > :first-child { grid-column: 1 / -1 !important; }
+    .telefono-destino-compuesto > .fi-fo-component-ctn > :nth-child(2) { grid-column: 1 !important; }
+    .telefono-destino-compuesto > .fi-fo-component-ctn > :nth-child(3) { grid-column: 2 !important; }
 
     /* Filament 3 usa el tono 400 en hover oscuro; con blanco pierde contraste.
        Sólo ajustamos botones rellenos, sin alterar badges, links ni outlined. */
@@ -98,3 +106,18 @@
     .dark .examen-tag-selected:hover:not(:disabled) { background: rgb(var(--danger-950)); color: rgb(var(--danger-300)); }
     .examen-tag:disabled, .examen-tag-selected:disabled { cursor: not-allowed; opacity: .5; }
 </style>
+<script>
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('abrir-destino-envio', (evento) => {
+            const url = evento?.url ?? evento?.[0]?.url;
+            if (! url) return;
+
+            const nuevaVentana = window.open(url, '_blank');
+            if (nuevaVentana) {
+                nuevaVentana.opener = null;
+            } else {
+                window.location.href = url;
+            }
+        });
+    });
+</script>

@@ -24,7 +24,7 @@ class DestinoWhatsApp
             Select::make('destino_whatsapp')->label('¿A qué número quieres enviar?')
                 ->options($opciones)->placeholder('Selecciona un número')->required()->searchable()->live()
                 ->helperText('Elige el destinatario. No se selecciona ningún teléfono automáticamente.'),
-            TelefonoCliente::campo('telefono_destino', 'Número del destinatario', true)
+            TelefonoCliente::campoCompacto('telefono_destino', true)
                 ->visible(fn (Get $get) => $get('destino_whatsapp') === 'otro'),
         ];
     }
