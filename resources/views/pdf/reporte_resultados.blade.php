@@ -7,8 +7,7 @@
 <style>
 
 @page {
-    /* La franja inferior contiene las firmas sin convertirse en una fila de resultados. */
-    margin: 235px 48px {{ $margen_inferior_px ?? 255 }}px 48px;
+    margin: 235px 48px 92px 48px;
 }
 
 /* ================= BASE ================= */
@@ -30,6 +29,10 @@ body {
 
 .results-table tfoot {
     display: table-footer-group;
+}
+
+.results-table tfoot > tr {
+    page-break-before: avoid;
 }
 
 .firma-cell {
@@ -254,7 +257,7 @@ body {
 
 /* ================= FOOTER ================= */
 
-footer { position: fixed; bottom: -{{ ($margen_inferior_px ?? 255) - 20 }}px; left: 0; right: 0; height: 66px; color: #18243b; }
+footer { position: fixed; bottom: -72px; left: 0; right: 0; height: 66px; color: #18243b; }
 footer .page-number { text-align: left; font-size: 7px; color: #697481; margin-top: 8px; }
 footer .page-number:before { content: "Página " counter(page); }
 /* ================= MISC ================= */
@@ -440,7 +443,7 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
         {{-- El contenido del cuerpo empieza aquí. Gracias al margin-top del @page, no se solapará con el header --}}
 
         {{-- BUCLE PRINCIPAL POR LABORATORISTA --}}
-        @foreach($grupos_por_usuario as $indiceGrupo => $grupo)
+        @foreach($grupos_por_usuario as $grupo)
 
             {{-- BUCLE POR TIPO DE EXAMEN (ÁREA) --}}
             @foreach($grupo['datos'] as $tipoExamenNombre => $examenes)
@@ -594,7 +597,7 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                         }
                                     @endphp
 
-                                    <table class="results-table{{ $esGigante ? ' results-table--extensa' : '' }}" data-firmante="{{ $indiceGrupo }}" style="width: 100%; {{ $saltoPaginaStr }}">
+                                    <table class="results-table{{ $esGigante ? ' results-table--extensa' : '' }}" style="width: 100%; {{ $saltoPaginaStr }}">
                                         <thead>
                                             @php
                                                 $nombresExamenes = array_column($listaExamenes, 'nombre');
@@ -743,7 +746,7 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                                 </tr>
                                             @endif
                                         </tbody>
-                                        {{-- Firmas dibujadas al pie por ReporteResultadosPdf, fuera del flujo de la tabla. --}}
+                                        @include('pdf.firmas')
                                     </table>
                                 @endforeach
                 </div>

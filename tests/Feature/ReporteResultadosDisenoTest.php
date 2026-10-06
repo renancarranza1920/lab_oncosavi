@@ -38,94 +38,50 @@ class ReporteResultadosDisenoTest extends TestCase
 
     public function test_reporte_corto_y_uroanalisis_comparten_pagina_con_sus_firmas_sin_hojas_de_sellos(): void
     {
-        $datos = $this->datosReporte();
-        $pdf = ReporteResultadosPdf::generar($datos);
+        $pdf = ReporteResultadosPdf::generar($this->datosReporte());
         $this->assertStringStartsWith('%PDF-', $pdf->output());
-        $this->assertSame(4, $pdf->getDomPDF()->getCanvas()->get_page_count());
-
         $paginas = $this->contenidoPaginas($pdf);
         $this->assertCount(4, $paginas);
         foreach ($paginas as $contenido) {
-            // Tres imágenes: sello institucional, sello del autor y firma del autor.
-            $this->assertSame(3, preg_match_all('/\/I\d+ Do/', $contenido));
             preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $contenido, $imagenes, PREG_SET_ORDER);
-            foreach ($imagenes as $imagen) {
-                // El origen del PDF está abajo: las imágenes quedan sobre el pie.
-                $this->assertGreaterThanOrEqual(54, (float) $imagen[4]);
-            }
             $this->assertCount(3, $imagenes);
             [$institucional, $sello, $firma] = $imagenes;
-            // Ampliar el institucional conservando el tamaño de firma y sello personal.
-            $this->assertEqualsWithDelta(110, (float) $institucional[1], 0.001);
-            $this->assertEqualsWithDelta(299.28, (float) $institucional[3], 0.001);
-            $institucionalArriba = $pdf->getDomPDF()->getCanvas()->get_height() - (float) $institucional[4] - (float) $institucional[2];
-            $this->assertLessThan(720, $institucionalArriba);
+            // Medidas originales del Blade: 130 px, 170 × 90 px y 170 × 105 px.
+            $this->assertEqualsWithDelta(97.5, (float) $institucional[1], 0.001);
             $this->assertEqualsWithDelta(127.5, (float) $sello[1], 0.001);
-            $this->assertEqualsWithDelta(127.5 * 190 / 420, (float) $sello[2], 0.001);
-            $this->assertEqualsWithDelta(78.75, (float) $firma[1], 0.001);
+            $this->assertEqualsWithDelta(67.5, (float) $sello[2], 0.001);
+            $this->assertEqualsWithDelta(127.5, (float) $firma[1], 0.001);
             $this->assertEqualsWithDelta(78.75, (float) $firma[2], 0.001);
-
-            // Comprobar la tinta visible: los márgenes transparentes no deben
-            // achicar la firma ni obligar a separarla excesivamente del sello.
-            $firmaVisibleAbajo = (float) $firma[4] + (float) $firma[2] * (1 - 235 / 260);
-            $firmaVisibleArriba = (float) $firma[4] + (float) $firma[2] * (1 - 69 / 260);
-            $selloVisibleArriba = (float) $sello[4] + (float) $sello[2] * (1 - 28 / 190);
-            $this->assertEqualsWithDelta(0, $firmaVisibleAbajo - $selloVisibleArriba, 0.001);
-            $this->assertLessThanOrEqual(191.25 - 6, $firmaVisibleArriba);
-            $this->assertLessThanOrEqual(191.25, (float) $institucional[4] + (float) $institucional[2]);
-            $this->assertLessThanOrEqual(191.25, (float) $sello[4] + (float) $sello[2]);
+            foreach ($imagenes as $imagen) {
+                // El origen del PDF está abajo: las imágenes respetan el pie.
+                $this->assertGreaterThanOrEqual(69, (float) $imagen[4]);
+            }
         }
     }
 
-    public function test_firma_horizontal_conserva_tamano_y_toca_el_borde_superior_del_sello(): void
+    public function test_los_tres_elementos_bajan_al_agregar_resultados_sin_cambiar_de_tamano(): void
     {
-        $datos = $this->datosReporte();
-        $datos['grupos_por_usuario'][0]['datos'] = ['ELECTROLITOS' => $this->examen('Potasio', 2)];
-        // Dimensiones y márgenes del ejemplo; imágenes sintéticas sin datos personales.
-        $datos['grupos_por_usuario'][0]['firma_b64'] = self::imagenTransparente(420, 242, [21, 12, 408, 234], [0, 0, 200]);
-        $datos['grupos_por_usuario'][0]['sello_b64'] = self::imagenTransparente(420, 165, [10, 10, 410, 148], [0, 0, 200]);
-        $pdf = ReporteResultadosPdf::generar($datos);
-        $pdf->output();
-        $paginas = $this->contenidoPaginas($pdf);
-        $this->assertCount(1, $paginas);
-        preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $paginas[0], $imagenes, PREG_SET_ORDER);
-        $this->assertCount(3, $imagenes);
-        [, $sello, $firma] = $imagenes;
-        $this->assertEqualsWithDelta(127.5, (float) $firma[1], 0.001);
-        $this->assertEqualsWithDelta(127.5 * 242 / 420, (float) $firma[2], 0.001);
-        $abajoFirma = (float) $firma[4] + (float) $firma[2] * (1 - 235 / 242);
-        $arribaFirma = (float) $firma[4] + (float) $firma[2] * (1 - 12 / 242);
-        $arribaSello = (float) $sello[4] + (float) $sello[2] * (1 - 10 / 165);
-        $this->assertEqualsWithDelta(0, $abajoFirma - $arribaSello, 0.002);
-        $centroFirma = $pdf->getDomPDF()->getCanvas()->get_height() - ($arribaFirma + $abajoFirma) / 2;
-        $this->assertEqualsWithDelta(697.78, $centroFirma, 0.5);
-        $this->assertGreaterThanOrEqual(54, (float) $sello[4]);
+        $imagenesPorReporte = [];
+        foreach ([2, 10] as $filas) {
+            $datos = $this->datosReporte();
+            $datos['grupos_por_usuario'][0]['datos'] = ['ELECTROLITOS' => $this->examen('Potasio', $filas)];
+            $pdf = ReporteResultadosPdf::generar($datos);
+            $pdf->output();
+            $paginas = $this->contenidoPaginas($pdf);
+            $this->assertCount(1, $paginas);
+            preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $paginas[0], $imagenes, PREG_SET_ORDER);
+            $this->assertCount(3, $imagenes);
+            $imagenesPorReporte[] = $imagenes;
+        }
+        [$corto, $largo] = $imagenesPorReporte;
+        for ($i = 0; $i < 3; $i++) {
+            $this->assertGreaterThan(60, (float) $corto[$i][4] - (float) $largo[$i][4]);
+            $this->assertEqualsWithDelta((float) $corto[$i][1], (float) $largo[$i][1], 0.001);
+            $this->assertEqualsWithDelta((float) $corto[$i][2], (float) $largo[$i][2], 0.001);
+        }
     }
 
-    public function test_firma_con_fondo_opaco_conserva_tamano_sin_tapar_sello_ni_resultados(): void
-    {
-        $datos = $this->datosReporte();
-        $datos['grupos_por_usuario'][0]['datos'] = ['ELECTROLITOS' => $this->examen('Potasio', 2)];
-        $datos['grupos_por_usuario'][0]['firma_b64'] = self::imagen(100, 0, 150, 260, 260);
-        $datos['grupos_por_usuario'][0]['sello_b64'] = self::imagen(0, 140, 0, 420, 190);
-        $margen = null;
-        view()->composer('pdf.reporte_resultados', function ($vista) use (&$margen) {
-            $margen = $vista->getData()['margen_inferior_px'];
-        });
-        $pdf = ReporteResultadosPdf::generar($datos);
-        $pdf->output();
-        $paginas = $this->contenidoPaginas($pdf);
-        $this->assertCount(1, $paginas);
-        preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $paginas[0], $imagenes, PREG_SET_ORDER);
-        $this->assertCount(3, $imagenes);
-        [, $sello, $firma] = $imagenes;
-        $this->assertEqualsWithDelta(78.75, (float) $firma[1], 0.001);
-        $this->assertEqualsWithDelta(78.75, (float) $firma[2], 0.001);
-        $this->assertEqualsWithDelta(0, (float) $firma[4] - ((float) $sello[4] + (float) $sello[2]), 0.002);
-        $this->assertLessThanOrEqual($margen * 0.75 - 6, (float) $firma[4] + (float) $firma[2]);
-    }
-
-    public function test_tabla_extensa_repite_solo_las_firmas_de_su_autor_en_cada_pagina(): void
+    public function test_tabla_extensa_termina_con_las_firmas_de_su_autor_sin_paginas_solo_de_sellos(): void
     {
         $datos = $this->datosReporte(70);
         $datos['grupos_por_usuario'][0]['datos'] = [
@@ -137,13 +93,31 @@ class ReporteResultadosDisenoTest extends TestCase
         $otro['datos'] = ['ELECTROLITOS' => $this->examen('Potasio', 2)];
         $datos['grupos_por_usuario'][] = $otro;
         $pdf = ReporteResultadosPdf::generar($datos);
+        $filasPorPagina = [];
+        $pdf->setCallbacks([[
+            'event' => 'end_frame',
+            'f' => function (\Dompdf\Frame $frame, \Dompdf\Canvas $canvas) use (&$filasPorPagina): void {
+                $nodo = $frame->get_node();
+                if ($nodo instanceof \DOMElement && $nodo->nodeName === 'tr'
+                    && str_contains(' '.$nodo->getAttribute('class').' ', ' result-row ')) {
+                    $pagina = $canvas->get_page_number();
+                    $filasPorPagina[$pagina] = ($filasPorPagina[$pagina] ?? 0) + 1;
+                }
+            },
+        ]]);
         $pdf->output();
         $paginas = $this->contenidoPaginas($pdf);
         $this->assertGreaterThan(2, count($paginas));
-        $ultima = array_pop($paginas);
-        $this->assertSame(1, preg_match_all('/\/I\d+ Do/', $ultima));
-        foreach ($paginas as $contenido) {
-            $this->assertSame(3, preg_match_all('/\/I\d+ Do/', $contenido));
+        $imagenesPorPagina = [];
+        foreach ($paginas as $indice => $contenido) {
+            $imagenesPorPagina[] = preg_match_all('/\/I\d+ Do/', $contenido);
+            $this->assertGreaterThan(0, $filasPorPagina[$indice + 1] ?? 0);
+        }
+        // El otro autor solo tiene el sello institucional; el primero firma al final de su tabla.
+        $this->assertSame(1, array_pop($imagenesPorPagina));
+        $this->assertSame(3, array_pop($imagenesPorPagina));
+        foreach ($imagenesPorPagina as $cantidad) {
+            $this->assertSame(0, $cantidad);
         }
     }
 
