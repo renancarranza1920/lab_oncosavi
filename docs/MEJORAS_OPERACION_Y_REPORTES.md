@@ -79,11 +79,11 @@ aplicar `php artisan migrate --force` después de actualizar: la tabla
 El encabezado conserva el diseño y muestra fecha y hora de **registro** (creación de
 la orden) e **impresión** (generación del PDF), en hora de El Salvador. Los sellos
 institucional y personal se imprimen en la franja inferior de cada página. La firma
-personal queda centrada encima de su sello, con separación para que el logo y el
-texto sean legibles. La firma conserva sus medidas anteriores: solo cambia su
-posición vertical, respetando los márgenes transparentes de la imagen.
-El conjunto de firma y sellos queda 5 mm más abajo, en la posición marcada en la
-referencia del laboratorio, conservando la separación y el espacio del pie de página.
+personal queda centrada encima de su sello, alineada con su borde superior sin
+separación adicional y respetando los márgenes transparentes de la imagen.
+La firma y el sello personal conservan su tamaño. El sello institucional es un
+13 % más grande y queda ligeramente más arriba y a la izquierda, separado de la
+dirección del pie. El sello personal queda 1 mm más abajo.
 Las tablas extensas reservan esta franja para conservar sus
 resultados y firmas en la misma página. Los documentos ya guardados se mantienen;
 para ver estos cambios es necesario regenerarlos.

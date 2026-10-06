@@ -10,8 +10,10 @@ use Dompdf\Image\Cache;
 
 class ReporteResultadosPdf
 {
-    // 15 puntos más abajo: aproximadamente 5 mm, según el recuadro de referencia.
-    private const POSICION_SELLOS_DESDE_PIE = -125;
+    // Coordenadas en puntos desde el pie: cada sello conserva su posición propia.
+    private const POSICION_SELLO_INSTITUCIONAL_DESDE_PIE = -137;
+    private const POSICION_SELLO_PERSONAL_DESDE_PIE = -122;
+    private const SEPARACION_FIRMA_SELLO = 0;
 
     public static function generar(array $datos): DocumentoPdf
     {
@@ -24,7 +26,7 @@ class ReporteResultadosPdf
         ]);
 
         $dompdf = $pdf->getDomPDF();
-        $institucional = self::prepararImagen($dompdf, $datos['sello_registro_b64'] ?? null, 97.5, 67.5);
+        $institucional = self::prepararImagen($dompdf, $datos['sello_registro_b64'] ?? null, 110, 76);
         $imagenesPorAutor = [];
         $margenInferior = 191.25;
         foreach ($datos['grupos_por_usuario'] as $indice => $grupo) {
@@ -32,8 +34,8 @@ class ReporteResultadosPdf
             // Conservar las medidas anteriores. Solo desplazar la imagen completa,
             // sin recortar sus márgenes transparentes ni reducir la firma.
             $firma = self::prepararImagen($dompdf, $grupo['firma_b64'] ?? null, 127.5, 78.75, true);
-            $selloY = self::POSICION_SELLOS_DESDE_PIE + ($sello['centrar_y'] ?? 0);
-            $firmaY = $selloY + ($sello['superior'] ?? 0) - 6 - ($firma['inferior'] ?? 0);
+            $selloY = self::POSICION_SELLO_PERSONAL_DESDE_PIE + ($sello['centrar_y'] ?? 0);
+            $firmaY = $selloY + ($sello['superior'] ?? 0) - self::SEPARACION_FIRMA_SELLO - ($firma['inferior'] ?? 0);
             if ($firma) {
                 $margenInferior = max($margenInferior, -($firmaY + $firma['superior']) + 6);
             }
@@ -65,7 +67,7 @@ class ReporteResultadosPdf
                     $abajo = $canvas->get_height();
 
                     // Coordenadas en puntos. Esta franja está reservada por el margen inferior.
-                    self::dibujar($canvas, $institucional, $derecha - 248, $abajo + self::POSICION_SELLOS_DESDE_PIE + ($institucional['centrar_y'] ?? 0));
+                    self::dibujar($canvas, $institucional, $derecha - 260, $abajo + self::POSICION_SELLO_INSTITUCIONAL_DESDE_PIE + ($institucional['centrar_y'] ?? 0));
                     self::dibujar($canvas, $imagenes['sello'], $derecha - 127.5, $abajo + $imagenes['selloY']);
                     self::dibujar($canvas, $imagenes['firma'], $derecha - 127.5, $abajo + $imagenes['firmaY']);
                 },

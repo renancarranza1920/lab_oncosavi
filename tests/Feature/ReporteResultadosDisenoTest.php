@@ -51,12 +51,15 @@ class ReporteResultadosDisenoTest extends TestCase
             preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $contenido, $imagenes, PREG_SET_ORDER);
             foreach ($imagenes as $imagen) {
                 // El origen del PDF está abajo: las imágenes quedan sobre el pie.
-                $this->assertGreaterThanOrEqual(57, (float) $imagen[4]);
+                $this->assertGreaterThanOrEqual(54, (float) $imagen[4]);
             }
             $this->assertCount(3, $imagenes);
             [$institucional, $sello, $firma] = $imagenes;
-            // Conservar el tamaño anterior incluso con márgenes transparentes.
-            $this->assertEqualsWithDelta(97.5, (float) $institucional[1], 0.001);
+            // Ampliar el institucional conservando el tamaño de firma y sello personal.
+            $this->assertEqualsWithDelta(110, (float) $institucional[1], 0.001);
+            $this->assertEqualsWithDelta(299.28, (float) $institucional[3], 0.001);
+            $institucionalArriba = $pdf->getDomPDF()->getCanvas()->get_height() - (float) $institucional[4] - (float) $institucional[2];
+            $this->assertLessThan(720, $institucionalArriba);
             $this->assertEqualsWithDelta(127.5, (float) $sello[1], 0.001);
             $this->assertEqualsWithDelta(127.5 * 190 / 420, (float) $sello[2], 0.001);
             $this->assertEqualsWithDelta(78.75, (float) $firma[1], 0.001);
@@ -67,14 +70,14 @@ class ReporteResultadosDisenoTest extends TestCase
             $firmaVisibleAbajo = (float) $firma[4] + (float) $firma[2] * (1 - 235 / 260);
             $firmaVisibleArriba = (float) $firma[4] + (float) $firma[2] * (1 - 69 / 260);
             $selloVisibleArriba = (float) $sello[4] + (float) $sello[2] * (1 - 28 / 190);
-            $this->assertEqualsWithDelta(6, $firmaVisibleAbajo - $selloVisibleArriba, 0.001);
+            $this->assertEqualsWithDelta(0, $firmaVisibleAbajo - $selloVisibleArriba, 0.001);
             $this->assertLessThanOrEqual(191.25 - 6, $firmaVisibleArriba);
             $this->assertLessThanOrEqual(191.25, (float) $institucional[4] + (float) $institucional[2]);
             $this->assertLessThanOrEqual(191.25, (float) $sello[4] + (float) $sello[2]);
         }
     }
 
-    public function test_firma_horizontal_esta_centrada_en_la_zona_marcada_sin_reducir_su_tamano(): void
+    public function test_firma_horizontal_conserva_tamano_y_toca_el_borde_superior_del_sello(): void
     {
         $datos = $this->datosReporte();
         $datos['grupos_por_usuario'][0]['datos'] = ['ELECTROLITOS' => $this->examen('Potasio', 2)];
@@ -93,10 +96,10 @@ class ReporteResultadosDisenoTest extends TestCase
         $abajoFirma = (float) $firma[4] + (float) $firma[2] * (1 - 235 / 242);
         $arribaFirma = (float) $firma[4] + (float) $firma[2] * (1 - 12 / 242);
         $arribaSello = (float) $sello[4] + (float) $sello[2] * (1 - 10 / 165);
-        $this->assertEqualsWithDelta(6, $abajoFirma - $arribaSello, 0.002);
+        $this->assertEqualsWithDelta(0, $abajoFirma - $arribaSello, 0.002);
         $centroFirma = $pdf->getDomPDF()->getCanvas()->get_height() - ($arribaFirma + $abajoFirma) / 2;
-        $this->assertEqualsWithDelta((657.30 + 720.58) / 2, $centroFirma, 0.5);
-        $this->assertGreaterThanOrEqual(57, (float) $sello[4]);
+        $this->assertEqualsWithDelta(697.78, $centroFirma, 0.5);
+        $this->assertGreaterThanOrEqual(54, (float) $sello[4]);
     }
 
     public function test_firma_con_fondo_opaco_conserva_tamano_sin_tapar_sello_ni_resultados(): void
@@ -118,7 +121,7 @@ class ReporteResultadosDisenoTest extends TestCase
         [, $sello, $firma] = $imagenes;
         $this->assertEqualsWithDelta(78.75, (float) $firma[1], 0.001);
         $this->assertEqualsWithDelta(78.75, (float) $firma[2], 0.001);
-        $this->assertEqualsWithDelta(6, (float) $firma[4] - ((float) $sello[4] + (float) $sello[2]), 0.002);
+        $this->assertEqualsWithDelta(0, (float) $firma[4] - ((float) $sello[4] + (float) $sello[2]), 0.002);
         $this->assertLessThanOrEqual($margen * 0.75 - 6, (float) $firma[4] + (float) $firma[2]);
     }
 
