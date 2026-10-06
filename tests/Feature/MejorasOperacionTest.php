@@ -121,29 +121,28 @@ class MejorasOperacionTest extends TestCase
         Livewire::test(CreateClientes::class)->fillForm([
             'nombre' => 'Contacto', 'apellido' => 'Múltiple', 'genero' => 'Femenino',
             'telefonos' => [
-                ['numero_codigo_pais' => '503', 'numero' => '7777-8888', 'tipo' => 'movil'],
-                ['numero_codigo_pais' => '1', 'numero' => '202-555-0123', 'tipo' => 'fijo'],
-                ['numero_codigo_pais' => 'otro', 'numero_codigo_otro' => '81', 'numero' => '90-1234-5678', 'tipo' => 'movil'],
+                ['formato' => 'sv', 'numero' => '7777-8888'],
+                ['formato' => 'us', 'numero' => '(202) 555-0123'],
+                ['formato' => 'internacional', 'numero' => '(502)1234-5678'],
             ],
         ])->call('create')->assertHasNoFormErrors();
         $cliente = Cliente::where('nombre', 'Contacto')->firstOrFail();
         $this->assertSame('50377778888', $cliente->telefono);
-        $this->assertSame(['50377778888', '12025550123', '819012345678'], $cliente->telefonos_contacto);
-        $this->assertSame('fijo', $cliente->telefonos[1]->tipo);
+        $this->assertSame(['50377778888', '12025550123', '50212345678'], $cliente->telefonos_contacto);
+        $this->assertSame('movil', $cliente->telefonos[1]->tipo);
         $this->assertSame($cliente->id, Cliente::buscarTelefono('+1 (202) 555-0123')->sole()->id);
         Livewire::test(\App\Filament\Resources\ClientesResource\Pages\ListClientes::class)
-            ->searchTable('9012345678')->assertCanSeeTableRecords([$cliente]);
+            ->searchTable('50212345678')->assertCanSeeTableRecords([$cliente]);
         $general = Medico::where('portal_usuario', 'medicos')->firstOrFail();
-        $this->assertSame($cliente->id, app(\App\Services\ExpedienteMedicoService::class)->buscar($general, ['q' => '+819012345678'])->sole()->id);
+        $this->assertSame($cliente->id, app(\App\Services\ExpedienteMedicoService::class)->buscar($general, ['q' => '+50212345678'])->sole()->id);
 
         $pagina = Livewire::test(EditClientes::class, ['record' => $cliente->getRouteKey()]);
         $filas = $pagina->get('data.telefonos');
         $ultima = array_key_last($filas);
-        $pagina->assertSet('data.telefonos.'.$ultima.'.numero_codigo_pais', 'otro')
-            ->assertSet('data.telefonos.'.$ultima.'.numero_codigo_otro', '81')
-            ->assertSet('data.telefonos.'.$ultima.'.numero', '9012345678')
+        $pagina->assertSet('data.telefonos.'.$ultima.'.formato', 'internacional')
+            ->assertSet('data.telefonos.'.$ultima.'.numero', '50212345678')
             ->call('save')->assertHasNoFormErrors();
-        $this->assertSame(['50377778888', '12025550123', '819012345678'], $cliente->fresh()->telefonos_contacto);
+        $this->assertSame(['50377778888', '12025550123', '50212345678'], $cliente->fresh()->telefonos_contacto);
     }
 
     public function test_quitar_un_telefono_conserva_los_demas_y_actualiza_el_principal(): void
