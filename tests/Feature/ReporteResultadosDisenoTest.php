@@ -4,7 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Cliente;
 use App\Models\Orden;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\DetalleOrden;
+use App\Models\Examen;
+use App\Models\Muestra;
+use App\Services\ReporteResultadosPdf;
 use Carbon\Carbon;
 use Tests\TestCase;
 
@@ -27,9 +30,182 @@ class ReporteResultadosDisenoTest extends TestCase
             $this->assertStringContainsString('01/10/2026 · 09:27', $html);
             $this->assertStringContainsString('Fecha de impresión:', $html);
             $this->assertStringContainsString('03/10/2026 · 14:45', $html);
-            $this->assertStringStartsWith('%PDF-', Pdf::loadHTML($html)->setPaper('letter')->output());
+            $this->assertStringStartsWith('%PDF-', ReporteResultadosPdf::generar($data)->output());
         } finally {
             Carbon::setTestNow();
         }
+    }
+
+    public function test_reporte_corto_y_uroanalisis_comparten_pagina_con_sus_firmas_sin_hojas_de_sellos(): void
+    {
+        $pdf = ReporteResultadosPdf::generar($this->datosReporte());
+        $this->assertStringStartsWith('%PDF-', $pdf->output());
+        $paginas = $this->contenidoPaginas($pdf);
+        $this->assertCount(4, $paginas);
+        foreach ($paginas as $contenido) {
+            preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $contenido, $imagenes, PREG_SET_ORDER);
+            $this->assertCount(3, $imagenes);
+            [$institucional, $sello, $firma] = $imagenes;
+            // Medidas originales del Blade: 130 px, 170 × 90 px y 170 × 105 px.
+            $this->assertEqualsWithDelta(97.5, (float) $institucional[1], 0.001);
+            $this->assertEqualsWithDelta(127.5, (float) $sello[1], 0.001);
+            $this->assertEqualsWithDelta(67.5, (float) $sello[2], 0.001);
+            $this->assertEqualsWithDelta(127.5, (float) $firma[1], 0.001);
+            $this->assertEqualsWithDelta(78.75, (float) $firma[2], 0.001);
+            foreach ($imagenes as $imagen) {
+                // El origen del PDF está abajo: las imágenes respetan el pie.
+                $this->assertGreaterThanOrEqual(69, (float) $imagen[4]);
+            }
+        }
+    }
+
+    public function test_los_tres_elementos_bajan_al_agregar_resultados_sin_cambiar_de_tamano(): void
+    {
+        $imagenesPorReporte = [];
+        foreach ([2, 10] as $filas) {
+            $datos = $this->datosReporte();
+            $datos['grupos_por_usuario'][0]['datos'] = ['ELECTROLITOS' => $this->examen('Potasio', $filas)];
+            $pdf = ReporteResultadosPdf::generar($datos);
+            $pdf->output();
+            $paginas = $this->contenidoPaginas($pdf);
+            $this->assertCount(1, $paginas);
+            preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $paginas[0], $imagenes, PREG_SET_ORDER);
+            $this->assertCount(3, $imagenes);
+            $imagenesPorReporte[] = $imagenes;
+        }
+        [$corto, $largo] = $imagenesPorReporte;
+        for ($i = 0; $i < 3; $i++) {
+            $this->assertGreaterThan(60, (float) $corto[$i][4] - (float) $largo[$i][4]);
+            $this->assertEqualsWithDelta((float) $corto[$i][1], (float) $largo[$i][1], 0.001);
+            $this->assertEqualsWithDelta((float) $corto[$i][2], (float) $largo[$i][2], 0.001);
+        }
+    }
+
+    public function test_tabla_extensa_termina_con_las_firmas_de_su_autor_sin_paginas_solo_de_sellos(): void
+    {
+        $datos = $this->datosReporte(70);
+        $datos['grupos_por_usuario'][0]['datos'] = [
+            'UROANALISIS' => $datos['grupos_por_usuario'][0]['datos']['UROANALISIS'],
+        ];
+        $otro = $datos['grupos_por_usuario'][0];
+        $otro['firma_b64'] = null;
+        $otro['sello_b64'] = null;
+        $otro['datos'] = ['ELECTROLITOS' => $this->examen('Potasio', 2)];
+        $datos['grupos_por_usuario'][] = $otro;
+        $pdf = ReporteResultadosPdf::generar($datos);
+        $filasPorPagina = [];
+        $pdf->setCallbacks([[
+            'event' => 'end_frame',
+            'f' => function (\Dompdf\Frame $frame, \Dompdf\Canvas $canvas) use (&$filasPorPagina): void {
+                $nodo = $frame->get_node();
+                if ($nodo instanceof \DOMElement && $nodo->nodeName === 'tr'
+                    && str_contains(' '.$nodo->getAttribute('class').' ', ' result-row ')) {
+                    $pagina = $canvas->get_page_number();
+                    $filasPorPagina[$pagina] = ($filasPorPagina[$pagina] ?? 0) + 1;
+                }
+            },
+        ]]);
+        $pdf->output();
+        $paginas = $this->contenidoPaginas($pdf);
+        $this->assertGreaterThan(2, count($paginas));
+        $imagenesPorPagina = [];
+        foreach ($paginas as $indice => $contenido) {
+            $imagenesPorPagina[] = preg_match_all('/\/I\d+ Do/', $contenido);
+            $this->assertGreaterThan(0, $filasPorPagina[$indice + 1] ?? 0);
+        }
+        // El otro autor solo tiene el sello institucional; el primero firma al final de su tabla.
+        $this->assertSame(1, array_pop($imagenesPorPagina));
+        $this->assertSame(3, array_pop($imagenesPorPagina));
+        foreach ($imagenesPorPagina as $cantidad) {
+            $this->assertSame(0, $cantidad);
+        }
+    }
+
+    private function contenidoPaginas($pdf): array
+    {
+        $objetos = $pdf->getDomPDF()->getCanvas()->get_cpdf()->objects;
+
+        return array_values(array_map(
+            fn ($pagina) => implode('', array_map(fn ($id) => $objetos[$id]['c'], $pagina['info']['contents'])),
+            array_filter($objetos, fn ($objeto) => $objeto['t'] === 'page'),
+        ));
+    }
+
+    private function examen(string $nombre, int $filas): array
+    {
+        $pruebas = [];
+        for ($i = 0; $i < $filas; $i++) {
+            $pruebas[] = [
+                'nombre' => 'Prueba de ejemplo '.($i + 1), 'resultado' => 'NO SE OBSERVAN',
+                'referencia' => '', 'unidades' => '', 'tipo_prueba' => $nombre === 'General de orina' ? ($i < 13 ? 'FISICO - QUIMICO' : 'MICROSCOPICO') : '',
+            ];
+        }
+
+        return [['nombre' => $nombre, 'pruebas_unitarias' => $pruebas, 'matrices' => []]];
+    }
+
+    private function datosReporte(int $filasOrina = 24): array
+    {
+        $cliente = new Cliente(['nombre' => 'Paciente', 'apellido' => 'Ejemplo', 'fecha_nacimiento' => '1990-04-15', 'genero' => 'Femenino']);
+        $orden = new Orden();
+        $orden->id = 1;
+        $orden->created_at = now();
+        $orden->setRelation('cliente', $cliente);
+        $orden->setRelation('medico', null);
+        $areas = [
+            'ELECTROLITOS' => $this->examen('Potasio', 2),
+            'HEMATOLOGÍA' => $this->examen('Hemograma', 18),
+            'QUÍMICA SANGUÍNEA' => $this->examen('Glucosa', 9),
+            'UROANALISIS' => $this->examen('General de orina', $filasOrina),
+        ];
+        $detalles = collect();
+        foreach ($areas as $examenes) {
+            $examen = new Examen(['nombre' => $examenes[0]['nombre']]);
+            $examen->setRelation('muestras', collect([new Muestra(['nombre' => 'Muestra de ejemplo'])]));
+            $detalle = new DetalleOrden(['nombre_examen' => $examenes[0]['nombre']]);
+            $detalle->setRelation('examen', $examen);
+            $detalles->push($detalle);
+        }
+        $orden->setRelation('detalleOrden', $detalles);
+
+        return [
+            'orden' => $orden, 'logo_b64' => null, 'sello_registro_b64' => self::imagen(0, 0, 200),
+            'grupos_por_usuario' => [[
+                'laboratorista' => 'Laboratorista de ejemplo',
+                'firma_b64' => self::imagenTransparente(260, 260, [43, 69, 216, 234], [100, 0, 150]),
+                'sello_b64' => self::imagenTransparente(420, 190, [36, 28, 380, 159], [0, 140, 0]), 'datos' => $areas,
+            ]],
+        ];
+    }
+
+    private static function imagenTransparente(int $ancho, int $alto, array $limites, array $rgb): string
+    {
+        $imagen = imagecreatetruecolor($ancho, $alto);
+        imagealphablending($imagen, false);
+        imagesavealpha($imagen, true);
+        imagefill($imagen, 0, 0, imagecolorallocatealpha($imagen, 255, 255, 255, 127));
+        imagefilledrectangle($imagen, ...[...$limites, imagecolorallocate($imagen, ...$rgb)]);
+        ob_start();
+        imagepng($imagen);
+        $contenido = ob_get_clean();
+        imagedestroy($imagen);
+
+        return 'data:image/png;base64,'.base64_encode($contenido);
+    }
+
+    public static function imagen(int $rojo, int $verde, int $azul, int $ancho = 160, int $alto = 85): string
+    {
+        $imagen = imagecreatetruecolor($ancho, $alto);
+        $blanco = imagecolorallocate($imagen, 255, 255, 255);
+        imagefill($imagen, 0, 0, $blanco);
+        $color = imagecolorallocate($imagen, $rojo, $verde, $azul);
+        imagerectangle($imagen, 1, 1, $ancho - 2, $alto - 2, $color);
+        imagestring($imagen, 4, 14, 34, 'EJEMPLO', $color);
+        ob_start();
+        imagepng($imagen);
+        $contenido = ob_get_clean();
+        imagedestroy($imagen);
+
+        return 'data:image/png;base64,'.base64_encode($contenido);
     }
 }

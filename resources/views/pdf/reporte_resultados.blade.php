@@ -31,6 +31,10 @@ body {
     display: table-footer-group;
 }
 
+.results-table tfoot > tr {
+    page-break-before: avoid;
+}
+
 .firma-cell {
     padding-top: 18px;
     padding-bottom: 5px;
@@ -142,9 +146,14 @@ body {
 }
 
 .results-table td {
-    padding: 4px;
+    padding: 3px 4px;
     text-align: left;
     vertical-align: top;
+}
+
+.results-table--extensa .result-row td {
+    padding-top: 1.75px;
+    padding-bottom: 1.75px;
 }
 
 .result-row {
@@ -588,7 +597,7 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                         }
                                     @endphp
 
-                                    <table class="results-table" style="width: 100%; {{ $saltoPaginaStr }}">
+                                    <table class="results-table{{ $esGigante ? ' results-table--extensa' : '' }}" style="width: 100%; {{ $saltoPaginaStr }}">
                                         <thead>
                                             @php
                                                 $nombresExamenes = array_column($listaExamenes, 'nombre');

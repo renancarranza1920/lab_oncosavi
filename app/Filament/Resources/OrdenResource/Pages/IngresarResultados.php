@@ -18,7 +18,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Filament\Actions\ActionGroup;
 use Illuminate\Support\Facades\Storage;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class IngresarResultados extends Page implements HasForms
 {
@@ -486,6 +485,7 @@ if (!$valorRef && $grupoTodasEdades) {
 
     Action::make('generar_pdf_parcial')
         ->label('Generar PDF')
+        ->tooltip('Utiliza los resultados guardados. Guarde sus cambios antes de generar el PDF.')
         ->icon('heroicon-o-printer')
         ->color('gray')
         ->visible(fn() => auth()->user()->can('generar_reporte_orden') && $this->tieneExamenesParaParcial())
@@ -609,6 +609,7 @@ if (!$valorRef && $grupoTodasEdades) {
 
     Action::make('generar_pdf_parcial')
         ->label('Generar PDF')
+        ->tooltip('Utiliza los resultados guardados. Guarde sus cambios antes de generar el PDF.')
         ->icon('heroicon-o-printer')
         ->color('gray')
         ->visible(fn() => auth()->user()->can('generar_reporte_orden') && $this->tieneExamenesParaParcial())
@@ -815,9 +816,8 @@ protected function tieneExamenesParaParcial(): bool
 public function generarPdfParcial()
 {
     abort_unless(auth()->user()?->can('generar_reporte_orden'), 403);
-    if (auth()->user()->can('ingresar_resultados_orden') && !empty($this->data)) {
-        $this->save();
-    }
+    // Regenerar es una lectura: los autores se establecen al guardar resultados,
+    // no al descargar el PDF desde otra cuenta.
 
     $examenesCompletos = $this->getExamenesCompletosParcial();
 
@@ -989,68 +989,7 @@ public function generarPdfParcial()
         $usuarios = collect([auth()->user()]);
     }
 
-    $imgToBase64 = function ($path, int $maxWidth = 900, int $maxHeight = 900) {
-        if ($path && file_exists($path)) {
-            $realPath = realpath($path);
-
-            if ($realPath === false) {
-                return null;
-            }
-
-            if (!extension_loaded('gd')) {
-                return str_replace('\\', '/', $realPath);
-            }
-
-            $size = @getimagesize($realPath);
-
-            if ($size === false) {
-                return str_replace('\\', '/', $realPath);
-            }
-
-            [$width, $height] = $size;
-
-            if ($width <= $maxWidth && $height <= $maxHeight && filesize($realPath) <= 350 * 1024) {
-                return str_replace('\\', '/', $realPath);
-            }
-
-            $cacheDir = storage_path('app/public/pdf-cache');
-
-            if (!is_dir($cacheDir) && !mkdir($cacheDir, 0775, true) && !is_dir($cacheDir)) {
-                return str_replace('\\', '/', $realPath);
-            }
-
-            $cachePath = $cacheDir . DIRECTORY_SEPARATOR . sha1($realPath . '|' . filemtime($realPath) . "|{$maxWidth}x{$maxHeight}") . '.png';
-
-            if (file_exists($cachePath)) {
-                return str_replace('\\', '/', realpath($cachePath));
-            }
-
-            $source = @imagecreatefromstring(file_get_contents($realPath));
-
-            if (!$source) {
-                return str_replace('\\', '/', $realPath);
-            }
-
-            $scale = min($maxWidth / $width, $maxHeight / $height, 1);
-            $targetWidth = max(1, (int) round($width * $scale));
-            $targetHeight = max(1, (int) round($height * $scale));
-            $target = imagecreatetruecolor($targetWidth, $targetHeight);
-
-            imagealphablending($target, false);
-            imagesavealpha($target, true);
-            $transparent = imagecolorallocatealpha($target, 255, 255, 255, 127);
-            imagefilledrectangle($target, 0, 0, $targetWidth, $targetHeight, $transparent);
-            imagecopyresampled($target, $source, 0, 0, 0, 0, $targetWidth, $targetHeight, $width, $height);
-            $saved = imagepng($target, $cachePath, 6);
-            imagedestroy($source);
-            imagedestroy($target);
-
-            $cacheRealPath = $saved ? realpath($cachePath) : false;
-
-            return $cacheRealPath ? str_replace('\\', '/', $cacheRealPath) : str_replace('\\', '/', $realPath);
-        }
-        return null;
-    };
+    $imgToBase64 = fn ($path, int $ancho = 900, int $alto = 900) => \App\Support\ImagenPdf::desdeArchivo($path, $ancho, $alto);
 
     $grupos_finales = [];
 
@@ -1111,18 +1050,10 @@ public function generarPdfParcial()
 
         if (!empty($datos_usuario)) {
 
-            $pathFirma = $usuario->firma_path
-                ? storage_path('app/public/' . $usuario->firma_path)
-                : null;
-
-            $pathSello = $usuario->sello_path
-                ? storage_path('app/public/' . $usuario->sello_path)
-                : null;
-
             $grupos_finales[] = [
                 'laboratorista' => $usuario->name,
-                'firma_b64' => $imgToBase64($pathFirma, 420, 260),
-                'sello_b64' => $imgToBase64($pathSello, 420, 260),
+                'firma_b64' => \App\Support\ImagenPdf::desdeDiscoPublico($usuario->firma_path),
+                'sello_b64' => \App\Support\ImagenPdf::desdeDiscoPublico($usuario->sello_path),
                 'datos' => $datos_usuario
             ];
         }
@@ -1141,13 +1072,7 @@ public function generarPdfParcial()
         'sello_registro_b64' => \App\Support\SelloLaboratorio::base64(),
     ];
 
-    $pdf = Pdf::setOptions([
-        'isRemoteEnabled' => false,
-        'isHtml5ParserEnabled' => true,
-        'dpi' => 96,
-        'defaultFont' => 'sans-serif',
-        'chroot' => base_path(),
-    ])->loadView('pdf.reporte_resultados', $pdf_data);
+    $pdf = \App\Services\ReporteResultadosPdf::generar($pdf_data);
 
    $nombreCliente = Str::slug(
     $orden->cliente->nombre . ' ' . $orden->cliente->apellido
