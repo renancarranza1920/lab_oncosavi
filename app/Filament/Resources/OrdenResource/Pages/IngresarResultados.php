@@ -7,6 +7,7 @@ use App\Models\Examen;
 use App\Models\GrupoEtario;
 use App\Models\Orden;
 use App\Models\Prueba; // Asegúrate de importar el modelo
+use App\Support\ReferenciaLaboratorio;
 use Filament\Actions\Action;
 use Filament\Forms\Components\View;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -328,7 +329,7 @@ if (!$valorRef && $grupoTodasEdades) {
 
         $referencias = [];
 
-        foreach ($valorRef as $ref) {
+        foreach (ReferenciaLaboratorio::sinDuplicados($valorRef) as $ref) {
 
     $vMin  = is_array($ref) ? ($ref['valor_min'] ?? null) : $ref->valor_min;
     $vMax  = is_array($ref) ? ($ref['valor_max'] ?? null) : $ref->valor_max;
