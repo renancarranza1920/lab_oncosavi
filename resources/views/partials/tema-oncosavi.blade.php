@@ -76,6 +76,9 @@
     .orden-detail-table .orden-detail-row { background: var(--ui-surface); }
     .orden-detail-table .orden-detail-row:hover { background: var(--ui-subtle); }
     .orden-detail-table .orden-detail-row td { color: var(--ui-text); }
+    .orden-detail-table .orden-detail-profile-row { background: var(--ui-subtle); color: var(--ui-text); }
+    .orden-detail-table .orden-detail-profile-badge { background: var(--ui-soft); color: var(--ui-heading); border-color: var(--ui-border); }
+    .orden-detail-table .orden-detail-exam-tag { background: var(--ui-subtle); color: var(--ui-muted); border-color: var(--ui-border); }
 
     /* Componentes propios: mismos tokens que Filament, sin redefinir Tailwind. */
     @foreach (['primary', 'success', 'warning', 'danger', 'info', 'gray'] as $tipo)
