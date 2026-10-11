@@ -69,21 +69,21 @@
                             @php $primerItem = $items->first(); @endphp
 
                             {{-- Cabecera del Perfil (Con fondo y etiqueta) --}}
-                            <tr class="bg-gray-50 dark:bg-gray-800/50">
+                            <tr class="orden-detail-profile-row">
                                 <td class="p-3">
                                     <div class="flex items-center gap-2">
-                                        <x-heroicon-o-rectangle-stack class="w-5 h-5 text-primary-600 dark:text-primary-400"/>
+                                        <x-heroicon-o-rectangle-stack class="w-5 h-5 ui-text-primary"/>
                                         <div>
-                                            <span class="font-bold text-gray-900 dark:text-white text-base block">
+                                            <span class="font-bold text-base block">
                                                 {{ $primerItem->nombre_perfil ?? 'Perfil' }}
                                             </span>
-                                            <span class="text-[10px] font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 px-1.5 py-0.5 rounded border border-primary-100 dark:border-primary-800">
+                                            <span class="orden-detail-profile-badge text-[10px] font-bold px-1.5 py-0.5 rounded border">
                                                 PERFIL
                                             </span>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="p-3 text-right font-bold font-mono text-gray-900 dark:text-white align-top pt-4">
+                                <td class="p-3 text-right font-bold font-mono align-top pt-4">
                                     ${{ number_format($primerItem->precio_perfil, 2) }}
                                 </td>
                             </tr>
@@ -98,7 +98,7 @@
                                                 {{ $detalle->nombre_examen }}
                                             </span>
                                             @if($detalle->status)
-                                                <span class="text-[10px] text-gray-400 bg-gray-50 dark:bg-gray-800 px-1 rounded border dark:border-gray-700">
+                                                <span class="orden-detail-exam-tag text-[10px] px-1 rounded border">
                                                     {{ $detalle->status }}
                                                 </span>
                                             @endif
@@ -122,7 +122,7 @@
                                                 {{ $detalle->nombre_examen }}
                                             </span>
                                             @if($detalle->status)
-                                                <span class="text-[10px] text-gray-400 bg-gray-50 dark:bg-gray-800 px-1 rounded border dark:border-gray-700">
+                                                <span class="orden-detail-exam-tag text-[10px] px-1 rounded border">
                                                     {{ $detalle->status }}
                                                 </span>
                                             @endif

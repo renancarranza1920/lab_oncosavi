@@ -7,6 +7,8 @@ use App\Models\Examen;
 use App\Models\GrupoEtario;
 use App\Models\Orden;
 use App\Models\Prueba; // Asegúrate de importar el modelo
+use App\Models\Resultado;
+use App\Support\NumeroLaboratorio;
 use App\Support\ReferenciaLaboratorio;
 use Filament\Actions\Action;
 use Filament\Forms\Components\View;
@@ -19,6 +21,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Filament\Actions\ActionGroup;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Locked;
 
 class IngresarResultados extends Page implements HasForms
 {
@@ -30,12 +35,15 @@ class IngresarResultados extends Page implements HasForms
     public ?Orden $record;
     public array $data = [];
 
+    #[Locked]
+    public array $resultadosIniciales = [];
+
     public function mount(Orden $record): void
     {
         abort_unless(static::getResource()::canView($record), 404);
         abort_unless(auth()->user()->can('ingresar_resultados_orden'), 403);
         $this->record = $record;
-        $this->form->fill($this->prepareInitialData());
+        $this->cargarFormularioResultados();
     }
 
     public function form(Form $form): Form
@@ -650,29 +658,116 @@ if (!$valorRef && $grupoTodasEdades) {
     {
         abort_unless(auth()->user()?->can('ingresar_resultados_orden'), 403);
         $formData = $this->form->getState()['resultados_examenes'];
-     //dd($this->form->getState());
-        foreach ($formData as $detalleId => $examenData) {
-            foreach (($examenData['pruebas_unitarias'] ?? []) as $r) {
-                $this->guardarResultado($detalleId, $r);
+
+        $modificados = DB::transaction(function () use ($formData): bool {
+            // Serializar los guardados de esta orden, incluyendo filas nuevas.
+            $this->record->newQuery()->lockForUpdate()->findOrFail($this->record->id);
+            $modificados = false;
+
+            foreach ($this->filasResultados($formData) as [$detalleId, $fila, $esExterno]) {
+                $clave = $this->claveResultado($detalleId, $fila, $esExterno);
+                $estado = $this->estadoEditableResultado($fila, $esExterno);
+                if (($this->resultadosIniciales[$clave] ?? null) === $estado) {
+                    continue;
+                }
+                if ($esExterno && (trim($estado['prueba_nombre']) === '' || trim($estado['resultado']) === '')) {
+                    continue;
+                }
+                if ((! $esExterno || ! empty($fila['id'])) && ! array_key_exists($clave, $this->resultadosIniciales)) {
+                    $this->conflictoResultado();
+                }
+                $this->record->detalleOrden()->whereKey($detalleId)->firstOrFail();
+                if ($esExterno) {
+                    $modificados = $this->guardarResultadoExterno($detalleId, $fila) || $modificados;
+                } else {
+                    $modificados = $this->guardarResultado($detalleId, $fila) || $modificados;
+                }
             }
-            foreach (($examenData['matrices'] ?? []) as $m) {
-                foreach ($m['data'] as $f) {
-                    foreach ($f as $c) {
-                        $this->guardarResultado($detalleId, $c);
+            return $modificados;
+        });
+
+        if ($modificados) {
+            $this->eliminarPdfParcial();
+        }
+        Notification::make()->title('Resultados guardados')->success()->send();
+        $this->record->unsetRelation('resultados');
+        $this->cargarFormularioResultados();
+    }
+
+    private function cargarFormularioResultados(): void
+    {
+        $this->form->fill($this->prepareInitialData());
+        $this->resultadosIniciales = [];
+        foreach ($this->filasResultados($this->data['resultados_examenes'] ?? []) as [$detalleId, $fila, $esExterno]) {
+            $this->resultadosIniciales[$this->claveResultado($detalleId, $fila, $esExterno)] = $this->estadoEditableResultado($fila, $esExterno);
+        }
+    }
+
+    private function filasResultados(array $examenes): \Generator
+    {
+        foreach ($examenes as $detalleId => $examen) {
+            foreach ($examen['pruebas_unitarias'] ?? [] as $fila) {
+                yield [(int) $detalleId, $fila, false];
+            }
+            foreach ($examen['matrices'] ?? [] as $matriz) {
+                foreach ($matriz['data'] ?? [] as $fila) {
+                    foreach ($fila as $celda) {
+                        yield [(int) $detalleId, $celda, false];
                     }
                 }
             }
-            foreach (($examenData['externos'] ?? []) as $ext) {
-                if (!empty($ext['prueba_nombre']) && !empty($ext['resultado'])) {
-                    $this->guardarResultadoExterno($detalleId, $ext);
-                }
+            foreach ($examen['externos'] ?? [] as $fila) {
+                yield [(int) $detalleId, $fila, true];
             }
         }
-        Notification::make()->title('Resultados guardados')->success()->send();
-        $this->form->fill($this->prepareInitialData());
     }
 
-protected function guardarResultado(int $detalleId, array $r): void
+    private function claveResultado(int $detalleId, array $fila, bool $esExterno): string
+    {
+        return $detalleId.':'.($esExterno
+            ? 'externo:'.($fila['id'] ?? $fila['temp_id'])
+            : 'prueba:'.$fila['prueba_id']);
+    }
+
+    private function estadoEditableResultado(array $fila, bool $esExterno): array
+    {
+        $estado = [
+            'resultado' => NumeroLaboratorio::normalizar((string) ($fila['resultado'] ?? '')),
+            'alertar' => (bool) ($fila['alertar'] ?? false),
+        ];
+        if ($esExterno) {
+            foreach (['prueba_nombre', 'valor_referencia', 'unidades'] as $campo) {
+                $estado[$campo] = (string) ($fila[$campo] ?? '');
+            }
+        }
+
+        return $estado;
+    }
+
+    private function verificarResultadoActual(?Resultado $resultado, int $detalleId, array $fila, bool $esExterno): void
+    {
+        $actual = $this->estadoEditableResultado([
+            'resultado' => $resultado?->resultado,
+            'alertar' => $resultado?->alertar,
+            'prueba_nombre' => $resultado?->prueba_nombre_snapshot,
+            'valor_referencia' => $resultado?->valor_referencia_snapshot,
+            'unidades' => $resultado?->unidades_snapshot,
+        ], $esExterno);
+        $clave = $this->claveResultado($detalleId, $fila, $esExterno);
+        $inicial = $this->resultadosIniciales[$clave] ?? $this->estadoEditableResultado([], $esExterno);
+        if ($actual !== $inicial) {
+            $this->conflictoResultado();
+        }
+    }
+
+    private function conflictoResultado(): never
+    {
+        $mensaje = 'Otro laboratorista modificó un resultado que está editando. Recargue la orden y revise los cambios antes de guardar.';
+        Notification::make()->title('Los resultados cambiaron')->body($mensaje)->warning()->send();
+        throw ValidationException::withMessages(['data.resultados_examenes' => $mensaje]);
+    }
+
+protected function guardarResultado(int $detalleId, array $r): bool
 {
     $valorResultado = $r['resultado'] ?? null;
     $alertar = (bool) ($r['alertar'] ?? false);
@@ -682,12 +777,12 @@ protected function guardarResultado(int $detalleId, array $r): void
         ->where('prueba_id', $r['prueba_id'])
         ->first();
 
+    $this->verificarResultadoActual($resultadoExistente, $detalleId, $r, false);
+
     if ($resultadoExistente) {
 
-        // Siempre actualizamos aunque no cambie el resultado
-        $resultadoExistente->update([
-            'resultado' => $valorResultado,
-            'user_id' => auth()->id(),
+        $resultadoExistente->fill([
+            'resultado' => $valorResultado ?? '',
             'prueba_nombre_snapshot' => $r['prueba_nombre'],
             'valor_referencia_snapshot' => $r['valor_referencia'],
             'unidades_snapshot' => $r['unidades'],
@@ -695,7 +790,12 @@ protected function guardarResultado(int $detalleId, array $r): void
             'alertar' => $alertar,
         ]);
 
-        $this->eliminarPdfParcial();
+        if (! $resultadoExistente->isDirty()) {
+            return false;
+        }
+        $resultadoExistente->user_id = auth()->id();
+        $resultadoExistente->save();
+        return true;
 
     } elseif (!is_null($valorResultado) && $valorResultado !== '') {
 
@@ -712,18 +812,18 @@ protected function guardarResultado(int $detalleId, array $r): void
             'alertar' => $alertar,
         ]);
 
-        $this->eliminarPdfParcial();
+        return true;
     }
+    return false;
 }
 
-protected function guardarResultadoExterno(int $detalleId, array $ext): void
+protected function guardarResultadoExterno(int $detalleId, array $ext): bool
 {
     $dataToSave = [
         'detalle_orden_id' => $detalleId,
         'prueba_id' => null,
         'prueba_nombre_snapshot' => $ext['prueba_nombre'],
         'resultado' => $ext['resultado'],
-        'user_id' => auth()->id(),  // Asignamos el user_id actual
         'valor_referencia_snapshot' => $ext['valor_referencia'],
         'unidades_snapshot' => $ext['unidades'],
         'es_externo' => 1,
@@ -731,14 +831,25 @@ protected function guardarResultadoExterno(int $detalleId, array $ext): void
     ];
 
     if (!empty($ext['id'])) {
-        // Si el resultado externo ya existe, lo actualizamos
-       \App\Models\Resultado::where('id', $ext['id'])->update($dataToSave);
-        $this->eliminarPdfParcial();
+        $resultado = $this->record->resultados()
+            ->where('resultados.id', $ext['id'])
+            ->where('detalle_orden_id', $detalleId)
+            ->where('es_externo', true)
+            ->first();
+        $this->verificarResultadoActual($resultado, $detalleId, $ext, true);
+        if (! $resultado) {
+            $this->conflictoResultado();
+        }
+        $resultado->fill($dataToSave);
+        if (! $resultado->isDirty()) {
+            return false;
+        }
+        $resultado->user_id = auth()->id();
+        $resultado->save();
     } else {
-        // Si no existe, lo creamos como un nuevo resultado
-        $this->record->resultados()->create($dataToSave);
-        $this->eliminarPdfParcial();
+        $this->record->resultados()->create($dataToSave + ['user_id' => auth()->id()]);
     }
+    return true;
 }
 
 
@@ -750,7 +861,7 @@ protected function guardarResultadoExterno(int $detalleId, array $ext): void
             $resultado->delete();
             $this->eliminarPdfParcial();
             Notification::make()->title('Resultado eliminado')->success()->send();
-            $this->form->fill($this->prepareInitialData());
+            $this->cargarFormularioResultados();
         }
     }
 
