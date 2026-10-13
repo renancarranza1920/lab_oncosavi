@@ -54,6 +54,7 @@ if (!in_array($method, ['GET', 'HEAD'], true)) {
             'success' => true,
             'status' => 'ready',
             'mensaje' => 'Catálogo disponible.',
+            'asistente' => ['ia' => $config['ia']['enabled'] && extension_loaded('curl')],
         ]);
         http_response_code(200);
     } catch (Throwable $error) {

@@ -16,6 +16,15 @@ return [
         'username' => 'REEMPLAZAR_POR_USUARIO_MYSQL',
         'password' => 'REEMPLAZAR_POR_CONTRASENA_MYSQL',
     ],
+    // Opcional: interpretar nombres difíciles mediante la API de OpenAI.
+    // Mantener la clave privada aquí; nunca en HTML, JavaScript ni Git.
+    // La web funciona con reconocimiento local aunque este bloque no exista.
+    'ia' => [
+        'enabled' => false,
+        'api_key' => '',
+        'model' => 'gpt-4.1-mini',
+        'daily_request_limit' => 100,
+    ],
     // Datos públicos opcionales para el asistente del sitio, sin credenciales.
     'contacto' => [
         'nombre' => 'LABORATORIO CLÍNICO MERINO',

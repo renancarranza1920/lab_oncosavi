@@ -8,7 +8,7 @@ DirectoryIndex index.html
 </FilesMatch>
 
 <IfModule mod_headers.c>
-    <FilesMatch "^(index\.html|merino-chat(-config)?\.(js|css))$">
+    <FilesMatch "^(index\.html|merino-(chat(-config)?|search)\.(js|css))$">
         Header set Cache-Control "no-cache, must-revalidate"
     </FilesMatch>
 </IfModule>

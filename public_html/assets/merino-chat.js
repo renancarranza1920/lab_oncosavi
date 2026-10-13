@@ -1,44 +1,7 @@
 import { MERINO_CHAT_CONFIG as config } from './merino-chat-config.js';
 
-// Reglas locales: no se envían preguntas a servicios externos y no se guardan conversaciones.
-const STOP_WORDS = new Set([
-  'a', 'al', 'ante', 'como', 'con', 'cual', 'cuales', 'cuando', 'cuanto', 'cuantos',
-  'cuanta', 'cuantas', 'cuesta', 'cuestan', 'costo', 'costos', 'de', 'del', 'dame',
-  'dar', 'darme', 'el', 'ella', 'en', 'es', 'ese', 'esa', 'esta', 'este', 'estos',
-  'estas', 'hay', 'hola', 'informacion', 'la', 'las', 'lo', 'los', 'me', 'mi',
-  'necesito', 'para', 'por', 'precio', 'precios', 'puede', 'puedes', 'que', 'quiero',
-  'saber', 'se', 'si', 'su', 'sus', 'tiene', 'tienen', 'un', 'una', 'unos', 'unas',
-  'vale', 'valen', 'valor', 'valores', 'ver', 'y', 'e', 'examen', 'examenes', 'analisis', 'prueba',
-  'pruebas', 'perfil', 'perfiles', 'paquete', 'paquetes', 'lista', 'listado',
-  'listar', 'muestra', 'mostrar', 'muestrame', 'muestren', 'todo', 'todos',
-  'toda', 'todas', 'favor', 'buenos', 'buenas', 'dias', 'dia', 'tardes', 'noches',
-  'incluye', 'incluyen', 'incluido', 'incluidos', 'contiene', 'contienen',
-  'lleva', 'llevan', 'disponible', 'disponibles', 'catalogo', 'laboratorio',
-  'donde', 'puedo', 'consultar'
-]);
-const ALIASES = [
-  [/\bbiometria hematica\b/g, 'hemograma'],
-  [/\bcbc\b/g, 'hemograma'],
-  [/\bglucosa en sangre\b/g, 'glucosa'],
-  [/\btiroides\b/g, 'tiroideo'],
-  [/\btiroidea\b/g, 'tiroideo']
-];
-
-export function normalizeQuery(value) {
-  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
-}
-
-function canonicalQuery(value) {
-  let normalized = normalizeQuery(value);
-  for (const [pattern, replacement] of ALIASES) normalized = normalized.replace(pattern, replacement);
-  // "Hemograma completo" se busca como hemograma; se muestran todas las coincidencias.
-  return normalized.replace(/\bhemograma completo\b/g, 'hemograma');
-}
-
-function queryTerms(value) {
-  return canonicalQuery(value).split(' ').filter((token) => token && !STOP_WORDS.has(token));
-}
+import { normalizeQuery, queryTerms, searchCatalog, resolveCatalog, resolveFollowUp, describeQuery } from './merino-search.js';
+export { normalizeQuery, searchCatalog };
 
 export function parseIntent(value) {
   const normalized = normalizeQuery(value);
@@ -55,7 +18,7 @@ export function parseIntent(value) {
       (has(/\bdonde\b/) && !asksPrice)) {
     return { type: 'info', key: 'location' };
   }
-  if (has(/\b(resultados|resultado|informe|informes|expediente|paciente|pacientes|dui|diagnostico|diagnosticar|interpretar|interpretacion)\b/) ||
+  if (has(/\b(resultados|resultado|informe|informes|expediente|paciente|pacientes|dui|diagnostico|diagnosticar|interpretar|interpretacion|sintomas|sintoma|dolor|duele)\b/) ||
       has(/\bvalores? (?:de )?referencia\b/)) {
     return { type: 'info', key: 'results' };
   }
@@ -123,38 +86,23 @@ export function validateCatalog(data) {
   };
   return {
     currency: 'USD',
+    aiEnabled: data.asistente?.ia === true,
     exams: data.examens.map((entry) => readRecord(entry, 'exam')),
     profiles: data.perfiles.map((entry) => readRecord(entry, 'profile'))
   };
 }
 
-export function searchCatalog(catalog, query, scope = 'all') {
-  const records = scope === 'profiles' ? catalog.profiles :
-    scope === 'exams' ? catalog.exams : catalog.exams.concat(catalog.profiles);
-  const rawSegments = String(query || '').split(/\s+(?:y|e)\s+|[,;]+/i);
-  const segments = rawSegments.map(queryTerms).filter((terms) => terms.length > 0);
-  if (!segments.length) return records.slice().sort((a, b) => a.name.localeCompare(b.name, 'es'));
-  const ranked = [];
-  for (const record of records) {
-    const name = canonicalQuery(record.name);
-    const words = name.split(' ');
-    const categoryWords = canonicalQuery(record.category).split(' ');
-    let best = 0;
-    for (const terms of segments) {
-      // Se requieren todos los términos de cada búsqueda: no se elige una coincidencia arbitraria.
-      const matches = terms.every((term) => words.some((word) =>
-        word === term || (term.length >= 4 && word.startsWith(term))) ||
-        categoryWords.some((word) => word === term));
-      if (!matches) continue;
-      const joined = terms.join(' ');
-      const score = name === joined ? 100 :
-        name.includes(joined) ? 75 : 50;
-      best = Math.max(best, score);
-    }
-    if (best) ranked.push({ record, score: best });
+export function validateInterpretation(data, catalog, scope = 'all') {
+  if (!data || data.success !== true || !['matches', 'none', 'contact'].includes(data.kind)
+      || !Array.isArray(data.keys) || data.keys.length > 20 || typeof data.needs_clarification !== 'boolean') {
+    throw new Error('Consulta no interpretada.');
   }
-  return ranked.sort((a, b) => b.score - a.score || a.record.name.localeCompare(b.record.name, 'es'))
-    .map((entry) => entry.record);
+  const records = scope === 'profiles' ? catalog.profiles : scope === 'exams' ? catalog.exams : catalog.exams.concat(catalog.profiles);
+  const allowed = new Map(records.map((record) => [record.type + ':' + record.id, record]));
+  if (data.keys.some((key) => typeof key !== 'string' || !allowed.has(key))
+      || (data.kind === 'matches') !== (data.keys.length > 0)) throw new Error('Coincidencia no válida.');
+  return { kind: data.kind, records: [...new Set(data.keys)].map((key) => allowed.get(key)),
+    clarify: data.needs_clarification || data.keys.length > 1 };
 }
 
 function createNode(tag, className, text) {
@@ -250,6 +198,8 @@ function mountChat() {
   document.body.append(widget);
 
   let catalogPromise = null;
+  let previousRecords = [];
+  let busy = false;
 
   function scrollConversation() {
     messages.scrollTop = messages.scrollHeight;
@@ -368,6 +318,21 @@ function mountChat() {
     return catalogPromise;
   }
 
+  async function interpretQuery(query, catalog, scope, previous) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 12000);
+    try {
+      const response = await fetch(new URL(config.interpretationUrl, document.baseURI), {
+        method: 'POST', credentials: 'same-origin', cache: 'no-store',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consulta: query, scope, contexto: previous.map((record) => record.type + ':' + record.id) }),
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error('No se pudo interpretar la consulta.');
+      return validateInterpretation(await response.json(), catalog, scope);
+    } finally { window.clearTimeout(timeout); }
+  }
+
   function renderRecords(response, records) {
     const container = createNode('div', 'mc-records');
     response.append(container);
@@ -407,16 +372,44 @@ function mountChat() {
     appendNextPage();
   }
 
-  async function showCatalog(intent) {
+  async function showCatalog(intent, originalQuery) {
     const response = message('Consultando el catálogo…');
     response.setAttribute('aria-busy', 'true');
     try {
       const loaded = await loadCatalog();
+      let resolved = resolveCatalog(loaded, intent.type === 'pcr' ? 'PCR' : intent.query, intent.scope);
+      let understoodByAI = false;
+      if (loaded.aiEnabled && intent.query && intent.type !== 'pcr'
+          && (!resolved.records.length || resolved.approximate || resolved.unmatched.length)) {
+        try {
+          const interpretation = await interpretQuery(originalQuery || intent.query, loaded, intent.scope, previousRecords);
+          if (interpretation.kind === 'contact') {
+            previousRecords = [];
+            response.replaceChildren();
+            appendParagraph(response, 'Para saber qué examen necesitas o consultar resultados, comunícate con el laboratorio o con tu médico.');
+            contactLink(response);
+            return;
+          }
+          if (interpretation.records.length) {
+            resolved = { records: interpretation.records, approximate: false, unmatched: [] };
+            understoodByAI = true;
+          }
+        } catch { /* El reconocimiento local sigue disponible si la IA falla. */ }
+      }
       response.replaceChildren();
-      const records = searchCatalog(loaded, intent.type === 'pcr' ? 'PCR' : intent.query, intent.scope);
+      const records = resolved.records;
+      previousRecords = intent.query && !resolved.approximate && records.length <= 20 ? records : [];
+      for (const explanation of describeQuery(intent.query)) appendParagraph(response, explanation);
       if (intent.type === 'pcr') {
         appendParagraph(response, 'PCR puede referirse a pruebas distintas. Indica el nombre completo que deseas consultar.');
         if (records.length) appendParagraph(response, 'Estas son las coincidencias publicadas con ese nombre; revisa cuál corresponde a tu consulta:');
+      } else if (resolved.approximate) {
+        appendParagraph(response, 'Encontré nombres parecidos. Elige el examen que quisiste escribir para consultar su precio:');
+        const suggestions = createNode('div', 'mc-chips');
+        for (const record of records.slice(0, 8)) suggestions.append(questionButton(record.name, record.name));
+        response.append(suggestions);
+        contactLink(response);
+        return;
       } else if (!records.length) {
         appendParagraph(response, 'No encontré una coincidencia en el catálogo público para esa consulta.');
         appendParagraph(response, 'Prueba con el nombre del examen o consulta con recepción. La ausencia en esta lista no confirma que el laboratorio no lo realice.');
@@ -424,6 +417,8 @@ function mountChat() {
         appendParagraph(response, intent.scope === 'profiles' ? 'Perfiles disponibles y su precio propio:' :
           intent.scope === 'all' ? 'Exámenes y perfiles disponibles con sus precios:' :
             'Exámenes disponibles y sus precios:');
+      } else if (understoodByAI) {
+        appendParagraph(response, 'Por el nombre que escribiste, estas son las coincidencias del catálogo. Comprueba cuál corresponde a tu consulta:');
       } else if (records.length === 1) {
         appendParagraph(response, 'Encontré esta coincidencia en el catálogo público:');
       } else {
@@ -431,6 +426,7 @@ function mountChat() {
       }
       if (records.length) {
         renderRecords(response, records);
+        if (resolved.unmatched.length) appendParagraph(response, 'Una parte de tu consulta no tuvo coincidencia: ' + resolved.unmatched.join(', ') + '. Puedes escribir ese examen por separado.');
         appendParagraph(response, 'Precios publicados en dólares estadounidenses. Confirma con recepción disponibilidad e indicaciones para tu visita.', 'mc-status');
       }
       if (!records.length || intent.type === 'pcr') contactLink(response);
@@ -441,6 +437,7 @@ function mountChat() {
         response.append(choices);
       }
     } catch {
+      previousRecords = [];
       response.replaceChildren();
       appendParagraph(response, 'Los precios y el catálogo no están disponibles en este momento. Puedes consultar horarios, ubicación y contacto.');
       contactLink(response, 'Consultar precios por WhatsApp');
@@ -455,14 +452,31 @@ function mountChat() {
 
   async function ask(value) {
     const query = String(value || '').trim().slice(0, 400);
-    if (!query) return;
+    if (!query || busy) return;
+    busy = true;
+    submit.disabled = true;
     message(query, true);
-    const intent = parseIntent(query);
-    if (intent.type === 'menu') {
-      const response = message('Puedo ayudarte con los precios publicados y la información de atención. Elige una opción o escribe el nombre del examen:');
-      menu(response);
-    } else if (intent.type === 'info') showInfo(intent.key);
-    else await showCatalog(intent);
+    try {
+      const originalIntent = parseIntent(query);
+      const followUp = originalIntent.type === 'catalog' ? resolveFollowUp(query, previousRecords) : { query, clarify: false };
+      const intent = parseIntent(followUp.query);
+      if (followUp.clarify) {
+        const response = message('Indica el nombre completo del examen al que te refieres. Si hay varias opciones, elige una:');
+        const choices = createNode('div', 'mc-chips');
+        for (const record of previousRecords.slice(0, 8)) choices.append(questionButton(record.name, record.name));
+        response.append(choices);
+      } else if (intent.type === 'menu') {
+        const response = message('Puedo ayudarte con los precios publicados y la información de atención. Elige una opción o escribe el nombre del examen:');
+        menu(response);
+      } else if (intent.type === 'info') {
+        previousRecords = [];
+        showInfo(intent.key);
+      } else await showCatalog(intent, query);
+    } finally {
+      busy = false;
+      submit.disabled = false;
+      scrollConversation();
+    }
   }
 
   function setOpen(open) {
@@ -484,12 +498,13 @@ function mountChat() {
   });
   form.addEventListener('submit', (event) => {
     event.preventDefault();
+    if (busy) return;
     const value = input.value;
     input.value = '';
     ask(value);
   });
   const greeting = message('Hola. Consulta precios de exámenes y perfiles, horarios, ubicación y servicios. Escribe una pregunta o elige una opción.');
-  appendParagraph(greeting, 'No compartas datos personales ni resultados médicos en esta consulta.', 'mc-status');
+  appendParagraph(greeting, 'Las consultas difíciles pueden usar IA para reconocer el nombre del examen. No compartas datos personales ni resultados médicos.', 'mc-status');
   menu(greeting);
 }
 

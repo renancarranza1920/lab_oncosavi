@@ -4,6 +4,7 @@
  */
 export const MERINO_CHAT_CONFIG = Object.freeze({
   catalogUrl: '/api/catalogo.php',
+  interpretationUrl: '/api/interpretar.php',
   name: 'Laboratorio Clínico Merino',
   phone: '+503 2606 6596',
   phoneUrl: 'tel:+50326066596',

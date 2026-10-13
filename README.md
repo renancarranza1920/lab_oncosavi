@@ -1,6 +1,6 @@
 # Web pública de Laboratorio Clínico Merino
 
-Esta rama contiene la web del dominio principal y su asistente de consultas con respuestas predefinidas. Conserva el diseño original y consulta exámenes y perfiles activos de la **base del Lameri anterior**. La aplicación clínica se mantiene en sus otras ramas.
+Esta rama contiene la web del dominio principal y su asistente de consultas. Reconoce siglas, sinónimos, errores de escritura y preguntas de seguimiento; admite IA opcional para identificar nombres más difíciles. Conserva el diseño original y consulta exámenes y perfiles activos de la **base del Lameri anterior**. La aplicación clínica se mantiene en sus otras ramas.
 
 ## Descargar e instalar manualmente
 
@@ -15,7 +15,30 @@ Requiere PHP 8.2 o superior y `pdo_mysql`. La entrega contiene los archivos prep
 
 Precios de exámenes, perfiles e incluidos; horarios, dirección y mapas; teléfono, WhatsApp, correo y redes; áreas de servicio, domicilio, propósito, misión y visión. Las indicaciones específicas de preparación, pagos, seguros y entrega de resultados se confirman con recepción. Las respuestas de información general funcionan aunque la base esté temporalmente inaccesible.
 
-El asistente no utiliza IA, no envía el texto de las preguntas a un servidor y no guarda conversaciones. El endpoint consulta únicamente `examens`, `tipo_examens`, `perfil` y `detalle_perfil`; conserva el precio propio de cada perfil y respeta los estados activos. No consulta datos clínicos ni modifica la base.
+El reconocimiento local funciona sin claves ni servicios externos. Por ejemplo, `antígeno prostático`, `examen de próstata` y `PSA` encuentran las variantes publicadas; `HbA1c` reconoce hemoglobina glicosilada y `CBC` reconoce hemograma. Distingue variantes y pide elegir ante errores de escritura. Después de consultar PSA, `¿y el libre?` conserva el contexto de la búsqueda.
+
+La IA está desactivada inicialmente. Si la habilitas, las consultas que no se resuelven localmente se envían desde PHP a la API de OpenAI junto con nombres públicos del catálogo y referencias a la última búsqueda. La clave permanece en `configuracion/lameri-publica.php`, fuera de `public_html`; no se envían contraseñas ni datos de la base clínica. El modelo solo puede devolver identificadores publicados: los nombres y precios que ve el visitante proceden del catálogo, nunca del texto generado. La web no guarda conversaciones; los contadores privados de uso guardan cantidades y hashes de IP, sin preguntas.
+
+Los endpoints consultan únicamente `examens`, `tipo_examens`, `perfil` y `detalle_perfil`; conservan el precio propio de cada perfil y respetan los estados activos. Las consultas clínicas se remiten a recepción. La web no modifica la base.
+
+## Activar la IA opcional
+
+Tras actualizar, agrega este bloque dentro del `return [...]` de tu archivo privado **existente** `configuracion/lameri-publica.php`, conservando `mysql` y `contacto`:
+
+```php
+'ia' => [
+    'enabled' => true,
+    'api_key' => 'TU_CLAVE_API_DE_OPENAI',
+    'model' => 'gpt-4.1-mini',
+    'daily_request_limit' => 100,
+],
+```
+
+Necesita la extensión PHP `curl` y una [clave API de OpenAI](https://platform.openai.com/api-keys) con acceso al modelo y facturación configurada. El uso de la API se cobra aparte de las suscripciones de ChatGPT. La configuración anterior sigue funcionando aunque no añadas `ia`. Puedes desactivarla cambiando `enabled` a `false`.
+
+La IA se usa como ayuda para identificar nombres, después del reconocimiento local. Hay un máximo inicial de 100 intentos al día (UTC), configurable, y 6 por minuto por IP. Los límites se guardan en `configuracion/cache/ia-limites.json`, con permisos privados. Si se agota el límite, falla el proveedor o no se puede guardar el contador, la búsqueda local sigue funcionando. El límite controla cantidades de solicitudes, no un importe monetario; configura también el presupuesto de tu proyecto en OpenAI.
+
+La integración usa [Responses y salidas estructuradas](https://developers.openai.com/api/docs/guides/structured-outputs), con `store: false`, conexión HTTPS y tiempos de espera limitados.
 
 ## Actualizar por comandos en Hostinger
 
@@ -48,4 +71,14 @@ Los precios y el contenido del catálogo se actualizan desde la base anterior, n
 
 ## Validación
 
-Consultas comprobadas contra un esquema de prueba del sistema anterior; reglas del bot y privacidad verificadas; navegación probada en escritorio y móviles de 390 y 320 px, incluyendo perfiles, coincidencias ambiguas, paginación, contenido HTML tratado como texto y fallos de conexión. La conexión a la base real se activa al completar la configuración en Hostinger.
+Consultas comprobadas contra un esquema de prueba del sistema anterior; sinónimos, siglas, variantes, contexto y respuestas de IA verificadas. Navegación probada en escritorio y móviles de 390 y 320 px, con actualización de precios, errores del proveedor y contenido HTML tratado como texto. Las pruebas de IA simulan respuestas HTTP y no realizan llamadas facturables. La conexión real se activa al completar la configuración en Hostinger.
+
+Para probar en un entorno de desarrollo:
+
+```bash
+php tests/catalogo.php
+php tests/interpretacion.php
+node --experimental-vm-modules tests/chatbot.mjs
+```
+
+`tests/navegador.mjs` añade comprobaciones con Playwright contra un servidor PHP local. Hostinger no necesita Node, Composer ni Docker para esta web.
