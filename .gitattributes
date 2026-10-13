@@ -1,0 +1,6 @@
+* -text
+# Conserva los finales de línea originales de los archivos de la web entregada.
+public_html/.htaccess whitespace=cr-at-eol
+public_html/index.html whitespace=-blank-at-eol,cr-at-eol
+*.png binary
+*.zip binary

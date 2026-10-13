@@ -1,0 +1,28 @@
+<?php
+
+declare(strict_types=1);
+
+// Copiar como configuracion/lameri-publica.php FUERA de public_html.
+// Usar la base de Lameri anterior, no la nueva instalación Laravel.
+// Preferible: usuario MySQL con SELECT solo sobre examens, tipo_examens,
+// perfil y detalle_perfil. No necesita permisos de escritura.
+// No subir credenciales a Git ni a la carpeta pública del dominio.
+
+return [
+    'mysql' => [
+        'host' => 'localhost',
+        'port' => 3306,
+        'database' => 'REEMPLAZAR_POR_BASE_LAMERI_ANTERIOR',
+        'username' => 'REEMPLAZAR_POR_USUARIO_MYSQL',
+        'password' => 'REEMPLAZAR_POR_CONTRASENA_MYSQL',
+    ],
+    // Datos públicos opcionales para el asistente del sitio, sin credenciales.
+    'contacto' => [
+        'nombre' => 'LABORATORIO CLÍNICO MERINO',
+        'direccion' => '4ª Calle Oriente #6, B° San Francisco, San Vicente, El Salvador.',
+        'telefono' => '+503 2606-6596',
+        'whatsapp' => '+503 7595-4210',
+        'correo' => 'lab.merino20@gmail.com',
+        'web' => 'https://laboratorioclinicomerino.com',
+    ],
+];

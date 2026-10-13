@@ -1,0 +1,208 @@
+#merino-chat {
+  --mc-blue: #1f6495;
+  --mc-green: #7cb643;
+  --mc-yellow: #f5a623;
+  --mc-ink: #183449;
+  --mc-border: #d9e6ec;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--mc-ink);
+  position: fixed;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 1200;
+  text-align: left;
+}
+#merino-chat *, #merino-chat *::before, #merino-chat *::after { box-sizing: border-box; }
+#merino-chat button, #merino-chat input { font: inherit; }
+#merino-chat button { cursor: pointer; text-transform: none; }
+#merino-chat button:focus-visible, #merino-chat a:focus-visible, #merino-chat input:focus-visible {
+  outline: 3px solid var(--mc-yellow);
+  outline-offset: 3px;
+}
+#merino-chat [hidden] { display: none !important; }
+#merino-chat .mc-launcher {
+  background: var(--mc-blue);
+  color: white;
+  border: 2px solid white;
+  box-shadow: 0 5px 24px #17374d35;
+  border-radius: 36px;
+  min-height: 60px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#merino-chat .mc-launcher svg { flex-shrink: 0; }
+#merino-chat .mc-launcher-label { font-weight: 700; font-size: 14px; }
+#merino-chat .mc-panel {
+  width: 390px;
+  max-width: calc(100vw - 40px);
+  height: min(650px, calc(100vh - 40px));
+  height: min(650px, calc(100dvh - 40px));
+  border-radius: 18px;
+  border: 1px solid var(--mc-border);
+  background: #fff;
+  box-shadow: 0 12px 55px #12344e35;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#merino-chat .mc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 14px 16px;
+  background: var(--mc-blue);
+  color: white;
+  flex-shrink: 0;
+}
+#merino-chat .mc-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #fff;
+  padding: 4px;
+  object-fit: contain;
+}
+#merino-chat .mc-heading { margin: 0; font-size: 16px; font-weight: 700; }
+#merino-chat .mc-subheading { margin: 0; font-size: 12px; color: #e0eff8; }
+#merino-chat .mc-close {
+  margin-left: auto;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: white;
+  font-size: 26px;
+  line-height: 1;
+  padding: 9px;
+  min-width: 40px;
+  min-height: 40px;
+}
+#merino-chat .mc-close:hover { background: #ffffff20; }
+#merino-chat .mc-messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+  background: #f6fafc;
+  scroll-behavior: smooth;
+}
+#merino-chat .mc-message {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 12px;
+  padding: 12px;
+  border-radius: 12px 12px 12px 3px;
+  background: #fff;
+  border: 1px solid var(--mc-border);
+  overflow-wrap: anywhere;
+}
+#merino-chat .mc-message-user {
+  margin-left: auto;
+  background: #e7f1fa;
+  border-color: #c8e0f1;
+  border-radius: 12px 12px 3px 12px;
+}
+#merino-chat .mc-message p { margin: 0 0 8px; }
+#merino-chat .mc-message p:last-child { margin-bottom: 0; }
+#merino-chat .mc-message ul, #merino-chat .mc-message ol { padding-left: 20px; margin: 8px 0; }
+#merino-chat .mc-message li { margin: 4px 0; }
+#merino-chat .mc-message a {
+  color: #185986;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+#merino-chat .mc-message strong { font-weight: 700; }
+#merino-chat .mc-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+#merino-chat .mc-chip, #merino-chat .mc-more {
+  color: var(--mc-blue);
+  background: #f4f9fc;
+  border: 1px solid #bed5e3;
+  padding: 7px 10px;
+  min-height: 36px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+}
+#merino-chat .mc-chip:hover, #merino-chat .mc-more:hover { background: #e7f2f9; }
+#merino-chat .mc-record {
+  border-top: 1px solid var(--mc-border);
+  padding: 10px 0;
+}
+#merino-chat .mc-record:first-child { border-top: 0; }
+#merino-chat .mc-record-name { font-weight: 700; margin: 0 !important; }
+#merino-chat .mc-record-price { color: #376e22; font-weight: 700; }
+#merino-chat .mc-record-meta { color: #5d6d78; font-size: 12px; }
+#merino-chat .mc-record details { margin-top: 6px; }
+#merino-chat .mc-record summary { cursor: pointer; color: var(--mc-blue); font-size: 12px; font-weight: 700; }
+#merino-chat .mc-count { font-size: 12px; color: #5d6d78; margin-top: 8px !important; }
+#merino-chat .mc-status { font-size: 12px; color: #5d6d78; }
+#merino-chat .mc-form {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  padding: 12px;
+  border-top: 1px solid var(--mc-border);
+}
+#merino-chat .mc-input {
+  width: 0;
+  min-width: 0;
+  flex: 1;
+  color: var(--mc-ink);
+  background: #fff;
+  border: 1px solid #bfd1dc;
+  border-radius: 9px;
+  min-height: 42px;
+  padding: 9px 10px;
+}
+#merino-chat .mc-submit {
+  background: var(--mc-blue);
+  color: white;
+  border: none;
+  border-radius: 9px;
+  min-height: 42px;
+  min-width: 42px;
+  padding: 9px 12px;
+}
+#merino-chat .mc-submit:disabled { cursor: wait; opacity: .6; }
+#merino-chat .mc-footer {
+  flex-shrink: 0;
+  padding: 0 12px 12px;
+  font-size: 12px;
+  text-align: center;
+  background: white;
+}
+#merino-chat .mc-footer a { color: #396c24; font-weight: 700; text-decoration: underline; }
+#merino-chat .mc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 480px) {
+  #merino-chat { right: max(10px, env(safe-area-inset-right)); bottom: max(10px, env(safe-area-inset-bottom)); }
+  #merino-chat .mc-panel {
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    height: min(650px, calc(100vh - 20px));
+    height: min(650px, calc(100dvh - 20px));
+    border-radius: 14px;
+  }
+  #merino-chat .mc-launcher { min-height: 56px; padding: 11px 14px; }
+  #merino-chat .mc-messages { padding: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #merino-chat .mc-messages { scroll-behavior: auto; }
+}

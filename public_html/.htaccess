@@ -1,0 +1,20 @@
+Options -Indexes -Multiviews
+DirectoryIndex index.html
+
+# La configuración se instala fuera de public_html. Protege también copias
+# de respaldo o ejemplos que pudieran subirse por error a la carpeta pública.
+<FilesMatch "(?i)(^\.|\.(env|ini|log|sql|sqlite|sqlite3|example|bak)$)">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    <FilesMatch "^(index\.html|merino-chat(-config)?\.(js|css))$">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
+</IfModule>
+RewriteEngine On
+RewriteBase /
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [QSA,L]

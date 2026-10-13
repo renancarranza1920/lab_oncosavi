@@ -1,0 +1,9 @@
+/configuracion/lameri-publica.php
+/configuracion/cache/
+.env
+.env.*
+*.sql
+*.sqlite
+*.sqlite3
+*.log
+node_modules/
