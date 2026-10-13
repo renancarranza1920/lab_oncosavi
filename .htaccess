@@ -1,0 +1,4 @@
+# La raíz contiene código y credenciales: el dominio debe apuntar a public_html.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>

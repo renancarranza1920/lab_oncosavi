@@ -40,7 +40,7 @@
                 padding: 20px;
             }
         </style>
-        @include('partials.tema-oncosavi')
+        @include('partials.tema-lameri')
 </head>
     <body>
         <div class="flex-center position-ref full-height">

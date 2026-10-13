@@ -8,7 +8,9 @@ use Illuminate\Console\Command;
 
 class ProtegerBitacoraSoporte extends Command
 {
-    protected $signature = 'oncosavi:proteger-bitacora-soporte';
+    protected $aliases = ['oncosavi:proteger-bitacora-soporte'];
+
+    protected $signature = 'lameri:proteger-bitacora-soporte';
     protected $description = 'Reserva los detalles de eventos anteriores de superadministradores, conservando su auditoría.';
 
     public function handle(): int

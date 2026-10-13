@@ -15,7 +15,7 @@
         .client-info p { margin: 0; line-height: 1.5; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 8px; text-align: left; }
-        thead th { background-color: #EAF4F8; color: #090B3B; border-bottom: 2px solid #ddd; }
+        thead th { background-color: #F2F2F2; color: #1E73BE; border-bottom: 2px solid #ddd; }
         .text-right { text-align: right; }
         .font-mono { font-family: 'Courier New', Courier, monospace; }
         .profile-main-row { font-weight: bold; }
@@ -27,7 +27,7 @@
         .total-section table { width: 100%; }
         .total-section td { padding: 5px 10px; } /* Padding un poco más compacto */
         
-        .total-final { font-size: 18px; font-weight: bold; background-color: #EAF4F8; color: #090B3B; }
+        .total-final { font-size: 18px; font-weight: bold; background-color: #F2F2F2; color: #1E73BE; }
         .total-final td { padding: 10px; border-top: 1px solid #ccc; } /* Borde superior para resaltar */
 
         .footer-note { margin-top: 40px; padding: 10px; border: 1px dashed #ccc; background-color: #fafafa; text-align: center; font-size: 11px; color: #777; }
@@ -103,7 +103,7 @@
                 </tr>
 
                 @if(isset($descuento) && $descuento > 0)
-                    <tr style="color: #E32737;"> <td>
+                    <tr style="color: #F6A623;"> <td>
                             Descuento 
                             @if(!empty($codigo))
                                 <span style="font-size: 10px; color: #666;">({{ $codigo }})</span>

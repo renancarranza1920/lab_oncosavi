@@ -1,19 +1,28 @@
 identidad:
-  nombre: ONCOSAVI
+  nombre: LABORATORIO CLÍNICO MERINO
+  nombre_corto: MERINO
   sede: San Vicente
-  logo: public/images/oncosavi.png
+  logo: public_html/images/merino-logo.png
+  logo_claro: public_html/images/merino-horizontal-claro.png
+  logo_oscuro: public_html/images/merino-horizontal-oscuro.png
+  favicon: public_html/images/merino-icono.png
 contacto:
-  correo: oncosavi@gmail.com
-  telefono: '+503 2393 0239'
-  whatsapp: '50323930239'
-  direccion: 'Calle 1 de Julio #23, Bo. San Francisco, San Vicente, El Salvador. Esquina opuesta a la Procuraduría.'
+  correo: '' # Configurar LABORATORIO_CORREO en .env.
+  telefono: '+503 2606-6596'
+  whatsapp: '+503 7595-4210'
+  direccion: '4ª Calle Oriente #6, B° San Francisco, San Vicente, El Salvador.'
+  web: https://app.laboratorioclinicomerino.com
+  administracion: https://app.laboratorioclinicomerino.com/admin
+  portal_medico: https://app.laboratorioclinicomerino.com/expediente
 paleta:
-  marino: '#090B3B'
-  celeste: '#64ABC6'
-  rojo: '#E32737'
+  azul: '#1E73BE'
+  naranja: '#F6A623'
+  verde: '#8BC34A'
   blanco: '#FFFFFF'
-reportes:
-  marca_de_agua: 'Texto diagonal ONCOSAVI, sin logo'
-  conservar_documentos_clinicos: true
-  conservar_firmas_y_sellos_personales: true
-  sello_institucional: null
+instalacion:
+  guia: README_HOSTINGER.md
+  rama: lameri_new
+  datos_iniciales: 'Catálogo, perfiles, valores de referencia, roles y permisos mediante seeders.'
+  historial_clinico_incluido: false
+  credenciales_produccion_incluidas: false
+  sello_institucional: 'Cargar desde Mi perfil después de instalar; no se incluye uno preestablecido.'

@@ -1,6 +1,8 @@
-# Criterios visuales del panel ONCOSAVI
+# Criterios visuales de Lameri
 
-El panel conserva su estructura, sus iconos de navegación y la identidad marino/celeste. Los colores de acciones se asignan mediante las APIs nativas de Filament.
+El panel de **LABORATORIO CLÍNICO MERINO** conserva las vistas y los flujos del sistema actualizado, con los logos y el diseño de Lameri. La identidad usa azul `#1E73BE`, naranja `#F6A623` y verde `#8BC34A`, con variantes para modo claro y oscuro. El panel está en `/admin` y el portal médico en `/expediente`.
+
+Los colores de acciones se asignan mediante las APIs nativas de Filament:
 
 | Uso | Color |
 | --- | --- |
@@ -14,32 +16,28 @@ El panel conserva su estructura, sus iconos de navegación y la identidad marino
 
 ## Tema y componentes
 
-- `config/ui.php` define la escala primaria completa; evita generar tonos oscuros ilegibles a partir de un único marino.
-- `config/estados.php` mantiene los tonos semánticos. Warning e info tienen suficiente contraste con texto blanco.
-- `AdminPanelProvider` registra sólo colores semánticos utilizados, sin alias de colores sin uso.
-- `partials/tema-oncosavi` comparte tokens de superficie, borde, texto y énfasis para los componentes propios, con variantes claras y oscuras.
-- Se eliminaron overrides globales de clases Tailwind y estilos `!important` sobre botones, badges y notificaciones. Los componentes nativos conservan sus estados interactivos.
-- Dos ajustes específicos cubren limitaciones medidas de Filament 3: hover de botones rellenos en oscuro e iconos neutros demasiado claros. Los estados deshabilitados conservan su tratamiento nativo.
-- Chips, tablas de resultados y tarjetas de reportes usan los mismos tokens. Los KPI emplean Heroicons y una paleta sobria.
-- Los colores clínicos de recipientes y los documentos PDF conservan sus estilos específicos.
+- `config/laboratorio.php` centraliza identidad, contacto y logos. El correo se configura mediante `LABORATORIO_CORREO`; no se presupone una cuenta de correo institucional.
+- `config/ui.php` define la escala primaria azul y la paleta de gráficos.
+- `config/estados.php` mantiene los tonos semánticos de estados, independientes de los colores de marca.
+- `AdminPanelProvider` registra los colores semánticos utilizados.
+- `resources/views/partials/tema-lameri.blade.php` comparte tokens de superficie, borde, texto y énfasis, con variantes claras y oscuras.
+- Chips, tablas de resultados y tarjetas de reportes utilizan los mismos tokens. Los componentes nativos conservan sus estados interactivos y deshabilitados.
+- Los colores clínicos de recipientes conservan su significado. Los PDFs utilizan el membrete y el formato de Merino, manteniendo resultados, referencias, firmas y sellos.
 
-El título de cierre de caja ofrece una etiqueta estática antes de `mount()`, porque Shield consulta títulos para los formularios de roles. Después de montar la página conserva el título dinámico y sus cálculos originales.
+El título de cierre de caja ofrece una etiqueta estática antes de `mount()`, porque Shield consulta títulos para los formularios de roles. Después de montar la página conserva el título dinámico y sus cálculos.
 
-## Validación
+## Comprobar cambios visuales
 
-Con el entorno preparado y desde la raíz del repositorio:
+La instalación y el empaquetado se describen en [README_HOSTINGER.md](../README_HOSTINGER.md). En desarrollo, desde la raíz del proyecto y con dependencias instaladas:
 
 ```bash
-composer install --no-interaction --prefer-source
 php artisan optimize:clear
 php artisan view:cache
-DB_CONNECTION=sqlite DB_DATABASE=:memory: php artisan test
+DB_CONNECTION=sqlite DB_DATABASE=:memory: php -d memory_limit=512M vendor/bin/phpunit
 npm ci
 npm run build
 ```
 
-En el entorno de nube, ejecutar antes `source /workspace/toolchain/activate.sh`. La opción `--prefer-source` evita ZIP de GitHub bloqueados por la política de red, respetando `composer.lock`.
+Estas instrucciones permiten repetir las comprobaciones; no son un informe de pruebas realizadas en el hosting. Usa una base aislada para PHPUnit, nunca la base operativa.
 
-La revisión incluyó 21 páginas principales, 27 formularios/vistas y el editor de matrices en Chromium, tanto en claro como en oscuro. Se comprobaron selección, carga y retirada de exámenes sin guardar el formulario, apertura del modal de orden y deshabilitación de impresión para un grupo vacío. Las comprobaciones utilizaron una copia temporal de SQLite con datos de prueba.
-
-Se midieron 198 combinaciones de componentes/temas/estados: al menos 4,5:1 para texto y 3:1 para iconos interactivos. Las pruebas de regresión cubren contraste de paletas, significado de estados, renderizado de enlaces y eliminación de resultados, y compatibilidad del título con Shield.
+Al revisar el navegador, comprueba login, navegación, tablas, formularios, modales, Kanban, editor de matrices y portal médico tanto en claro como en oscuro. Revisa selección y retirada de exámenes antes de guardar, apertura del detalle de orden, impresión deshabilitada de un grupo vacío y lectura de referencias largas. Genera PDFs con datos ficticios y varias páginas para verificar encabezados, tablas y firmas dentro de los márgenes. Las pruebas automatizadas de contraste y permisos complementan esta revisión.

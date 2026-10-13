@@ -11,15 +11,17 @@ use Illuminate\Support\Str;
 
 class CrearUsuariosPrueba extends Command
 {
-    protected $signature = 'oncosavi:usuarios-prueba';
+    protected $aliases = ['oncosavi:usuarios-prueba'];
+
+    protected $signature = 'lameri:usuarios-prueba';
     protected $description = 'Actualiza los roles y crea únicamente la cuenta de prueba del administrador.';
 
     public function handle(): int
     {
         $cuentas = ['prueba.admin' => 'admin'];
         foreach ($cuentas as $nickname => $rol) {
-            $usuario = User::where('nickname', $nickname)->orWhere('email', $nickname . '@oncosavi.test')->first();
-            if ($usuario && ($usuario->nickname !== $nickname || $usuario->email !== $nickname . '@oncosavi.test')) {
+            $usuario = User::where('nickname', $nickname)->orWhere('email', $nickname . '@lameri.test')->first();
+            if ($usuario && ($usuario->nickname !== $nickname || $usuario->email !== $nickname . '@lameri.test')) {
                 $this->error("La cuenta {$nickname} coincide con un usuario existente. No se realizaron cambios.");
                 return self::FAILURE;
             }
@@ -33,7 +35,7 @@ class CrearUsuariosPrueba extends Command
                 if (!$usuario->exists) {
                     $password = Str::password(24);
                     $usuario->fill([
-                        'name' => 'Prueba ' . $rol, 'email' => $nickname . '@oncosavi.test',
+                        'name' => 'Prueba ' . $rol, 'email' => $nickname . '@lameri.test',
                         'password' => $password,
                     ])->save();
                     $credenciales[] = ['usuario' => $nickname, 'rol' => $rol, 'password' => $password];

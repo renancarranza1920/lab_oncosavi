@@ -6,21 +6,21 @@
     <style>
         body { font-family: 'Helvetica', sans-serif; font-size: 12px; color: #333; }
         .container { width: 100%; margin: 0 auto; }
-        .header { border-bottom: 3px solid #64ABC6; padding-bottom: 12px; margin-bottom: 24px; }
+        .header { border-bottom: 3px solid #F6A623; padding-bottom: 12px; margin-bottom: 24px; }
         .header-main { width: 100%; border-collapse: collapse; margin: 0; }
         .header-main td { padding: 0; border: 0; vertical-align: middle; }
         .logo-cell { width: 82px; }
-        .logo-cell img { width: 68px; height: 68px; object-fit: contain; }
-        .brand-name { color: #090B3B; font-size: 24px; font-weight: bold; letter-spacing: 1.2px; line-height: 1; }
+        .logo-cell img { width: 68px; height: auto; }
+        .brand-name { color: #1E73BE; font-size: 17px; font-weight: bold; line-height: 1; }
         .brand-subtitle { margin-top: 5px; color: #476170; font-size: 9px; letter-spacing: .4px; }
         .brand-address { margin-top: 9px; max-width: 450px; color: #344B59; font-size: 8px; line-height: 1.35; }
         .document-cell { width: 235px; text-align: right; }
-        .document-kicker { color: #E32737; font-size: 8px; font-weight: bold; letter-spacing: 1.3px; }
-        h1 { color: #090B3B; font-size: 23px; margin: 4px 0 9px; line-height: 1.1; }
+        .document-kicker { color: #F6A623; font-size: 8px; font-weight: bold; letter-spacing: 1.3px; }
+        h1 { color: #1E73BE; font-size: 23px; margin: 4px 0 9px; line-height: 1.1; }
         .document-meta { color: #526976; font-size: 9px; line-height: 1.6; }
-        .contact-bar { width: 100%; border-collapse: collapse; margin: 12px 0 0; background: #F1F7F9; }
-        .contact-bar td { padding: 7px 10px; border: 0; vertical-align: middle; white-space: nowrap; color: #090B3B; font-size: 8px; }
-        .contact-bar a { color: #090B3B; text-decoration: none; }
+        .contact-bar { width: 100%; border-collapse: collapse; margin: 12px 0 0; background: #F5F5F5; }
+        .contact-bar td { padding: 7px 10px; border: 0; vertical-align: middle; white-space: nowrap; color: #1E73BE; font-size: 8px; }
+        .contact-bar a { color: #1E73BE; text-decoration: none; }
         .contact-icon { width: 13px; height: 13px; margin-right: 5px; vertical-align: -3px; }
         .contact-label { color: #607784; font-size: 7px; font-weight: bold; text-transform: uppercase; }
         .generated-by { margin: 9px 0 0; color: #607784; font-size: 9px; text-align: right; }
@@ -29,7 +29,7 @@
         table { width: 100%; border-collapse: collapse; margin-top: 20px; page-break-inside: auto; }
         tr { page-break-inside: avoid; page-break-after: auto; }
         th, td { padding: 8px; text-align: left; }
-        thead th { background-color: #EAF4F8; color: #090B3B; border-bottom: 2px solid #ddd; }
+        thead th { background-color: #F2F2F2; color: #1E73BE; border-bottom: 2px solid #ddd; }
         .text-right { text-align: right; }
         .font-mono { font-family: 'Courier New', Courier, monospace; }
         .profile-main-row { font-weight: bold; }
@@ -38,7 +38,7 @@
         .total-section { margin-top: 20px; float: right; width: 40%; }
         .total-section table { width: 100%; }
         .total-section td { padding: 10px; }
-        .total-final { font-size: 18px; font-weight: bold; background-color: #EAF4F8; color: #090B3B; }
+        .total-final { font-size: 18px; font-weight: bold; background-color: #F2F2F2; color: #1E73BE; }
         .footer-note { margin-top: 40px; padding: 10px; border-top: 1px solid #eee; text-align: center; font-size: 11px; color: #777; }
         @page { margin: 35px 25px; }
         footer { position: fixed; bottom: -20px; left: 0px; right: 0px; height: 30px; text-align: center; font-size: 10px; color: #aaa; }
@@ -79,15 +79,17 @@
                     <td>
                         <a href="{{ config('laboratorio.whatsapp_url') }}">
                             <img class="contact-icon" src="{{ public_path('images/icon-whatsapp.svg') }}" alt="">
-                            <span class="contact-label">WhatsApp</span>&nbsp; {{ config('laboratorio.telefono') }}
+                            <span class="contact-label">WhatsApp</span>&nbsp; {{ config('laboratorio.whatsapp') }}
                         </a>
                     </td>
+                    @if (config('laboratorio.correo'))
                     <td>
                         <a href="mailto:{{ config('laboratorio.correo') }}">
                             <img class="contact-icon" src="{{ public_path('images/icon-email.svg') }}" alt="">
                             <span class="contact-label">Correo</span>&nbsp; {{ config('laboratorio.correo') }}
                         </a>
                     </td>
+                    @endif
                 </tr>
             </table>
         </div>

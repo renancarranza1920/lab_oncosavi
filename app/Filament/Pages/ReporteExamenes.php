@@ -98,7 +98,7 @@ class ReporteExamenes extends Page
 
         return response()->streamDownload(
             fn () => print($pdf->output()),
-            'reporte-examenes-oncosavi-a4.pdf'
+            'reporte-examenes-merino-a4.pdf'
         );
     }
 }

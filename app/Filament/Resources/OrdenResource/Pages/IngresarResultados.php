@@ -1209,7 +1209,7 @@ public function enviarPdfParcial(array $data = [])
     $telefonoCliente = \App\Support\DestinoWhatsApp::resolver($record->cliente, $data);
 
     $labNombre = config('laboratorio.nombre');
-    $labTelefonos = config('laboratorio.telefono');
+    $labTelefonos = config('laboratorio.telefono').' | WhatsApp: '.config('laboratorio.whatsapp');
     $labCorreo = config('laboratorio.correo');
 
     $nombreCliente = \Illuminate\Support\Str::slug(
@@ -1238,7 +1238,10 @@ public function enviarPdfParcial(array $data = [])
     $mensajeBase .= "Por favor revise el documento PDF adjunto.\n\n";
     $mensajeBase .= "Para cualquier consulta estamos a su disposición en:\n";
     $mensajeBase .= "Teléfonos: {$labTelefonos}\n";
-    $mensajeBase .= "Correo: {$labCorreo}\n\n";
+    if (filled($labCorreo)) {
+        $mensajeBase .= "Correo: {$labCorreo}\n";
+    }
+    $mensajeBase .= "\n";
     $mensajeBase .= "Gracias por confiar en nosotros.";
 
     $correoCliente = $record->cliente->correo;

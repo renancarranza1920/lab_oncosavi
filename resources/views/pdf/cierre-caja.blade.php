@@ -8,31 +8,31 @@
         body { margin: 0; font-family: DejaVu Sans, sans-serif; color: #182A37; font-size: 9px; }
         .page-number { position: fixed; right: 0; bottom: -21px; color: #78909C; font-size: 8px; }
         .page-number:after { content: "Página " counter(page); }
-        .header { width: 100%; border-collapse: collapse; border-bottom: 2px solid #64ABC6; padding-bottom: 8px; }
+        .header { width: 100%; border-collapse: collapse; border-bottom: 2px solid #F6A623; padding-bottom: 8px; }
         .header td { padding: 0; vertical-align: middle; }
-        .logo { width: 52px; height: 52px; }
+        .logo { width: 52px; height: auto; }
         .brand { padding-left: 10px !important; }
-        .brand-name { color: #090B3B; font-size: 20px; font-weight: bold; letter-spacing: 1px; }
+        .brand-name { color: #1E73BE; font-size: 15px; font-weight: bold; }
         .brand-subtitle { margin-top: 3px; color: #526976; font-size: 8px; }
         .title { text-align: right; }
-        .title small { color: #E32737; font-size: 7px; font-weight: bold; letter-spacing: 1px; }
-        .title h1 { margin: 3px 0; color: #090B3B; font-size: 20px; }
+        .title small { color: #F6A623; font-size: 7px; font-weight: bold; letter-spacing: 1px; }
+        .title h1 { margin: 3px 0; color: #1E73BE; font-size: 20px; }
         .title div { color: #526976; font-size: 8px; }
-        .contact { width: 100%; border-collapse: collapse; margin: 8px 0 12px; background: #F1F7F9; }
-        .contact td { padding: 5px 8px; white-space: nowrap; color: #090B3B; font-size: 7px; }
+        .contact { width: 100%; border-collapse: collapse; margin: 8px 0 12px; background: #F5F5F5; }
+        .contact td { padding: 5px 8px; white-space: nowrap; color: #1E73BE; font-size: 7px; }
         .contact img { width: 11px; height: 11px; margin-right: 4px; vertical-align: -3px; }
         .contact strong { color: #607784; font-size: 6px; text-transform: uppercase; }
-        .period { margin-bottom: 12px; padding: 7px 10px; border-left: 3px solid #E32737; background: #FAFBFC; }
-        .period strong { color: #090B3B; font-size: 11px; }
+        .period { margin-bottom: 12px; padding: 7px 10px; border-left: 3px solid #F6A623; background: #FAFBFC; }
+        .period strong { color: #1E73BE; font-size: 11px; }
         .summary { width: 100%; border-collapse: separate; border-spacing: 5px 0; margin: 0 -5px 13px; }
         .summary td { width: 20%; padding: 9px; border: 1px solid #DCE7EB; background: #F8FBFC; }
         .summary-label { color: #607784; font-size: 7px; text-transform: uppercase; }
-        .summary-value { margin-top: 3px; color: #090B3B; font-size: 15px; font-weight: bold; }
+        .summary-value { margin-top: 3px; color: #1E73BE; font-size: 15px; font-weight: bold; }
         .summary-value.net { color: #218657; }
         .summary-value.discount { color: #B7791F; }
-        h2 { margin: 13px 0 5px; padding-bottom: 4px; border-bottom: 1px solid #64ABC6; color: #090B3B; font-size: 11px; }
+        h2 { margin: 13px 0 5px; padding-bottom: 4px; border-bottom: 1px solid #F6A623; color: #1E73BE; font-size: 11px; }
         table.data { width: 100%; border-collapse: collapse; }
-        .data th { padding: 5px 6px; background: #EAF4F8; color: #090B3B; text-align: left; font-size: 7px; text-transform: uppercase; }
+        .data th { padding: 5px 6px; background: #F2F2F2; color: #1E73BE; text-align: left; font-size: 7px; text-transform: uppercase; }
         .data td { padding: 4px 6px; border-bottom: 1px solid #E8EEF1; }
         .right { text-align: right !important; }
         .center { text-align: center !important; }
@@ -66,8 +66,10 @@
     <table class="contact">
         <tr>
             <td><img src="{{ public_path('images/icon-phone.svg') }}" alt=""><strong>Llamadas</strong>&nbsp; {{ config('laboratorio.telefono') }}</td>
-            <td><img src="{{ public_path('images/icon-whatsapp.svg') }}" alt=""><strong>WhatsApp</strong>&nbsp; {{ config('laboratorio.telefono') }}</td>
+            <td><img src="{{ public_path('images/icon-whatsapp.svg') }}" alt=""><strong>WhatsApp</strong>&nbsp; {{ config('laboratorio.whatsapp') }}</td>
+            @if (config('laboratorio.correo'))
             <td><img src="{{ public_path('images/icon-email.svg') }}" alt=""><strong>Correo</strong>&nbsp; {{ config('laboratorio.correo') }}</td>
+            @endif
         </tr>
     </table>
 

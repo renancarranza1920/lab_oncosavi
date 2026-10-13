@@ -7,7 +7,9 @@ use Illuminate\Console\Command;
 
 class EliminarUsuariosPrueba extends Command
 {
-    protected $signature = 'oncosavi:eliminar-usuarios-prueba';
+    protected $aliases = ['oncosavi:eliminar-usuarios-prueba'];
+
+    protected $signature = 'lameri:eliminar-usuarios-prueba';
 
     protected $description = 'Retira las cuentas de prueba del personal y conserva administradores, roles y datos clínicos.';
 

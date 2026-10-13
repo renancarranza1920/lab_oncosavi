@@ -52,7 +52,7 @@ class AdminPanelProvider extends PanelProvider
             'warning' => config('estados.warning.base'),
             'danger' => config('estados.danger.base'),
         ]);
-        $panel->renderHook('panels::head.end', fn () => view('partials.tema-oncosavi'));
+        $panel->renderHook('panels::head.end', fn () => view('partials.tema-lameri'));
         $panel->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources');
         $panel->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages');
         
@@ -88,7 +88,7 @@ class AdminPanelProvider extends PanelProvider
             Authenticate::class,
         ]);
         $panel->brandLogo(fn () => view('components.logo'));
-        $panel->favicon(asset(config('laboratorio.logo')));
+        $panel->favicon(asset(config('laboratorio.favicon')));
 
         $panel->navigationGroups([
             'Atención al Paciente',    // Grupo 1 (Arriba)

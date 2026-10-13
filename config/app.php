@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'ONCOSAVI'),
+    'name' => env('APP_NAME', 'Laboratorio Clínico Merino'),
 
     /*
     |--------------------------------------------------------------------------

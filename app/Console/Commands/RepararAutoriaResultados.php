@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Cache;
 
 class RepararAutoriaResultados extends Command
 {
-    protected $signature = 'oncosavi:reparar-autoria-resultados
+    protected $aliases = ['oncosavi:reparar-autoria-resultados'];
+
+    protected $signature = 'lameri:reparar-autoria-resultados
         {orden : ID de la orden afectada}
         {--desde-usuario= : ID del usuario que quedó asignado por error}
         {--ejecutar : Recuperar la autoría comprobada, con respaldo privado y bitácora}';

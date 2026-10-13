@@ -26,7 +26,7 @@
             @endforeach
         }
     </style>
-    @include('partials.tema-oncosavi')
+    @include('partials.tema-lameri')
     @vite(['resources/css/app.css', 'resources/css/expediente.css', 'resources/js/expediente.js'])
 </head>
 <body class="portal-body @yield('body-class')">

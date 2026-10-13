@@ -9,7 +9,9 @@ use Illuminate\Support\Str;
 
 class CrearAccesoMedicoGeneral extends Command
 {
-    protected $signature = 'oncosavi:portal-medicos-general {--renovar : Generar una nueva contraseña y cerrar las sesiones actuales}';
+    protected $aliases = ['oncosavi:portal-medicos-general'];
+
+    protected $signature = 'lameri:portal-medicos-general {--renovar : Generar una nueva contraseña y cerrar las sesiones actuales}';
 
     protected $description = 'Habilita el usuario medicos y guarda su contraseña aleatoria en un archivo privado.';
 

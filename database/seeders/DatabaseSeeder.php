@@ -2,21 +2,14 @@
 
 namespace Database\Seeders;
 
-use App\Models\PlantillaReferencia;
-use DB;
-use Route;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
-use App\Models\TipoExamen;
-use App\Models\Examen;
 use App\Models\User;
-use App\Models\Cliente;
-use App\Models\Muestra;
-use App\Models\Perfil;
-use App\Models\DetallePerfil;
-use Hash;
 use Illuminate\Database\Seeder;
-use Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use RuntimeException;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class DatabaseSeeder extends Seeder
@@ -25,16 +18,7 @@ class DatabaseSeeder extends Seeder
     {
         Log::info('Iniciando el seeder...');
 
-        // Crear usuario administrador (misma lógica del DatabaseSeeder original)
-        $admin = User::updateOrCreate([
-            'nickname' => 'oncosavi',
-        ], [
-            'name' => 'Administración ONCOSAVI',
-            'email' => config('laboratorio.correo'),
-            'password' => Hash::make('admin123'),
-        ]);
-
-        Log::info('Usuario administrador creado:', ['email' => $admin->email]);
+        $admin = $this->administrador();
 
         // Crear rol "admin"
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
@@ -54,7 +38,7 @@ class DatabaseSeeder extends Seeder
 
         Log::info('Rol y permisos asignados al usuario administrador.');
 
-                // Cargar el catálogo completo de ONCOSAVI en el orden requerido por las FK.
+        // Conservar el catálogo de ONCOSAVI sin importar registros operativos.
         DB::transaction(function (): void {
             $this->seedTiposExamen();
             $this->seedExamenes();
@@ -69,6 +53,39 @@ class DatabaseSeeder extends Seeder
         });
 
         Log::info('Seeder finalizado correctamente.');
+    }
+
+    private function administrador(): User
+    {
+        $nickname = trim((string) config('laboratorio.admin_nickname', 'lameri'));
+        if ($nickname === '') {
+            throw new RuntimeException('Configura LAMERI_ADMIN_NICKNAME antes de ejecutar el seeder.');
+        }
+
+        // Repetir la instalación no cambia el acceso ni el perfil de una cuenta existente.
+        $admin = User::where('nickname', $nickname)->first();
+        if ($admin) {
+            return $admin;
+        }
+
+        $email = trim((string) config('laboratorio.admin_correo'));
+        $password = (string) config('laboratorio.admin_password');
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException('Configura un LAMERI_ADMIN_EMAIL válido antes de crear el administrador.');
+        }
+        if (trim($password) === '') {
+            throw new RuntimeException('Configura LAMERI_ADMIN_PASSWORD antes de crear el administrador.');
+        }
+        if (User::where('email', $email)->exists()) {
+            throw new RuntimeException('LAMERI_ADMIN_EMAIL ya pertenece a otro usuario. No se modificó esa cuenta.');
+        }
+
+        return User::create([
+            'nickname' => $nickname,
+            'name' => config('laboratorio.admin_nombre', 'Administración Lameri'),
+            'email' => $email,
+            'password' => Hash::make($password),
+        ]);
     }
 
     // =====================================================================
@@ -296,6 +313,10 @@ class DatabaseSeeder extends Seeder
             // Tipo 13: Minerales
             ['id' => 168, 'tipo_examen_id' => 13, 'nombre' => 'VITAMINA D', 'es_externo' => 0, 'precio' => 50.0, 'recipiente' => 'quimica_sanguinea', 'estado' => 1],
 
+            // Ambas presentaciones de hemocultivo pertenecen a Bacteriología.
+            ['id' => 169, 'tipo_examen_id' => 1, 'nombre' => 'HEMOCULTIVO', 'es_externo' => 1, 'precio' => 25.0, 'recipiente' => 'coprologia', 'estado' => 1],
+            ['id' => 170, 'tipo_examen_id' => 1, 'nombre' => 'HEMOCULTIVO', 'es_externo' => 1, 'precio' => 25.0, 'recipiente' => 'hematologia', 'estado' => 1],
+
         ];
 
         foreach (array_chunk($rows, 250) as $chunk) {
@@ -519,6 +540,8 @@ class DatabaseSeeder extends Seeder
             ['examen_id' => 26, 'muestra_id' => 6],
             ['examen_id' => 97, 'muestra_id' => 21],
             ['examen_id' => 81, 'muestra_id' => 21],
+            ['examen_id' => 169, 'muestra_id' => 15],
+            ['examen_id' => 170, 'muestra_id' => 15],
         ];
 
         foreach (array_chunk($rows, 250) as $chunk) {

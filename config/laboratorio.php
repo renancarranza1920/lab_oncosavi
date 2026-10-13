@@ -1,22 +1,51 @@
 <?php
 
+$nombre = 'LABORATORIO CLÍNICO MERINO';
+$correo = trim((string) env('LABORATORIO_CORREO', ''));
+$whatsappUrl = 'https://wa.me/50375954210?'.http_build_query([
+    'text' => 'Hola, deseo solicitar información sobre los servicios de '.$nombre.'.',
+], '', '&', PHP_QUERY_RFC3986);
+
 return [
     // Reactivar cuando estén disponibles las etiquetas y la impresora.
     'impresion_etiquetas_habilitada' => env('IMPRESION_ETIQUETAS_HABILITADA', false),
-    'nombre' => 'ONCOSAVI',
+    'nombre' => $nombre,
+    'nombre_corto' => 'MERINO',
     'sede' => 'San Vicente',
-    'correo' => 'oncosavi@gmail.com',
-    'telefono' => '+503 2393 0239',
-    'telefono_uri' => 'tel:+50323930239',
-    'whatsapp_url' => 'https://wa.me/50323930239?text=Hola%2C%20deseo%20solicitar%20informaci%C3%B3n%20sobre%20los%20servicios%20de%20ONCOSAVI.',
-    'correo_url' => 'https://mail.google.com/mail/?view=cm&fs=1&to=oncosavi@gmail.com&su=Consulta%20desde%20el%20sitio%20web%20de%20ONCOSAVI',
-    'direccion' => 'Calle 1 de Julio #23, Bo. San Francisco, San Vicente, El Salvador. Esquina opuesta a la Procuraduría.',
-    'mapa_url' => 'https://www.bing.com/maps?where1=Oncosavi%2C%20Calle%201%20de%20Julio%20%2323%20Bo%20San%20Francisco%2C%20San%20Vicente%2C%20El%20Salvador',
-    'logo' => 'images/oncosavi.png',
+    'correo' => $correo,
+    'telefono' => '+503 2606-6596',
+    'telefono_uri' => 'tel:+50326066596',
+    'whatsapp' => '+503 7595-4210',
+    'whatsapp_url' => $whatsappUrl,
+    'correo_url' => $correo !== ''
+        ? 'https://mail.google.com/mail/?'.http_build_query([
+            'view' => 'cm', 'fs' => '1', 'to' => $correo,
+            'su' => 'Consulta desde el sitio web de '.$nombre,
+        ], '', '&', PHP_QUERY_RFC3986)
+        : $whatsappUrl,
+    'direccion' => '4ª Calle Oriente #6, B° San Francisco, San Vicente, El Salvador.',
+    'mapa_url' => 'https://www.bing.com/maps?'.http_build_query([
+        'where1' => 'Laboratorio Clínico Merino, 4ª Calle Oriente #6, B° San Francisco, San Vicente, El Salvador',
+    ], '', '&', PHP_QUERY_RFC3986),
+    'web_url' => 'https://app.laboratorioclinicomerino.com',
+    'logo' => 'images/merino-logo.png',
+    'logo_claro' => 'images/merino-horizontal-claro.png',
+    'logo_oscuro' => 'images/merino-horizontal-oscuro.png',
+    'favicon' => 'images/merino-icono.png',
+    'admin_nickname' => env('LAMERI_ADMIN_NICKNAME', 'lameri'),
+    'admin_nombre' => env('LAMERI_ADMIN_NAME', 'Administración Lameri'),
+    'admin_correo' => env('LAMERI_ADMIN_EMAIL', $correo),
+    'admin_password' => env('LAMERI_ADMIN_PASSWORD'),
     'colores' => [
-        'marino' => '#090B3B',
-        'celeste' => '#64ABC6',
-        'rojo' => '#E32737',
+        'azul' => '#1E73BE',
+        'azul_claro' => '#3A8FD1',
+        'azul_oscuro' => '#155A92',
+        'naranja' => '#F6A623',
+        'verde' => '#8BC34A',
+        // Compatibilidad con vistas que consumen las claves históricas del tema.
+        'marino' => '#155A92',
+        'celeste' => '#1E73BE',
+        'rojo' => '#F6A623',
         'blanco' => '#FFFFFF',
     ],
 ];

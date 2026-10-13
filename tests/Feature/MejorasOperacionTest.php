@@ -118,12 +118,14 @@ class MejorasOperacionTest extends TestCase
 
     public function test_guarda_varios_paises_y_busca_por_un_numero_secundario(): void
     {
-        Livewire::test(CreateClientes::class)->fillForm([
+        $pagina = Livewire::test(CreateClientes::class);
+        $clave = array_key_first($pagina->get('data.telefonos'));
+        $pagina->fillForm([
             'nombre' => 'Contacto', 'apellido' => 'Múltiple', 'genero' => 'Femenino',
             'telefonos' => [
-                ['formato' => 'sv', 'numero' => '7777-8888'],
-                ['formato' => 'us', 'numero' => '(202) 555-0123'],
-                ['formato' => 'internacional', 'numero' => '(502)1234-5678'],
+                $clave => ['formato' => 'sv', 'numero' => '7777-8888'],
+                \Illuminate\Support\Str::uuid()->toString() => ['formato' => 'us', 'numero' => '(202) 555-0123'],
+                \Illuminate\Support\Str::uuid()->toString() => ['formato' => 'internacional', 'numero' => '(502)1234-5678'],
             ],
         ])->call('create')->assertHasNoFormErrors();
         $cliente = Cliente::where('nombre', 'Contacto')->firstOrFail();

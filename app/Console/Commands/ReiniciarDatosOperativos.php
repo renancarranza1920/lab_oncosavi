@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Cache;
 
 class ReiniciarDatosOperativos extends Command
 {
-    protected $signature = 'oncosavi:reiniciar-operaciones {--ejecutar : Vaciar los datos operativos y reiniciar sus IDs}';
+    protected $aliases = ['oncosavi:reiniciar-operaciones'];
+
+    protected $signature = 'lameri:reiniciar-operaciones {--ejecutar : Vaciar los datos operativos y reiniciar sus IDs}';
 
     protected $description = 'Prepara el inicio de operaciones conservando personal, firmas, sellos, catálogos y acceso médico general.';
 

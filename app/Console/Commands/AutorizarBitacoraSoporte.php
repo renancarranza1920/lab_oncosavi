@@ -8,7 +8,9 @@ use Spatie\Permission\Models\Permission;
 
 class AutorizarBitacoraSoporte extends Command
 {
-    protected $signature = 'oncosavi:autorizar-bitacora-soporte {usuario : Usuario administrador del propietario} {--revocar : Retirar el permiso directo}';
+    protected $aliases = ['oncosavi:autorizar-bitacora-soporte'];
+
+    protected $signature = 'lameri:autorizar-bitacora-soporte {usuario : Usuario administrador del propietario} {--revocar : Retirar el permiso directo}';
     protected $description = 'Autoriza al propietario a consultar la auditoría reservada de soporte.';
 
     public function handle(): int

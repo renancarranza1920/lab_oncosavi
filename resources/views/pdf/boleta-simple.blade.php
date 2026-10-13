@@ -20,7 +20,7 @@
         .uppercase { text-transform: uppercase; }
 
         /* HEADER Y TABLAS */
-        .header { border-bottom: 2px solid #090B3B; padding-bottom: 5px; margin-bottom: 10px; }
+        .header { border-bottom: 2px solid #1E73BE; padding-bottom: 5px; margin-bottom: 10px; }
         .title { font-size: 14px; font-weight: bold; }
 
         .info-table { width: 100%; margin-bottom: 10px; }

@@ -5,7 +5,7 @@
     <title>{{ $title ?? 'Órdenes' }} · {{ config('laboratorio.nombre') }}</title>
     @vite('resources/css/app.css')
     @livewireStyles
-    @include('partials.tema-oncosavi')
+    @include('partials.tema-lameri')
 </head>
 <body>
     {{ $slot }}

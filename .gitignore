@@ -12,6 +12,17 @@
 .env.backup
 .env.production
 .env.whatsapp
+.env.*
+!.env.example
+/public_html/build
+/public_html/hot
+/public_html/storage
+/output
+*.sql
+*.sqlite
+*.sqlite3
+/storage/fonts/*
+!/storage/fonts/.gitignore
 .phpactor.json
 .phpunit.result.cache
 Homestead.json

@@ -2284,7 +2284,7 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
         $labNombre = config('laboratorio.nombre');
 
-        $labTelefonos = config('laboratorio.telefono');
+        $labTelefonos = config('laboratorio.telefono').' | WhatsApp: '.config('laboratorio.whatsapp');
 
         // Datos de contacto institucionales.
 
@@ -2327,7 +2327,10 @@ Tables\Actions\Action::make('enviarPorCorreoOWhatsApp')
 
         $mensajeBase .= " Teléfonos: {$labTelefonos}\n";
 
-        $mensajeBase .= " Correo: {$labCorreo}\n\n"; // <--- CAMBIO AQUÍ
+        if (filled($labCorreo)) {
+            $mensajeBase .= " Correo: {$labCorreo}\n";
+        }
+        $mensajeBase .= "\n";
 
         $mensajeBase .= "¡Gracias por confiar en nosotros! Que tenga un excelente día.";
 

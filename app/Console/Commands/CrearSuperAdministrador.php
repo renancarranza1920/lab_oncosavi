@@ -11,13 +11,15 @@ use Spatie\Permission\Models\Role;
 
 class CrearSuperAdministrador extends Command
 {
-    protected $signature = 'oncosavi:crear-superadmin';
+    protected $aliases = ['oncosavi:crear-superadmin'];
+
+    protected $signature = 'lameri:crear-superadmin';
     protected $description = 'Crea una cuenta identificada de soporte técnico con acceso administrativo y auditoría completa.';
 
     public function handle(): int
     {
         $nickname = 'soporte.superadmin';
-        $email = 'soporte@oncosavi.invalid';
+        $email = 'soporte@lameri.invalid';
         $existente = User::where('nickname', $nickname)->orWhere('email', $email)->first();
         if ($existente) {
             if ($existente->nickname !== $nickname || $existente->email !== $email || ! $existente->hasRole('super_admin')) {

@@ -81,9 +81,9 @@ body {
 }
 
 .area-title {
-    background-color: #203552;
-    border: none;
-    color: #fff;
+    background-color: #f4f4f4;
+    border-left: 5px solid #FFB800;
+    color: #333;
     text-align: center;
     width: 70%;
     margin: 0 auto;
@@ -93,21 +93,16 @@ body {
     text-transform: uppercase;
 }
 
-/* Membrete y marcas de agua del laboratorio */
-.crab-watermark { position: fixed; top: 85px; left: -315px; width: 630px; height: 530px; z-index: -1000; }
-.brand-watermark { position: fixed; top: 90px; right: -25px; width: 28px; color: #edf0f2; font-size: 33px; font-weight: bold; text-align: center; z-index: -1000; }
-.brand-watermark span { display: block; line-height: 54px; }
-.paper-top-corner { position: absolute; top: 0; left: -23px; width: 410px; height: 74px; }
-.paper-results-brand { position: relative; height: 86px; }
-.paper-brand-name { position: absolute; top: 31px; right: 92px; color: #18243b; font-size: 16px; font-weight: bold; font-style: italic; line-height: 1.1; }
-.paper-brand-name strong { display: block; font-size: 24px; }
-.paper-results-logo { position: absolute; right: 0; top: 11px; width: 79px; height: 79px; }
+/* Membrete original de Merino: gris claro y acento amarillo */
+.paper-results-brand { position: relative; height: 86px; background: #f5f5f5; border-left: 4px solid #FFB800; border-radius: 12px; }
+.paper-brand-name { position: absolute; top: 14px; left: 16px; right: 94px; color: #1E73BE; font-size: 17px; font-weight: bold; line-height: 1.1; }
+.paper-brand-subtitle { position: absolute; top: 40px; left: 16px; right: 94px; font-size: 8px; line-height: 1.5; color: #555; }
+.paper-results-logo { position: absolute; right: 10px; top: 10px; width: 65px; height: auto; }
 .paper-address { font-weight: bold; margin-bottom: 5px; font-size: 9px; max-width: 590px; }
 .paper-contact-table { border-collapse: collapse; font-size: 8px; }
 .paper-contact-table td { padding: 0 17px 0 0; vertical-align: middle; }
 .paper-contact-table img { width: 10px; height: 10px; vertical-align: middle; }
-.paper-contact { position: relative; z-index: 2; }
-.paper-bottom-corner { position: absolute; right: -23px; bottom: 0; width: 330px; height: 60px; transform: rotate(180deg); z-index: -1; }
+.paper-contact { position: relative; z-index: 2; border-top: 2px solid #F6A623; padding-top: 7px; }
 /* ================= TABLA RESULTADOS ================= */
 
 .results-table {
@@ -122,8 +117,8 @@ body {
 }
 
 .results-table thead th {
-    background-color: #203552;
-    color: #fff;
+    background-color: #FFB800;
+    color: #333;
     border: none;
     text-align: center;
     padding: 3px;
@@ -132,7 +127,7 @@ body {
 
 .results-table thead th.muestra-header {
     background: transparent;
-    color: #203552;
+    color: #1E73BE;
     text-align: left;
     padding: 0 0 5px;
 }
@@ -238,7 +233,7 @@ body {
 
 /* Encabezado repetido en todas las hojas */
 .header-clean { position: fixed; top: -218px; left: 0; right: 0; height: 210px; }
-.patient-card { margin-top: 10px; padding: 0 0 13px; border-bottom: 1px solid #526075; }
+.patient-card { margin-top: 7px; padding: 6px 10px 9px; background: #f8f9fb; border-left: 4px solid #FFB800; border-radius: 10px; }
 .patient-card table { width: 100%; border-collapse: collapse; font-size: 10px; color: #16202b; }
 .patient-card td { padding: 3px 0; vertical-align: top; }
 .patient-card .patient-label { font-weight: bold; text-transform: uppercase; }
@@ -289,8 +284,6 @@ footer .page-number:before { content: "Página " counter(page); }
 </head>
 
 <body>
-    <img class="crab-watermark" src="{{ public_path('images/pdf-crab.svg') }}" alt="">
-    <div class="brand-watermark">@foreach (str_split('ONCOSAVI') as $letra)<span>{{ $letra }}</span>@endforeach</div>
         @php
 $normalizarSimbolosClinicos = fn ($texto) => $texto;
 
@@ -418,9 +411,12 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
 
     <header class="header-clean">
         <div class="paper-results-brand">
-            <img class="paper-top-corner" src="{{ public_path('images/pdf-corner.svg') }}" alt="">
-            <div class="paper-brand-name">LABORATORIO CLÍNICO<strong>{{ config('laboratorio.nombre') }}</strong></div>
-            @if (!empty($logo_b64))<img class="paper-results-logo" src="{{ $logo_b64 }}" alt="ONCOSAVI">@endif
+            <div class="paper-brand-name">{{ config('laboratorio.nombre') }}</div>
+            <div class="paper-brand-subtitle">
+                {{ config('laboratorio.direccion') }}<br>
+                Tel: {{ config('laboratorio.telefono') }} &nbsp; | &nbsp; WhatsApp: {{ config('laboratorio.whatsapp') }}
+            </div>
+            @if (!empty($logo_b64))<img class="paper-results-logo" src="{{ $logo_b64 }}" alt="{{ config('laboratorio.nombre') }}">@endif
         </div>
         <div class="patient-card">
             <table>

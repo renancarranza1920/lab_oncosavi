@@ -201,7 +201,7 @@ class CreateCotizacion extends ResourcePage implements HasForms
             "Compartimos el resumen de su cotización:\n\n" .
             $this->getTextSummary($get) . "\n\n" .
             "Gracias por confiar en nosotros.\n" .
-            config('laboratorio.telefono') . ' · ' . config('laboratorio.correo');
+            implode(' · ', array_filter([config('laboratorio.telefono'), 'WhatsApp: '.config('laboratorio.whatsapp'), config('laboratorio.correo')]));
 
         return "https://wa.me/{$numero}?text=" . rawurlencode($mensaje);
     }
@@ -217,7 +217,7 @@ class CreateCotizacion extends ResourcePage implements HasForms
             $this->getTextSummary($get) . "\n\nAtentamente,\n" .
             (Auth::user()?->name ?? config('laboratorio.nombre')) . "\n" .
             config('laboratorio.nombre') . "\n" .
-            config('laboratorio.telefono') . ' · ' . config('laboratorio.correo');
+            implode(' · ', array_filter([config('laboratorio.telefono'), 'WhatsApp: '.config('laboratorio.whatsapp'), config('laboratorio.correo')]));
 
         return 'https://mail.google.com/mail/?' . http_build_query([
             'view' => 'cm', 'fs' => '1', 'to' => $get('email'),

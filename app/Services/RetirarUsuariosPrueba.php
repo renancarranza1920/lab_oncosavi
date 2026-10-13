@@ -22,11 +22,11 @@ class RetirarUsuariosPrueba
                     $query->whereIn('name', self::NOMBRES);
                     foreach (self::CUENTAS as $nickname) {
                         $query->orWhere(fn (Builder $q) => $q->where('nickname', $nickname)
-                            ->where('email', $nickname.'@oncosavi.test'));
+                            ->whereIn('email', [$nickname.'@oncosavi.test', $nickname.'@lameri.test']));
                     }
                 })
                 ->where(fn (Builder $q) => $q->whereNull('nickname')
-                    ->orWhereNotIn('nickname', ['prueba.admin', 'oncosavi', 'saulmerino']))
+                    ->orWhereNotIn('nickname', ['prueba.admin', 'oncosavi', 'saulmerino', config('laboratorio.admin_nickname')]))
                 ->whereDoesntHave('roles', fn (Builder $q) => $q->whereRaw('LOWER(name) = ?', ['admin']))
                 ->lockForUpdate()->get();
 

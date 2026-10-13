@@ -9,7 +9,7 @@
             No tienes los permisos necesarios para acceder a esta página.
         </p>
         <a href="{{ app('router')->has('filament.admin.pages.dashboard') ? route('filament.admin.pages.dashboard') : url('/') }}"
-           style="display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #090B3B; color: white; text-decoration: none; border-radius: 5px;"
+           style="display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: {{ config('laboratorio.colores.azul') }}; color: white; text-decoration: none; border-radius: 5px;"
         >
             Volver al Inicio
         </a>
