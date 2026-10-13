@@ -17,9 +17,34 @@ Precios de exámenes, perfiles e incluidos; horarios, dirección y mapas; teléf
 
 El asistente no utiliza IA, no envía el texto de las preguntas a un servidor y no guarda conversaciones. El endpoint consulta únicamente `examens`, `tipo_examens`, `perfil` y `detalle_perfil`; conserva el precio propio de cada perfil y respeta los estados activos. No consulta datos clínicos ni modifica la base.
 
+## Actualizar por comandos en Hostinger
+
+Si instalaste el ZIP, conecta una sola vez la carpeta actual del dominio a Git desde SSH:
+
+```bash
+cd ~/domains/laboratorioclinicomerino.com
+LAMERI_WEB_GIT_TMP="$(mktemp -d)"
+git clone --depth 1 --single-branch --branch lameri_web_publica \
+  https://github.com/renancarranza1920/lab_oncosavi.git "$LAMERI_WEB_GIT_TMP" && \
+bash "$LAMERI_WEB_GIT_TMP/scripts/connect-hostinger-git.sh" "$PWD"
+```
+
+El conector respalda la web en una carpeta privada y mantiene la ubicación actual del dominio. Conserva `configuracion/lameri-publica.php`, su caché y los archivos ajenos a Git. La configuración privada de MySQL se completa según la guía si todavía falta.
+
+Después, las siguientes actualizaciones utilizan:
+
+```bash
+cd ~/domains/laboratorioclinicomerino.com
+bash scripts/update-hostinger.sh
+```
+
+El actualizador comprueba la rama y los cambios locales, obtiene la versión publicada, valida el código PHP y guarda un respaldo privado antes de actualizar. Conserva las credenciales y no ejecuta operaciones sobre MySQL. Las modificaciones locales de archivos versionados deben revisarse antes de volver a actualizar.
+
+Los precios y el contenido del catálogo se actualizan desde la base anterior, normalmente en un minuto; no requieren actualizar el código con Git. Los scripts de esta rama corresponden a la web del dominio principal.
+
 ## Archivos
 
-`public_html/` contiene la página original, el asistente y la API del catálogo. `configuracion/` incluye únicamente el ejemplo privado de conexión. `entregables/` contiene el ZIP y la guía para instalar esta entrega.
+`public_html/` contiene la página original, el asistente y la API del catálogo. `configuracion/` incluye únicamente el ejemplo privado de conexión. `scripts/` permite conectar la instalación y actualizarla desde SSH. `entregables/` contiene el ZIP y la guía para instalar esta entrega.
 
 ## Validación
 

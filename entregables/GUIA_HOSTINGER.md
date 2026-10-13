@@ -1,6 +1,6 @@
 # Web pública de Laboratorio Clínico Merino
 
-Esta entrega corresponde a **laboratorioclinicomerino.com** y se sube manualmente. Conserva la web original y añade un asistente de respuestas predefinidas, sin servicios de inteligencia artificial. Consulta el catálogo de la **base del Lameri anterior**, como pediste.
+Esta entrega corresponde a **laboratorioclinicomerino.com**. Puedes instalarla desde el ZIP y después actualizarla por comandos Git. Conserva la web original y añade un asistente de respuestas predefinidas, sin servicios de inteligencia artificial. Consulta el catálogo de la **base del Lameri anterior**, como pediste.
 
 ## Dónde extraer el ZIP
 
@@ -94,4 +94,43 @@ La base anterior exige al menos dos exámenes activos para mantener activo un pe
 
 Los datos públicos y respuestas se mantienen en `public_html/assets/merino-chat-config.js`. Puedes editar los textos con el editor de Hostinger. Los precios siempre proceden de MySQL. Las modificaciones del contenido de la página original y del asistente deben conservar sus datos de contacto y horarios coherentes.
 
-Para actualizar esta web, reemplaza manualmente los archivos de `public_html` de la entrega nueva. Conserva `configuracion/lameri-publica.php` y sus credenciales. Los archivos de este proyecto se entregan separados del repositorio del sistema clínico.
+Para actualizarla manualmente, reemplaza los archivos de `public_html` de la entrega nueva y conserva `configuracion/lameri-publica.php` y sus credenciales. Para utilizar comandos desde SSH, sigue el procedimiento de abajo.
+
+## Conectar la web a Git una sola vez
+
+Este procedimiento se ejecuta en la carpeta del **dominio principal**, donde están `public_html` y `configuracion`. La rama de esta web es **`lameri_web_publica`**. El conector incorpora Git a la instalación actual y conserva su ubicación.
+
+```bash
+cd ~/domains/laboratorioclinicomerino.com
+LAMERI_WEB_GIT_TMP="$(mktemp -d)"
+git clone --depth 1 --single-branch --branch lameri_web_publica \
+  https://github.com/renancarranza1920/lab_oncosavi.git "$LAMERI_WEB_GIT_TMP" && \
+bash "$LAMERI_WEB_GIT_TMP/scripts/connect-hostinger-git.sh" "$PWD"
+```
+
+El script comprueba la carpeta y la rama, crea un respaldo completo privado en `~/lameri-web-backups` y sustituye únicamente archivos versionados de esta web. Mantiene tu configuración privada de MySQL, su caché y los archivos que no están en Git. No cambia la base de datos. La carpeta del respaldo se muestra en la terminal. Conserva el clon temporal como referencia si lo deseas; las siguientes actualizaciones usan la carpeta del dominio.
+
+El conector se detiene si la carpeta ya tiene Git. En ese caso comprueba `git branch --show-current`: debe decir `lameri_web_publica`. Si está correctamente conectada, utiliza el actualizador de la sección siguiente.
+
+Si todavía no configuraste MySQL, completa `configuracion/lameri-publica.php` según **Conectar la base anterior**. Conectar Git no crea ni cambia esas credenciales.
+
+## Actualizaciones siguientes
+
+Cuando publique nuevos cambios de la web en la rama `lameri_web_publica`, ejecuta:
+
+```bash
+cd ~/domains/laboratorioclinicomerino.com
+bash scripts/update-hostinger.sh
+```
+
+Solo necesitas Git y PHP 8.2 o superior en SSH. El script descarga la rama, comprueba que la actualización permite avanzar sin mezclar historias, valida el código PHP entregado, respalda la instalación y aplica esa versión. Conserva `configuracion/lameri-publica.php`, la caché privada y los archivos ajenos a Git. La actualización no ejecuta consultas SQL, migraciones, seeders ni instalaciones de dependencias.
+
+Si tu terminal necesita una ruta específica de PHP, puedes indicarla:
+
+```bash
+LAMERI_WEB_PHP_BIN=/opt/alt/php83/usr/bin/php bash scripts/update-hostinger.sh
+```
+
+Si editaste archivos versionados directamente en Hostinger, el script se detiene para conservarlos. Revisa `git status --short` y lleva esos cambios a la rama antes de actualizar. No hace reset ni elimina archivos locales.
+
+Los precios, perfiles y exámenes se modifican en **el Lameri anterior** y se reflejan en la web normalmente en un minuto. No necesitas ejecutar Git por un cambio de precios. Los comandos anteriores actualizan el diseño, las respuestas y la funcionalidad de la web pública.
