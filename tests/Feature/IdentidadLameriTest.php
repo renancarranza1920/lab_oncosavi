@@ -51,8 +51,8 @@ class IdentidadLameriTest extends TestCase
         ];
         $html = view('pdf.reporte_resultados', $data)->render();
         $this->assertStringContainsString('LABORATORIO CLÍNICO MERINO', $html);
-        $this->assertStringContainsString('+503 2606-6596', $html);
-        $this->assertStringContainsString('+503 7595-4210', $html);
+        $this->assertStringContainsString('2606-6596', $html);
+        $this->assertStringContainsString('7595-4210', $html);
         $this->assertStringContainsString('4ª Calle Oriente #6', $html);
         $this->assertStringNotContainsString('ONCOSAVI', $html);
         $this->assertStringNotContainsString('images/pdf-crab.svg', $html);
@@ -68,16 +68,13 @@ class IdentidadLameriTest extends TestCase
         file_put_contents($folder . '/resultados.html', $html);
 
         $templates = [
-            'cotizacion' => ['usuario_nombre' => 'DEMOSTRACIÓN', 'cliente_nombre' => 'DEMOSTRACIÓN', 'perfiles' => [], 'examenes' => [], 'subtotal' => 0, 'total' => 0],
-            'comprobante' => ['usuario_nombre' => 'DEMOSTRACIÓN', 'cliente' => $cliente, 'orden' => $orden, 'perfiles' => [], 'examenes' => [], 'subtotal' => 0, 'total' => 0],
-            'boleta-simple' => ['orden' => $orden, 'usuario' => 'DEMOSTRACIÓN'],
             'reporte-examenes' => ['areas' => collect(), 'perfiles' => collect(), 'fecha' => now(), 'usuario' => 'DEMOSTRACIÓN', 'logoPath' => public_path(config('laboratorio.logo'))],
         ];
         foreach ($templates as $template => $values) {
             $html = view('pdf.' . $template, $values)->render();
             $this->assertStringContainsString('LABORATORIO CLÍNICO MERINO', $html);
-            $this->assertStringContainsString('+503 2606-6596', $html);
-            $this->assertStringContainsString('+503 7595-4210', $html);
+            $this->assertStringContainsString('2606-6596', $html);
+            $this->assertStringContainsString('7595-4210', $html);
             $this->assertStringNotContainsString('ONCOSAVI', $html);
             $this->assertStringNotContainsString('mailto:', $html);
             $output = Pdf::loadHTML($html)->setPaper('letter')->output();

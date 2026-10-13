@@ -7,7 +7,7 @@
 <style>
 
 @page {
-    margin: 235px 48px 92px 48px;
+    margin: 210px 50px 50px 50px;
 }
 
 /* ================= BASE ================= */
@@ -27,16 +27,12 @@ body {
     margin-bottom: 0;
 }
 
-.results-table tfoot {
+.area-table tfoot {
     display: table-footer-group;
 }
 
-.results-table tfoot > tr {
-    page-break-before: avoid;
-}
-
 .firma-cell {
-    padding-top: 18px;
+    padding-top: -20px;
     padding-bottom: 5px;
     border: none;
 }
@@ -73,8 +69,7 @@ body {
 
 /* ================= TITULO AREA ================= */
 
-.area-title-row {
-    page-break-after: avoid;
+.area-title-row td {
     padding-top: 3px;
     padding-bottom: 5px;
     border: none;
@@ -83,26 +78,41 @@ body {
 .area-title {
     background-color: #f4f4f4;
     border-left: 5px solid #FFB800;
-    color: #333;
-    text-align: center;
-    width: 70%;
-    margin: 0 auto;
+    color: #000;
     padding: 6px 10px;
     font-weight: bold;
     font-size: 10.5px; /* antes 12px */
     text-transform: uppercase;
 }
 
-/* Membrete original de Merino: gris claro y acento amarillo */
-.paper-results-brand { position: relative; height: 86px; background: #f5f5f5; border-left: 4px solid #FFB800; border-radius: 12px; }
-.paper-brand-name { position: absolute; top: 14px; left: 16px; right: 94px; color: #1E73BE; font-size: 17px; font-weight: bold; line-height: 1.1; }
-.paper-brand-subtitle { position: absolute; top: 40px; left: 16px; right: 94px; font-size: 8px; line-height: 1.5; color: #555; }
-.paper-results-logo { position: absolute; right: 10px; top: 10px; width: 65px; height: auto; }
-.paper-address { font-weight: bold; margin-bottom: 5px; font-size: 9px; max-width: 590px; }
-.paper-contact-table { border-collapse: collapse; font-size: 8px; }
-.paper-contact-table td { padding: 0 17px 0 0; vertical-align: middle; }
-.paper-contact-table img { width: 10px; height: 10px; vertical-align: middle; }
-.paper-contact { position: relative; z-index: 2; border-top: 2px solid #F6A623; padding-top: 7px; }
+/* ================= WATERMARK ================= */
+
+.watermark {
+    position: fixed;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    opacity: 0.08;
+    z-index: -1000;
+}
+
+.corner-top {
+    position: fixed;
+    top: -210px;
+    left: -50px;
+    width: 250px;
+    z-index: -1;
+}
+
+.corner-bottom {
+    position: fixed;
+    bottom: -50px;
+    right: -50px;
+    width: 250px;
+    z-index: -1;
+}
+
 /* ================= TABLA RESULTADOS ================= */
 
 .results-table {
@@ -118,18 +128,11 @@ body {
 
 .results-table thead th {
     background-color: #FFB800;
-    color: #333;
+    color: black;
     border: none;
     text-align: center;
     padding: 3px;
     font-size: 9.5px;
-}
-
-.results-table thead th.muestra-header {
-    background: transparent;
-    color: #1E73BE;
-    text-align: left;
-    padding: 0 0 5px;
 }
 
 .results-table tr {
@@ -141,14 +144,9 @@ body {
 }
 
 .results-table td {
-    padding: 3px 4px;
+    padding: 4px;
     text-align: left;
     vertical-align: top;
-}
-
-.results-table--extensa .result-row td {
-    padding-top: 1.75px;
-    padding-bottom: 1.75px;
 }
 
 .result-row {
@@ -156,7 +154,7 @@ body {
 }
 
 .result-prueba-name {
-    font-style: normal;
+    font-style: italic;
     text-transform: uppercase;
     padding-left: 15px;
     font-size: 9.5px;
@@ -231,30 +229,110 @@ body {
     border: none;
 }
 
-/* Encabezado repetido en todas las hojas */
-.header-clean { position: fixed; top: -218px; left: 0; right: 0; height: 210px; }
-.patient-card { margin-top: 7px; padding: 6px 10px 9px; background: #f8f9fb; border-left: 4px solid #FFB800; border-radius: 10px; }
-.patient-card table { width: 100%; border-collapse: collapse; font-size: 10px; color: #16202b; }
-.patient-card td { padding: 3px 0; vertical-align: top; }
-.patient-card .patient-label { font-weight: bold; text-transform: uppercase; }
-.patient-meta { margin-top: 4px; font-size: 8px; color: #465464; }
+/* ================= HEADER ================= */
+
+.header-clean {
+    position: fixed;
+    top: -190px;
+    left: 0;
+    right: 0;
+    height: 190px;
+    background: transparent;
+}
+
+.header-bar {
+    display: table;
+    width: 100%;
+    background-color: #f5f5f5;
+    color: black;
+    padding: 10px 18px;
+    border-radius: 18px;
+}
+
+.header-bar-left {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+.header-bar-left strong {
+    font-size: 12px; /* antes 14px */
+    letter-spacing: 0.5px;
+}
+
+.header-bar-sub {
+    font-size: 8px; /* antes 9px */
+    opacity: 0.9;
+    margin-top: 2px;
+}
+
+.header-bar-right {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+}
+
+.header-bar-right img {
+    max-height: 45px;
+}
+
+/* ================= PATIENT CARD ================= */
+
+.patient-card {
+    margin: 4px 18px 0;
+    background: #f8f9fb;
+    border-left: 4px solid #FFB800;
+    padding: 6px 10px;
+    border-radius: 10px;
+}
+
+.patient-card table {
+    width: 100%;
+    font-size: 9px; /* antes 10px */
+}
+
+.patient-card td {
+    padding: 3px 5px;
+}
+
+.patient-card span {
+    display: block;
+    font-size: 7px; /* antes 8px */
+    color: #777;
+    text-transform: uppercase;
+    margin-bottom: 1px;
+}
+
 /* ================= OBSERVACIONES ================= */
 
 .observaciones-box {
-    background-color: transparent;
-    border: none;
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
     padding: 8px;
     font-size: 8px; /* antes 9px */
-    margin-top: 8px;
+    margin-top: -20px;
     margin-bottom: 6px;
     page-break-inside: avoid;
 }
 
 /* ================= FOOTER ================= */
 
-footer { position: fixed; bottom: -72px; left: 0; right: 0; height: 66px; color: #18243b; }
-footer .page-number { text-align: left; font-size: 7px; color: #697481; margin-top: 8px; }
-footer .page-number:before { content: "Página " counter(page); }
+footer {
+    position: fixed;
+    bottom: -30px;
+    left: 0;
+    right: 0;
+    height: 30px;
+    text-align: center;
+    font-size: 7px; /* antes 8px */
+    color: #888;
+    border-top: 1px solid #eee;
+    padding-top: 4px;
+}
+
+footer .page-number:before {
+    content: "Página " counter(page);
+}
+
 /* ================= MISC ================= */
 
 .seccion-laboratorista {
@@ -276,16 +354,44 @@ footer .page-number:before { content: "Página " counter(page); }
 }
 
 .fuera-de-rango {
-    color: #B9182A !important;
+    color: #E57373 !important;
     font-weight: bold;
 }
 
+/* Las tablas independientes conservan el dibujo original y permiten paginar filas. */
+.area-table { width: auto; padding: 0 1px; }
+.area-title-row { padding-top: 3px; padding-bottom: 6px; page-break-after: avoid; }
+.results-table tfoot { display: table-footer-group; }
+.results-table tfoot > tr { page-break-before: avoid; }
+.results-table tfoot .firma-cell { padding: 2px 0 5px; }
+.results-table tfoot .firma-table td { padding: 1px; }
+.results-table thead th.muestra-header { background: transparent; color: #333; text-align: left; padding: 0 0 5px; }
 </style>
 </head>
 
 <body>
+    <div class="watermark">
+        <img src="{{ $iconlab_b64 ?? public_path('images/lameri-original/iconlab.png') }}" style="width: 100%;">
+    </div>
+
+    @php
+        $esquinaOriginal = !empty($fl_b64) ? $fl_b64 : (
+            is_file(storage_path('app/public/fl.png'))
+                ? storage_path('app/public/fl.png')
+                : (is_file(public_path('images/lameri-original/fl.png')) ? public_path('images/lameri-original/fl.png') : null)
+        );
+    @endphp
+    @if ($esquinaOriginal)
+    <div class="corner-top">
+        <img src="{{ $esquinaOriginal }}" style="width: 100%; opacity: 0.3;">
+    </div>
+    <div class="corner-bottom" style="transform: rotate(180deg);">
+        <img src="{{ $esquinaOriginal }}" style="width: 100%; opacity: 0.3;">
+    </div>
+    @endif
+
         @php
-$normalizarSimbolosClinicos = fn ($texto) => $texto;
+$normalizarSimbolosClinicos = fn ($texto) => html_entity_decode((string) $texto, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         $formatearNumerosReferencia = fn ($texto) => \App\Support\NumeroLaboratorio::imprimirTexto($texto);
 
@@ -301,7 +407,7 @@ $normalizarSimbolosClinicos = fn ($texto) => $texto;
 
     $referencia = $normalizarSimbolosClinicos($referencia);
 
-    if (empty($resultado) || empty($referencia)) {
+    if ($resultado === null || trim((string) $resultado) === '' || $referencia === null || trim((string) $referencia) === '') {
         return false;
     }
 
@@ -348,13 +454,13 @@ $normalizarSimbolosClinicos = fn ($texto) => $texto;
     📊 RANGOS NUMÉRICOS NORMALES
     =====================================================
     */
-    
+
     // 🚀 NUEVA REGLA ANTI-PÁRRAFOS:
-    // Si la referencia tiene más de 25 letras (es un párrafo explicativo largo), 
+    // Si la referencia tiene más de 25 letras (es un párrafo explicativo largo),
     // no adivinamos nada matemáticamente. Solo respetará el checkbox "Colorear".
     $soloLetras = preg_replace('/[^A-Z]/', '', $referenciaTexto);
     if (strlen($soloLetras) > 25) {
-        return false; 
+        return false;
     }
 
     preg_match_all('/-?[0-9]+(\.[0-9]+)?/', str_replace(',', '.', $referencia), $matches);
@@ -380,10 +486,8 @@ $normalizarSimbolosClinicos = fn ($texto) => $texto;
 //////////////////////////
 $agregarUnidadesPorLinea = function ($referencia, $unidad)
 {
-    if (empty($unidad)) return $referencia;
-
     // Convertimos <br> a salto real temporal
-    $referencia = str_replace('<br>', "\n", $referencia);
+    $referencia = preg_replace('/<br\s*\/?\s*>/i', "\n", (string) $referencia);
 
     $lineas = preg_split('/\r\n|\r|\n/', $referencia);
 
@@ -392,7 +496,7 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
         $linea = trim($linea);
         if ($linea === '') return $linea;
 
-        if (!str_contains(strtoupper($linea), strtoupper($unidad))) {
+        if ($unidad !== '' && !str_contains(strtoupper($linea), strtoupper($unidad))) {
             $linea .= ' ' . $unidad;
         }
 
@@ -410,33 +514,104 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
 
 
     <header class="header-clean">
-        <div class="paper-results-brand">
-            <div class="paper-brand-name">{{ config('laboratorio.nombre') }}</div>
-            <div class="paper-brand-subtitle">
-                {{ config('laboratorio.direccion') }}<br>
-                Tel: {{ config('laboratorio.telefono') }} &nbsp; | &nbsp; WhatsApp: {{ config('laboratorio.whatsapp') }}
+
+            <div class="header-bar">
+                <div class="header-bar-left">
+                    <strong>LABORATORIO CLÍNICO MERINO</strong>
+                    <div class="header-bar-sub">
+                        4ª Calle Oriente #6, B° San Francisco, San Vicente<br>
+                        Tel: 2606-6596 | WhatsApp: 7595-4210
+                    </div>
+                </div>
+
+                <div class="header-bar-right">
+                    @if (!empty($logo_b64))
+                        <img src="{{ $logo_b64 }}" alt="Logo" style="max-height: 45px; max-width: 100%;">
+                    @endif
+                </div>
             </div>
-            @if (!empty($logo_b64))<img class="paper-results-logo" src="{{ $logo_b64 }}" alt="{{ config('laboratorio.nombre') }}">@endif
-        </div>
-        <div class="patient-card">
-            <table>
-                <tr><td colspan="2"><span class="patient-label">Fecha de registro:</span> {{ $orden->created_at->timezone(config('app.timezone'))->format('d/m/Y · H:i') }}</td></tr>
-                <tr><td colspan="2"><span class="patient-label">Fecha de impresión:</span> {{ now(config('app.timezone'))->format('d/m/Y · H:i') }}</td></tr>
-                <tr><td colspan="2"><span class="patient-label">Médico:</span> {{ $orden->medico?->nombre ?: '--' }}</td></tr>
-                <tr>
-                    <td style="width: 75%;"><span class="patient-label">Paciente:</span> {{ $orden->cliente->nombre }} {{ $orden->cliente->apellido }}</td>
-                    <td><span class="patient-label">Edad:</span> {{ $orden->cliente->edad_legible ?: ($orden->cliente->getGrupoEtario()->nombre ?? 'No especificada') }}</td>
-                </tr>
-            </table>
-            <div class="patient-meta">Expediente: {{ $orden->cliente->NumeroExp ?? 'N/A' }} &nbsp; · &nbsp; DUI: {{ $orden->cliente->dui ?: 'N/A' }} &nbsp; · &nbsp; Sexo: {{ $orden->cliente->genero ?: 'No especificado' }} &nbsp; · &nbsp; Orden #{{ $orden->id }}</div>
-        </div>
-    </header>
-    <footer>
-        @include('pdf.pie-membrete')
-        <div class="page-number"></div>
-    </footer>
+
+            <div class="patient-card">
+                {{-- PARTE 1: DATOS DEL PACIENTE (Tabla Superior) --}}
+                <table style="width: 100%;">
+                    <tr>
+                        <td>
+                            <span>Paciente</span>
+                            {{ $orden->cliente->nombre }} {{ $orden->cliente->apellido }}
+                        </td>
+
+                        <td>
+                            {{-- CASO 1: Si tiene Fecha de Nacimiento O Edad manual --}}
+                            @if(!empty($orden->cliente->fecha_nacimiento) || !empty($orden->cliente->edad))
+                                <span>Edad</span>
+                                {{-- Llamamos a la función inteligente que dice "meses", "días" o "años" --}}
+                                {{ $orden->cliente->edad_legible }}
+
+                            {{-- CASO 2: Si no tiene ni fecha ni edad, mostramos Grupo Etario --}}
+                            @else
+                                <span>Grupo etario</span>
+                                {{ $orden->cliente->getGrupoEtario()->nombre ?? 'No especificado' }}
+                            @endif
+                        </td>
+
+                        <td>
+                            <span>Género</span>
+                            {{ $orden->cliente->genero ?? 'No especificado' }}
+                        </td>
+
+                        <td>
+                            <span>Ingreso</span>
+                            {{ $orden->created_at->timezone(config('app.timezone'))->format('d/m/Y H:i') }}
+                        </td>
+
+                        <td>
+                            <span>Impresión</span>
+                            {{ now(config('app.timezone'))->format('d/m/Y H:i') }}
+                        </td>
+                    </tr>
+                </table>
+
+                {{-- PARTE 2: DATOS DEL MÉDICO (Inferior) --}}
+                @if($orden->medico)
+                    <div style="border-top: 1px solid #e0e0e0; margin: 4px 0 4px 0;"></div>
+
+                    <div style="font-size: 9px; padding-left: 6px;">
+                        {{-- Usamos 'display: inline' para forzar que estén en el mismo renglón --}}
+                        <span
+                            style="display: inline; color: #777; text-transform: uppercase; font-size: 8px; margin-right: 5px;">
+                            MÉDICO REFERENTE:
+                        </span>
+
+                        <strong style="color: #333; text-transform: uppercase;">
+                            {{-- Agregamos lógica para poner "DR." si no viene incluido --}}
+                            {{ str_starts_with(strtoupper($orden->medico->nombre), 'DR') ? $orden->medico->nombre : 'DR. ' . $orden->medico->nombre }}
+                        </strong>
+                    </div>
+                @endif
+            </div>
+
+        </header>
+
+
+        <footer>
+            <div style="margin-top: 5px;">
+                <div style="float: left;">{{ $orden->cliente->nombre ?? 'Laboratorio' }} - Orden
+                    #{{ $orden->id }}</div>
+                <div style="float: right;" class="page-number"></div>
+                <div style="clear: both;"></div>
+            </div>
+        </footer>
+
+
 
         {{-- El contenido del cuerpo empieza aquí. Gracias al margin-top del @page, no se solapará con el header --}}
+
+        @if (!empty($orden->observaciones))
+            <div class="observaciones-box">
+                <strong style="color: #1E73BE;">Observaciones Generales:</strong>
+                <p style="margin: 0; padding: 0; color: #333;">{!! nl2br(e($orden->observaciones)) !!}</p>
+            </div>
+        @endif
 
         {{-- BUCLE PRINCIPAL POR LABORATORISTA --}}
         @foreach($grupos_por_usuario as $grupo)
@@ -482,13 +657,13 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                         @php
                                     // 1. VALIDACIÓN EXACTA PARA OCULTAR TÍTULOS DE EXAMEN
                                     $areaNormalizada = mb_strtoupper(trim($tipoExamenNombre), 'UTF-8');
-                                    
+
                                     $areasSinTitulo = [
-                                        'ELECTROLITOS', 'ENDOCRINOLOGÍA', 'INMUNOLOGÍA', 
-                                        'MARCADORES TUMORALES', 'QUÍMICA SANGUÍNEA', 
+                                        'ELECTROLITOS', 'ENDOCRINOLOGÍA', 'INMUNOLOGÍA',
+                                        'MARCADORES TUMORALES', 'QUÍMICA SANGUÍNEA',
                                         'QUÍMICA URINARIA', 'CARDIOVASCULAR', 'MINERALES'
                                     ];
-                                    
+
                                     // Si el área NO está en la lista de arriba, SÍ mostramos el título
                                     $mostrarTituloExamen = !in_array($areaNormalizada, $areasSinTitulo);
 
@@ -530,7 +705,7 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
 
                                     // 3. PREPARAMOS LAS TABLAS A IMPRIMIR
                                     $bloques = [];
-                                    
+
                                     // Primero metemos los gigantes (cada uno en su propia tabla/página)
                                     foreach ($gigantes as $g) {
                                         $tieneRef = false;
@@ -574,7 +749,7 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                         }
 
                                         // Alineación de la cabecera
-                                        $cabeceraAlineacion = 'center'; 
+                                        $cabeceraAlineacion = 'center';
                                         $cabeceraPadding = '';
                                         if ($esTablaConRef) {
                                             foreach ($listaExamenes as $ex_eval) {
@@ -583,7 +758,7 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                                         // 🚀 LA NUEVA REGLA PARA LA CABECERA: CENTRADO A MENOS QUE SEA BETA HCG
                                                         $nombrePruebaTest = mb_strtoupper(trim($p_eval['nombre'] ?? ''), 'UTF-8');
                                                         if (str_contains($nombrePruebaTest, 'BETA HCG CUANTITATIVO')) {
-                                                            $cabeceraAlineacion = 'left'; 
+                                                            $cabeceraAlineacion = 'left';
                                                             $cabeceraPadding = 'padding-left: 10px;';
                                                             break 2;
                                                         }
@@ -593,7 +768,7 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                         }
                                     @endphp
 
-                                    <table class="results-table{{ $esGigante ? ' results-table--extensa' : '' }}" style="width: 100%; {{ $saltoPaginaStr }}">
+                                    <table class="results-table" style="width: 100%; {{ $saltoPaginaStr }}">
                                         <thead>
                                             @php
                                                 $nombresExamenes = array_column($listaExamenes, 'nombre');
@@ -654,12 +829,12 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                                                 $refTemp = $normalizarSimbolosClinicos($pruebaData['referencia'] ?? '');
                                                                 $refTemp = $formatearNumerosReferencia($refTemp);
                                                                 $refFinal = $agregarUnidadesPorLinea($refTemp, $pruebaData['unidades'] ?? '');
-                                                                
+
                                                                 // 🚀 LA NUEVA REGLA PARA EL RESULTADO: CENTRADO A MENOS QUE SEA BETA HCG
                                                                 $nombrePruebaResult = mb_strtoupper(trim($pruebaData['nombre'] ?? ''), 'UTF-8');
-                                                                if(str_contains($nombrePruebaResult, 'BETA HCG CUANTITATIVO')) { 
-                                                                    $alineacion = 'left'; 
-                                                                    $padding = 'padding-left: 10px;'; 
+                                                                if(str_contains($nombrePruebaResult, 'BETA HCG CUANTITATIVO')) {
+                                                                    $alineacion = 'left';
+                                                                    $padding = 'padding-left: 10px;';
                                                                 }
                                                             @endphp
                                                             <td style="text-align: {{ $alineacion }}; {{ $padding }} font-size: 8.5px;">{!! $refFinal !!}</td>
@@ -683,12 +858,12 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                                                     $refTemp = $normalizarSimbolosClinicos($pruebaData['referencia'] ?? '');
                                                                     $refTemp = $formatearNumerosReferencia($refTemp);
                                                                     $refFinal = $agregarUnidadesPorLinea($refTemp, $pruebaData['unidades'] ?? '');
-                                                                    
+
                                                                     // 🚀 LA NUEVA REGLA PARA EL RESULTADO (EN GRUPO): CENTRADO A MENOS QUE SEA BETA HCG
                                                                     $nombrePruebaResult = mb_strtoupper(trim($pruebaData['nombre'] ?? ''), 'UTF-8');
-                                                                    if(str_contains($nombrePruebaResult, 'BETA HCG CUANTITATIVO')) { 
-                                                                        $alineacion = 'left'; 
-                                                                        $padding = 'padding-left: 10px;'; 
+                                                                    if(str_contains($nombrePruebaResult, 'BETA HCG CUANTITATIVO')) {
+                                                                        $alineacion = 'left';
+                                                                        $padding = 'padding-left: 10px;';
                                                                     }
                                                                 @endphp
                                                                 <td style="text-align: {{ $alineacion }}; {{ $padding }} font-size: 8.5px;">{!! $refFinal !!}</td>
@@ -700,7 +875,7 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                             @if (!empty($examen['matrices']))
                                                 @foreach ($examen['matrices'] as $matriz)
                                                     <tr>
-                                                        <td colspan="{{ $tieneReferenciasArea ? 3 : 2 }}" style="padding: 5px 0;">
+                                                        <td colspan="{{ $esTablaConRef ? 3 : 2 }}" style="padding: 5px 0;">
                                                             <table class="matrix-table">
                                                                 <thead>
                                                                     <tr>
@@ -717,7 +892,7 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                                                             @foreach ($matriz['columnas'] as $columna)
                                                                                 @php
                                                                                     $celda = $matriz['data'][$fila][$columna] ?? null;
-                                                                                    $fueraRangoMatriz = ($celda && isset($celda['resultado'])) ? $esFueraDeRango($celda['resultado'], $celda['referencia'] ?? '') : false;
+                                                                                    $fueraRangoMatriz = ($celda && isset($celda['resultado'])) ? $esFueraDeRango($celda['resultado'], $celda['referencia'] ?? '', $celda['alertar'] ?? false) : false;
                                                                                 @endphp
                                                                                 <td class="@if($fueraRangoMatriz) fuera-de-rango @endif">{{ $formatearNumerosReferencia($celda['resultado'] ?? '-') }}</td>
                                                                             @endforeach
@@ -731,16 +906,6 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                             @endif
 
                                             @endforeach
-                                            @if ($loop->last && $loop->parent->last && $loop->parent->parent->last && !empty($orden->observaciones))
-                                                <tr>
-                                                    <td colspan="{{ $esTablaConRef ? 3 : 2 }}">
-                                                        <div class="observaciones-box">
-                                                            <strong>OBSERVACIONES:</strong>
-                                                            <p style="margin: 5px 0 0;">{!! nl2br(e($orden->observaciones)) !!}</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @endif
                                         </tbody>
                                         @include('pdf.firmas')
                                     </table>

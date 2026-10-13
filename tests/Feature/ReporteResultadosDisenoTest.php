@@ -9,6 +9,7 @@ use App\Models\Examen;
 use App\Models\Muestra;
 use App\Services\ReporteResultadosPdf;
 use Carbon\Carbon;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class ReporteResultadosDisenoTest extends TestCase
@@ -26,10 +27,10 @@ class ReporteResultadosDisenoTest extends TestCase
             $orden->setRelation('detalleOrden', collect());
             $data = ['orden' => $orden, 'logo_b64' => null, 'sello_registro_b64' => null, 'grupos_por_usuario' => []];
             $html = view('pdf.reporte_resultados', $data)->render();
-            $this->assertStringContainsString('Fecha de registro:', $html);
-            $this->assertStringContainsString('01/10/2026 · 09:27', $html);
-            $this->assertStringContainsString('Fecha de impresión:', $html);
-            $this->assertStringContainsString('03/10/2026 · 14:45', $html);
+            $this->assertStringContainsString('<span>Ingreso</span>', $html);
+            $this->assertStringContainsString('01/10/2026 09:27', $html);
+            $this->assertStringContainsString('<span>Impresión</span>', $html);
+            $this->assertStringContainsString('03/10/2026 14:45', $html);
             $this->assertStringStartsWith('%PDF-', ReporteResultadosPdf::generar($data)->output());
         } finally {
             Carbon::setTestNow();
@@ -38,12 +39,12 @@ class ReporteResultadosDisenoTest extends TestCase
 
     public function test_reporte_corto_y_uroanalisis_comparten_pagina_con_sus_firmas_sin_hojas_de_sellos(): void
     {
-        $pdf = ReporteResultadosPdf::generar($this->datosReporte());
+        $pdf = ReporteResultadosPdf::generar($this->datosReporte(20));
         $this->assertStringStartsWith('%PDF-', $pdf->output());
         $paginas = $this->contenidoPaginas($pdf);
         $this->assertCount(4, $paginas);
         foreach ($paginas as $contenido) {
-            preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $contenido, $imagenes, PREG_SET_ORDER);
+            $imagenes = $this->imagenesFirma($contenido);
             $this->assertCount(3, $imagenes);
             [$institucional, $sello, $firma] = $imagenes;
             // Medidas originales del Blade: 130 px, 170 × 90 px y 170 × 105 px.
@@ -54,7 +55,7 @@ class ReporteResultadosDisenoTest extends TestCase
             $this->assertEqualsWithDelta(78.75, (float) $firma[2], 0.001);
             foreach ($imagenes as $imagen) {
                 // El origen del PDF está abajo: las imágenes respetan el pie.
-                $this->assertGreaterThanOrEqual(69, (float) $imagen[4]);
+                $this->assertGreaterThanOrEqual(37.5, (float) $imagen[4]);
             }
         }
     }
@@ -69,7 +70,7 @@ class ReporteResultadosDisenoTest extends TestCase
             $pdf->output();
             $paginas = $this->contenidoPaginas($pdf);
             $this->assertCount(1, $paginas);
-            preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $paginas[0], $imagenes, PREG_SET_ORDER);
+            $imagenes = $this->imagenesFirma($paginas[0]);
             $this->assertCount(3, $imagenes);
             $imagenesPorReporte[] = $imagenes;
         }
@@ -81,9 +82,10 @@ class ReporteResultadosDisenoTest extends TestCase
         }
     }
 
-    public function test_tabla_extensa_termina_con_las_firmas_de_su_autor_sin_paginas_solo_de_sellos(): void
+    #[DataProvider('tablasExtensas')]
+    public function test_tabla_extensa_termina_con_las_firmas_de_su_autor_sin_paginas_solo_de_sellos(int $filas): void
     {
-        $datos = $this->datosReporte(70);
+        $datos = $this->datosReporte($filas);
         $datos['grupos_por_usuario'][0]['datos'] = [
             'UROANALISIS' => $datos['grupos_por_usuario'][0]['datos']['UROANALISIS'],
         ];
@@ -106,11 +108,12 @@ class ReporteResultadosDisenoTest extends TestCase
             },
         ]]);
         $pdf->output();
+        $this->assertSame($filas + 2, array_sum($filasPorPagina));
         $paginas = $this->contenidoPaginas($pdf);
         $this->assertGreaterThan(2, count($paginas));
         $imagenesPorPagina = [];
         foreach ($paginas as $indice => $contenido) {
-            $imagenesPorPagina[] = preg_match_all('/\/I\d+ Do/', $contenido);
+            $imagenesPorPagina[] = count($this->imagenesFirma($contenido));
             $this->assertGreaterThan(0, $filasPorPagina[$indice + 1] ?? 0);
         }
         // El otro autor solo tiene el sello institucional; el primero firma al final de su tabla.
@@ -119,6 +122,63 @@ class ReporteResultadosDisenoTest extends TestCase
         foreach ($imagenesPorPagina as $cantidad) {
             $this->assertSame(0, $cantidad);
         }
+    }
+
+    public function test_diseno_original_conserva_ceros_referencias_completas_y_alertas_de_matriz(): void
+    {
+        $datos = $this->datosReporte();
+        $referenciaLarga = 'Menor o igual a &#8804; 10<br />'.str_repeat('Interpretación clínica completa. ', 15).'\n<script>texto de referencia</script>';
+        $datos['grupos_por_usuario'][0]['datos'] = ['QUÍMICA SANGUÍNEA' => [[
+            'nombre' => 'Control clínico',
+            'pruebas_unitarias' => [
+                ['nombre' => 'Cero válido', 'resultado' => '0', 'referencia' => '1 - 5', 'unidades' => '', 'alertar' => false],
+                ['nombre' => 'Referencia completa', 'resultado' => '12.5', 'referencia' => $referenciaLarga, 'unidades' => '', 'alertar' => false],
+            ],
+            'matrices' => [[
+                'columnas' => ['Conteo'], 'filas' => ['Celda con cero'],
+                'data' => ['Celda con cero' => ['Conteo' => ['resultado' => '0', 'referencia' => '', 'alertar' => true]]],
+            ]],
+        ]]];
+
+        $html = view('pdf.reporte_resultados', $datos)->render();
+        $erroresAnteriores = libxml_use_internal_errors(true);
+        try {
+            $documento = new \DOMDocument();
+            $documento->loadHTML('<?xml encoding="UTF-8">'.$html);
+            $xpath = new \DOMXPath($documento);
+            $cero = $xpath->query('//tr[contains(@class, "result-row")][td/div[contains(., "Cero válido")]]//div[contains(@class, "result-value")]')->item(0);
+            $this->assertSame('0', trim($cero->textContent));
+            $this->assertStringContainsString('fuera-de-rango', $cero->getAttribute('class'));
+            $matriz = $xpath->query('//table[contains(@class, "matrix-table")]//tbody/tr/td')->item(0);
+            $this->assertSame('0', trim($matriz->textContent));
+            $this->assertStringContainsString('fuera-de-rango', $matriz->getAttribute('class'));
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($erroresAnteriores);
+        }
+        $this->assertStringContainsString('Menor o igual a ≤ 10<br>', $html);
+        $this->assertStringContainsString(str_repeat('Interpretación clínica completa. ', 15), $html);
+        $this->assertStringContainsString('&lt;script&gt;texto de referencia&lt;/script&gt;', $html);
+        $this->assertStringNotContainsString('<script>texto de referencia</script>', $html);
+        $this->assertStringStartsWith('%PDF-', ReporteResultadosPdf::generar($datos)->output());
+        // Las funciones locales permiten regenerar el mismo PDF en una petición.
+        $this->assertStringStartsWith('%PDF-', ReporteResultadosPdf::generar($datos)->output());
+    }
+
+    public static function tablasExtensas(): array
+    {
+        return ['uroanálisis de 24 filas' => [24], 'tabla de 70 filas' => [70]];
+    }
+
+    private function imagenesFirma(string $contenido): array
+    {
+        preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $contenido, $imagenes, PREG_SET_ORDER);
+
+        // Las decoraciones originales se repiten en cada página. Estos tres
+        // anchos identifican únicamente el sello institucional, sello y rúbrica.
+        return array_values(array_filter($imagenes, fn (array $imagen) =>
+            abs((float) $imagen[1] - 97.5) < 0.001 || abs((float) $imagen[1] - 127.5) < 0.001
+        ));
     }
 
     private function contenidoPaginas($pdf): array

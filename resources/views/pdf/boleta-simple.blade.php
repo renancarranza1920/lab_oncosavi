@@ -20,7 +20,7 @@
         .uppercase { text-transform: uppercase; }
 
         /* HEADER Y TABLAS */
-        .header { border-bottom: 2px solid #1E73BE; padding-bottom: 5px; margin-bottom: 10px; }
+        .header { border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px; }
         .title { font-size: 14px; font-weight: bold; }
 
         .info-table { width: 100%; margin-bottom: 10px; }
@@ -70,7 +70,6 @@
 <div class="ticket-cliente"> {{-- CLASE NUEVA AQUI --}}
     
     <div class="header">
-        @include('pdf.contacto')
         <table class="w-100">
             <tr>
                 <td>
@@ -165,7 +164,6 @@
 <div> {{-- Contenedor simple --}}
     
     <div class="header">
-        @include('pdf.contacto')
         <table class="w-100">
             <tr>
                 <td>

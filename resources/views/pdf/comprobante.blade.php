@@ -9,13 +9,13 @@
         .header { display: table; width: 100%; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
         .header-left { display: table-cell; vertical-align: middle; }
         .header-right { display: table-cell; vertical-align: middle; text-align: right; }
-        .header-right img { max-width: 120px; max-height: 82px; }
+        .header-right img { max-width: 120px; max-height: 60px; }
         h1 { font-size: 20px; margin: 0; }
         h2 { font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
         .client-info p { margin: 0; line-height: 1.5; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 8px; text-align: left; }
-        thead th { background-color: #F2F2F2; color: #1E73BE; border-bottom: 2px solid #ddd; }
+        thead th { background-color: #f8f8f8; border-bottom: 2px solid #ddd; }
         .text-right { text-align: right; }
         .font-mono { font-family: 'Courier New', Courier, monospace; }
         .profile-main-row { font-weight: bold; }
@@ -27,7 +27,7 @@
         .total-section table { width: 100%; }
         .total-section td { padding: 5px 10px; } /* Padding un poco más compacto */
         
-        .total-final { font-size: 18px; font-weight: bold; background-color: #F2F2F2; color: #1E73BE; }
+        .total-final { font-size: 18px; font-weight: bold; background-color: #f0f0f0; }
         .total-final td { padding: 10px; border-top: 1px solid #ccc; } /* Borde superior para resaltar */
 
         .footer-note { margin-top: 40px; padding: 10px; border: 1px dashed #ccc; background-color: #fafafa; text-align: center; font-size: 11px; color: #777; }
@@ -43,7 +43,6 @@
     <div class="container">
         <div class="header">
             <div class="header-left">
-                @include('pdf.contacto')
                 <h1>Resumen de Orden</h1>
                 <p>Fecha de Emisión: {{ now()->translatedFormat('d \d\e F \d\e Y') }}</p>
                 @if ($usuario_nombre)
@@ -51,7 +50,7 @@
                 @endif
             </div>
             <div class="header-right">
-                <img src="{{ public_path(config('laboratorio.logo')) }}" alt="Logo">
+                <img src="{{ public_path('images/lameri-original/logo.png') }}" alt="Logo">
             </div>
         </div>
 
@@ -103,7 +102,7 @@
                 </tr>
 
                 @if(isset($descuento) && $descuento > 0)
-                    <tr style="color: #F6A623;"> <td>
+                    <tr style="color: #dc2626;"> <td>
                             Descuento 
                             @if(!empty($codigo))
                                 <span style="font-size: 10px; color: #666;">({{ $codigo }})</span>

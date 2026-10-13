@@ -33,7 +33,7 @@ Los formularios de contraseña del administrador, usuarios, perfil, restablecimi
 
 ## Resultados y solicitud de exámenes
 
-El PDF de resultados utiliza el membrete, el logo, los contactos y los acentos del diseño Merino. Conserva datos del paciente, muestras registradas, pruebas, resultados, referencias, matrices, observaciones, firmas y sellos. El encabezado y el pie se repiten en cada página.
+El PDF de resultados conserva la estructura original de Lameri: membrete, tarjeta de paciente de cinco columnas, médico, marca de agua, esquinas, tablas amarillas, tipografía y pie. Mantiene las muestras registradas, pruebas, resultados, referencias, matrices, observaciones, firmas y sellos del sistema actualizado. El encabezado y el pie se repiten en cada página. Cotización, comprobante y boleta también conservan sus plantillas originales.
 
 El catálogo imprimible se presenta como una solicitud con espacios para paciente, edad, fecha, sexo y firma del médico, tres columnas, círculos y áreas/perfiles. Incluye indicaciones generales al pie. **Incluir precios en la solicitud de exámenes** permite imprimir además las tarifas. Se conservan todos los nombres: un catálogo que exceda dos páginas legibles muestra un aviso y no se corta silenciosamente.
 

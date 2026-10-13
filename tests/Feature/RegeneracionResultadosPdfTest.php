@@ -135,7 +135,11 @@ class RegeneracionResultadosPdfTest extends TestCase
         $this->assertCount(2, $paginas);
         foreach ($paginas as $paginaPdf) {
             $contenido = implode('', array_map(fn ($id) => $objetos[$id]['c'], $paginaPdf['info']['contents']));
-            $this->assertSame(2, preg_match_all('/\/I\d+ Do/', $contenido));
+            preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $contenido, $imagenes, PREG_SET_ORDER);
+            // La marca de agua y las esquinas originales son imágenes adicionales.
+            // Verificar las dos imágenes personales (170 px) de cada autor.
+            $personales = array_filter($imagenes, fn ($imagen) => abs((float) $imagen[1] - 127.5) < 0.001);
+            $this->assertCount(2, $personales);
         }
     }
 

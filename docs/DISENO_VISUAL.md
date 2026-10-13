@@ -22,7 +22,11 @@ Los colores de acciones se asignan mediante las APIs nativas de Filament:
 - `AdminPanelProvider` registra los colores semánticos utilizados.
 - `resources/views/partials/tema-lameri.blade.php` comparte tokens de superficie, borde, texto y énfasis, con variantes claras y oscuras.
 - Chips, tablas de resultados y tarjetas de reportes utilizan los mismos tokens. Los componentes nativos conservan sus estados interactivos y deshabilitados.
-- Los colores clínicos de recipientes conservan su significado. Los PDFs utilizan el membrete y el formato de Merino, manteniendo resultados, referencias, firmas y sellos.
+- Los colores clínicos de recipientes conservan su significado. Resultados, cotización, comprobante y boleta conservan sus plantillas originales de Lameri: membrete, tablas, tipografía, distribución e imágenes. Las mejoras de resultados, referencias, autoría, firmas y sellos siguen disponibles.
+
+## Imágenes originales de los documentos
+
+`public_html/images/lameri-original/` conserva los archivos recuperados del proyecto de Lameri, con sus nombres y bytes originales. El reporte de resultados recupera la marca de agua de `iconlab.png` y las esquinas de `fl.png`. La imagen de las esquinas puede estar en `storage/app/public/fl.png` o en la carpeta versionada de imágenes originales. Si existe en storage, las actualizaciones por Git conservan ese archivo. Cotización y comprobante utilizan el `logo.png` original; la boleta conserva sus dos copias sin añadir una franja institucional.
 
 El título de cierre de caja ofrece una etiqueta estática antes de `mount()`, porque Shield consulta títulos para los formularios de roles. Después de montar la página conserva el título dinámico y sus cálculos.
 
