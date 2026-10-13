@@ -186,10 +186,10 @@ export function searchCatalog(catalog, query, scope = 'all') {
 
 export function describeQuery(query) {
   const meanings = {
-    psa: 'PSA significa antígeno prostático específico. El PSA total, el libre y la relación entre ambos son opciones distintas.',
-    hba1c: 'HbA1c también se conoce como hemoglobina glicosilada, glucosilada o glicada.',
-    hemograma: 'El hemograma también se conoce como biometría hemática o CBC.',
-    tsh: 'TSH es la hormona estimulante de la tiroides, también llamada tirotropina.'
+    psa: 'PSA significa ANTÍGENO PROSTÁTICO ESPECÍFICO. El PSA TOTAL, el PSA LIBRE y la relación entre ambos son opciones distintas.',
+    hba1c: 'HBA1C también se conoce como HEMOGLOBINA GLICOSILADA, GLUCOSILADA o GLICADA.',
+    hemograma: 'El HEMOGRAMA también se conoce como BIOMETRÍA HEMÁTICA o CBC.',
+    tsh: 'TSH es la HORMONA ESTIMULANTE DE LA TIROIDES, también llamada TIROTROPINA.'
   };
   return queryTerms(query).filter((term) => meanings[term]).map((term) => meanings[term]);
 }

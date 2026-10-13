@@ -6,12 +6,12 @@ const { chromium } = require(process.env.MERINO_PLAYWRIGHT_PATH || 'playwright')
 const browser = await chromium.launch({ executablePath: process.env.MERINO_BROWSER_BIN || undefined, headless: true, args: ['--no-sandbox'] });
 const origin = process.env.MERINO_TEST_URL || 'http://127.0.0.1:8094';
 const catalog = { success: true, moneda: 'USD', asistente: { ia: true }, examens: [
-  { id: 1, nombre: 'PSA TOTAL', precio: '23.45', categoria: 'Marcadores tumorales' },
-  { id: 2, nombre: 'PSA LIBRE', precio: '34.56', categoria: 'Marcadores tumorales' },
-  { id: 3, nombre: 'GLUCOSA', precio: '5.25', categoria: 'Química sanguínea' },
-  { id: 4, nombre: 'RELACIÓN PSA TOTAL/LIBRE', precio: '51.23', categoria: 'Marcadores tumorales' },
+  { id: 1, nombre: 'psa total', precio: '23.45', categoria: 'Marcadores tumorales' },
+  { id: 2, nombre: 'Psa libre', precio: '34.56', categoria: 'Marcadores tumorales' },
+  { id: 3, nombre: 'Glucosa', precio: '5.25', categoria: 'Química sanguínea' },
+  { id: 4, nombre: 'Relación psa total/libre', precio: '51.23', categoria: 'Marcadores tumorales' },
   { id: 5, nombre: '<img src=x onerror=window.EXECUTED=1> PSA', precio: '90.00', categoria: 'Prueba de texto' }
-], perfiles: [{ id: 1, nombre: 'PERFIL LIPÍDICO', precio: '12.00', incluidos: ['HDL', 'LDL'] }] };
+], perfiles: [{ id: 1, nombre: 'Perfil lipídico', precio: '12.00', incluidos: ['Colesterol HDL', 'Colesterol LDL'] }] };
 let checks = 0;
 const pages = [];
 try {

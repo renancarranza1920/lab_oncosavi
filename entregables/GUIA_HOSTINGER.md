@@ -73,6 +73,8 @@ Los cambios de precios del sistema anterior aparecen tras renovar el catálogo, 
 
 Tras actualizar, el bot ya entiende nombres como `antígeno prostático`, `PSA`, `HbA1c`, `hemoglobina glucosilada`, `CBC`, `biometría hemática` y `colesterol bueno`. También reconoce siglas con puntos, como `P.S.A.`. Ante un error como `glucoas`, sugiere el nombre y te permite elegir antes de mostrar su precio. Si consultas PSA y luego escribes `¿y el libre?`, mantiene el contexto. Conserva separadas las variantes total/libre, cualitativa/cuantitativa y PCR molecular/proteína C reactiva.
 
+Los nombres de exámenes, perfiles, exámenes incluidos y sugerencias del bot aparecen en MAYÚSCULAS, conservando las tildes.
+
 Estas mejoras funcionan sin pagar una API. Para añadir IA real a las consultas que no se resuelven localmente:
 
 1. Actualiza la web con el comando de **Actualizaciones siguientes**.

@@ -17,6 +17,8 @@ Precios de exámenes, perfiles e incluidos; horarios, dirección y mapas; teléf
 
 El reconocimiento local funciona sin claves ni servicios externos. Por ejemplo, `antígeno prostático`, `examen de próstata` y `PSA` encuentran las variantes publicadas; `HbA1c` reconoce hemoglobina glicosilada y `CBC` reconoce hemograma. Distingue variantes y pide elegir ante errores de escritura. Después de consultar PSA, `¿y el libre?` conserva el contexto de la búsqueda.
 
+Los nombres de exámenes y perfiles se muestran en MAYÚSCULAS, incluidos los miembros de cada perfil y las opciones sugeridas. El formato se aplica al mostrarlos y conserva las tildes.
+
 La IA está desactivada inicialmente. Si la habilitas, las consultas que no se resuelven localmente se envían desde PHP a la API de OpenAI junto con nombres públicos del catálogo y referencias a la última búsqueda. La clave permanece en `configuracion/lameri-publica.php`, fuera de `public_html`; no se envían contraseñas ni datos de la base clínica. El modelo solo puede devolver identificadores publicados: los nombres y precios que ve el visitante proceden del catálogo, nunca del texto generado. La web no guarda conversaciones; los contadores privados de uso guardan cantidades y hashes de IP, sin preguntas.
 
 Los endpoints consultan únicamente `examens`, `tipo_examens`, `perfil` y `detalle_perfil`; conservan el precio propio de cada perfil y respetan los estados activos. Las consultas clínicas se remiten a recepción. La web no modifica la base.

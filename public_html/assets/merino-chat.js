@@ -69,7 +69,7 @@ export function validateCatalog(data) {
     if (typeof name !== 'string' || !name.trim() || name.length > 500) {
       throw new Error('Nombre de catálogo inválido.');
     }
-    return name.trim();
+    return name.trim().toLocaleUpperCase('es');
   };
   const readRecord = (entry, type) => {
     if (!entry || !Number.isSafeInteger(Number(entry.id)) || Number(entry.id) < 1 ||
