@@ -1,6 +1,6 @@
 # Web pública de Laboratorio Clínico Merino
 
-Esta rama contiene la web del dominio principal y su asistente de consultas. Reconoce siglas, sinónimos, errores de escritura y preguntas de seguimiento; admite IA opcional para identificar nombres más difíciles. Conserva el diseño original y consulta exámenes y perfiles activos de la **base del Lameri anterior**. La aplicación clínica se mantiene en sus otras ramas.
+Esta rama contiene la web del dominio principal y su asistente de consultas. Reconoce siglas, sinónimos, errores de escritura y preguntas de seguimiento mediante reglas locales, sin claves de servicios externos ni cobros por consulta. Conserva el diseño original y consulta exámenes y perfiles activos de la **base del Lameri anterior**. La aplicación clínica se mantiene en sus otras ramas.
 
 ## Descargar e instalar manualmente
 
@@ -19,28 +19,15 @@ El reconocimiento local funciona sin claves ni servicios externos. Por ejemplo, 
 
 Los nombres de exámenes y perfiles se muestran en MAYÚSCULAS, incluidos los miembros de cada perfil y las opciones sugeridas. El formato se aplica al mostrarlos y conserva las tildes.
 
-La IA está desactivada inicialmente. Si la habilitas, las consultas que no se resuelven localmente se envían desde PHP a la API de OpenAI junto con nombres públicos del catálogo y referencias a la última búsqueda. La clave permanece en `configuracion/lameri-publica.php`, fuera de `public_html`; no se envían contraseñas ni datos de la base clínica. El modelo solo puede devolver identificadores publicados: los nombres y precios que ve el visitante proceden del catálogo, nunca del texto generado. La web no guarda conversaciones; los contadores privados de uso guardan cantidades y hashes de IP, sin preguntas.
+Las preguntas y el contexto se procesan en el navegador. El bot usa un vocabulario de equivalencias y comparación de nombres; ofrece coincidencias del catálogo y remite a recepción cuando no reconoce una consulta. No guarda conversaciones ni envía preguntas a proveedores externos.
 
-Los endpoints consultan únicamente `examens`, `tipo_examens`, `perfil` y `detalle_perfil`; conservan el precio propio de cada perfil y respetan los estados activos. Las consultas clínicas se remiten a recepción. La web no modifica la base.
+La API consulta únicamente `examens`, `tipo_examens`, `perfil` y `detalle_perfil`; conserva el precio propio de cada perfil y respeta los estados activos. Las consultas clínicas se remiten a recepción. La web no modifica la base.
 
-## Activar la IA opcional
+## Funcionamiento sin clave ni API de pago
 
-Tras actualizar, agrega este bloque dentro del `return [...]` de tu archivo privado **existente** `configuracion/lameri-publica.php`, conservando `mysql` y `contacto`:
+Las mejoras de reconocimiento funcionan con la configuración MySQL que ya tiene la web. No requieren activar otra cuenta, añadir claves ni habilitar `curl`. El bot reconoce, por ejemplo, `antígeno prostático`, `examen de próstata`, `HbA1c`, `CBC`, `colesterol bueno` y variantes como total/libre. Conserva el contexto de la búsqueda para `¿y el libre?` y sugiere nombres ante errores de escritura.
 
-```php
-'ia' => [
-    'enabled' => true,
-    'api_key' => 'TU_CLAVE_API_DE_OPENAI',
-    'model' => 'gpt-4.1-mini',
-    'daily_request_limit' => 100,
-],
-```
-
-Necesita la extensión PHP `curl` y una [clave API de OpenAI](https://platform.openai.com/api-keys) con acceso al modelo y facturación configurada. El uso de la API se cobra aparte de las suscripciones de ChatGPT. La configuración anterior sigue funcionando aunque no añadas `ia`. Puedes desactivarla cambiando `enabled` a `false`.
-
-La IA se usa como ayuda para identificar nombres, después del reconocimiento local. Hay un máximo inicial de 100 intentos al día (UTC), configurable, y 6 por minuto por IP. Los límites se guardan en `configuracion/cache/ia-limites.json`, con permisos privados. Si se agota el límite, falla el proveedor o no se puede guardar el contador, la búsqueda local sigue funcionando. El límite controla cantidades de solicitudes, no un importe monetario; configura también el presupuesto de tu proyecto en OpenAI.
-
-La integración usa [Responses y salidas estructuradas](https://developers.openai.com/api/docs/guides/structured-outputs), con `store: false`, conexión HTTPS y tiempos de espera limitados.
+Esta versión elimina la integración con proveedores de IA. La ruta antigua `api/interpretar.php` devuelve HTTP 410 sin leer claves ni realizar llamadas externas, para que también las instalaciones actualizadas desde un ZIP dejen de utilizarla. Los campos antiguos de IA en el archivo privado se ignoran; la conexión MySQL se conserva.
 
 ## Actualizar por comandos en Hostinger
 
@@ -73,13 +60,12 @@ Los precios y el contenido del catálogo se actualizan desde la base anterior, n
 
 ## Validación
 
-Consultas comprobadas contra un esquema de prueba del sistema anterior; sinónimos, siglas, variantes, contexto y respuestas de IA verificadas. Navegación probada en escritorio y móviles de 390 y 320 px, con actualización de precios, errores del proveedor y contenido HTML tratado como texto. Las pruebas de IA simulan respuestas HTTP y no realizan llamadas facturables. La conexión real se activa al completar la configuración en Hostinger.
+Consultas comprobadas contra un esquema de prueba del sistema anterior; sinónimos, siglas, variantes y contexto verificados. Navegación probada en escritorio y móviles de 390 y 320 px, con actualización de precios, fallos de conexión, ausencia de consultas a intérpretes externos y contenido HTML tratado como texto. La conexión a la base real utiliza tu configuración MySQL de Hostinger.
 
 Para probar en un entorno de desarrollo:
 
 ```bash
 php tests/catalogo.php
-php tests/interpretacion.php
 node --experimental-vm-modules tests/chatbot.mjs
 ```
 

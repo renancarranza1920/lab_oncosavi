@@ -69,6 +69,6 @@ unlink($files[0]);
 rmdir($directory);
 
 $example = LameriPublica\cargarConfiguracion(__DIR__.'/../configuracion/lameri-publica.php.example');
-comprobar(array_keys($example) === ['mysql','contacto','ia'], 'Configuración MySQL, contacto y ajustes privados de IA.');
+comprobar(array_keys($example) === ['mysql','contacto'], 'Configuración MySQL y contacto público.');
 comprobar($example['contacto']['correo'] === 'lab.merino20@gmail.com', 'Correo público corroborado.');
 echo "OK: consultas legacy, filtros activos, precio propio, IDs, no escrituras, precios inválidos, caché TTL privada/opcional y configuración.\n";

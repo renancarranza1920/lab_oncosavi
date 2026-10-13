@@ -16,7 +16,10 @@ const STOP_WORDS = new Set([
   'hacen', 'hacer', 'hace', 'realizan', 'realizar', 'ofrecen', 'ofrece', 'manejan',
   'sale', 'salen', 'cobran', 'cobrar', 'decir', 'dices', 'digas', 'dice', 'sabes',
   'tendran', 'tendra', 'tendre', 'tengo', 'cotizar', 'cotizacion', 'averiguar',
-  'buen', 'disculpa', 'disculpe', 'gracias', 'tambien', 'favorito', 'llamado', 'llamada'
+  'buen', 'disculpa', 'disculpe', 'gracias', 'tambien', 'favorito', 'llamado', 'llamada',
+  'aquel', 'aquella', 'solicitan', 'solicitar', 'piden', 'pedir', 'pidio', 'indican',
+  'conocido', 'conocida', 'llaman', 'denomina', 'denominado', 'marcador', 'sigla',
+  'siglas', 'nombre', 'nombres', 'doctor', 'doctora', 'medico', 'medica', 'revisa'
 ]);
 
 const ALIASES = [

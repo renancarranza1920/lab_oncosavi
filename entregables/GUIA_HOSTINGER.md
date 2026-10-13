@@ -1,6 +1,6 @@
 # Web pública de Laboratorio Clínico Merino
 
-Esta entrega corresponde a **laboratorioclinicomerino.com**. Puedes instalarla desde el ZIP y después actualizarla por comandos Git. Conserva la web original y añade un asistente que reconoce nombres, siglas y errores de escritura, con IA opcional para consultas más difíciles. Consulta el catálogo de la **base del Lameri anterior**, como pediste.
+Esta entrega corresponde a **laboratorioclinicomerino.com**. Puedes instalarla desde el ZIP y después actualizarla por comandos Git. Conserva la web original y añade un asistente que reconoce nombres, siglas y errores de escritura, mediante reglas locales, sin claves externas ni cobros por consulta. Consulta el catálogo de la **base del Lameri anterior**, como pediste.
 
 ## Dónde extraer el ZIP
 
@@ -27,7 +27,7 @@ domains/laboratorioclinicomerino.com/
 3. Mantén `configuracion` junto a `public_html`. Esa carpeta guarda la conexión privada, y el navegador nunca recibe su contraseña.
 4. Si el Administrador de archivos abre directamente `public_html`, sube allí **solo su contenido** y crea/sube la carpeta `configuracion` en el directorio superior por el administrador de archivos o SFTP.
 
-La web requiere PHP 8.2 o superior con la extensión **pdo_mysql** habilitada. La IA opcional necesita además **curl**. Puedes habilitar estas extensiones desde hPanel → Configuración de PHP. Los archivos ya están preparados para usarse en Hostinger.
+La web requiere PHP 8.2 o superior con la extensión **pdo_mysql** habilitada. Puedes habilitarla desde hPanel → Configuración de PHP. Los archivos ya están preparados para usarse en Hostinger.
 
 ## Conectar la base anterior
 
@@ -69,35 +69,17 @@ No crees una base nueva, no importes un SQL y no ejecutes migraciones ni seeders
 
 Los cambios de precios del sistema anterior aparecen tras renovar el catálogo, normalmente en un minuto. La conexión se comprueba antes de utilizar la caché del servidor. Si la base no está accesible, el bot avisa que los precios no están disponibles; conserva las respuestas de información general.
 
-## Reconocimiento de nombres e IA opcional
+## Reconocimiento de nombres sin clave de pago
 
 Tras actualizar, el bot ya entiende nombres como `antígeno prostático`, `PSA`, `HbA1c`, `hemoglobina glucosilada`, `CBC`, `biometría hemática` y `colesterol bueno`. También reconoce siglas con puntos, como `P.S.A.`. Ante un error como `glucoas`, sugiere el nombre y te permite elegir antes de mostrar su precio. Si consultas PSA y luego escribes `¿y el libre?`, mantiene el contexto. Conserva separadas las variantes total/libre, cualitativa/cuantitativa y PCR molecular/proteína C reactiva.
 
 Los nombres de exámenes, perfiles, exámenes incluidos y sugerencias del bot aparecen en MAYÚSCULAS, conservando las tildes.
 
-Estas mejoras funcionan sin pagar una API. Para añadir IA real a las consultas que no se resuelven localmente:
+Estas mejoras funcionan con tu configuración MySQL actual, sin una cuenta adicional, sin una clave de IA y sin cobros por consulta. Actualiza desde **Actualizaciones siguientes** y recarga la página; no necesitas añadir ningún bloque al archivo privado.
 
-1. Actualiza la web con el comando de **Actualizaciones siguientes**.
-2. Crea una [clave API de OpenAI](https://platform.openai.com/api-keys) y configura facturación y el presupuesto del proyecto. La API tiene costo por uso aparte de ChatGPT.
-3. Abre tu archivo privado **existente** `configuracion/lameri-publica.php` en Hostinger. Conserva los bloques `mysql` y `contacto` y añade, dentro del mismo `return [...]`:
+Las preguntas se procesan en el navegador mediante equivalencias, comparación de nombres y el contexto de la búsqueda. Los precios e incluidos siempre proceden del catálogo de MySQL. Si un nombre no se reconoce, el bot ofrece coincidencias cercanas o un enlace a recepción.
 
-```php
-'ia' => [
-    'enabled' => true,
-    'api_key' => 'TU_CLAVE_API_DE_OPENAI',
-    'model' => 'gpt-4.1-mini',
-    'daily_request_limit' => 100,
-],
-```
-
-4. Habilita `curl` en PHP y guarda el archivo. No copies la clave al HTML, a JavaScript ni a Git.
-5. Recarga la web y consulta un nombre poco habitual de un examen real. `/api/catalogo.php` mostrará `asistente.ia: true` cuando estén configuradas la clave, la activación y `curl`; esto indica que la IA está habilitada, no que una llamada al proveedor haya sido comprobada.
-
-La configuración antigua sigue funcionando aunque no añadas este bloque. La IA permanece desactivada hasta configurarla y puedes apagarla con `enabled => false`. No reemplaces tu archivo privado por el ejemplo: perderías los datos MySQL que ya configuraste.
-
-Cuando se usa IA, PHP envía a OpenAI el texto de la consulta, los nombres públicos de exámenes/perfiles y referencias a la última búsqueda; no envía precios, credenciales ni datos de pacientes de la base. La web no guarda conversaciones. Las consultas sobre resultados, identificadores o síntomas se remiten a contacto. La IA devuelve solamente identificadores de catálogo validados; todos los precios mostrados siguen procediendo de MySQL.
-
-El máximo inicial es de **100 intentos diarios (UTC)** y **6 por minuto por IP**. Puedes ajustar el máximo diario en el archivo privado. El contador se guarda en `configuracion/cache/ia-limites.json`, sin preguntas ni IPs en texto, y necesita escritura de PHP. Es un límite de cantidad de solicitudes, no de dinero; establece también tu presupuesto en OpenAI. Si la IA no está disponible o se alcanza el límite, el reconocimiento local continúa funcionando.
+La web no guarda conversaciones ni envía las preguntas a proveedores externos. Los campos antiguos de IA del archivo privado se ignoran. La ruta anterior `api/interpretar.php` queda retirada y devuelve HTTP 410 sin llamar a ningún proveedor, incluso al instalar el ZIP sobre una versión anterior.
 
 ## Qué puede responder
 

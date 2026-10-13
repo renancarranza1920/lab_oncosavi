@@ -14,7 +14,7 @@ async function source(name) {
 const main = await source('merino-chat.js');
 await main.evaluate();
 const search = modules.get('merino-search.js').namespace;
-const { validateCatalog, parseIntent, searchCatalog, validateInterpretation, formatPrice } = main.namespace;
+const { validateCatalog, parseIntent, searchCatalog, formatPrice } = main.namespace;
 let passed = 0;
 const check = (fn) => { fn(); passed++; };
 const names = [
@@ -25,7 +25,7 @@ const names = [
   'Hepatitis B Ag. de superficie', 'Anticuerpos de hepatitis B', 'CA 125', 'CA 15-3',
   'General de orina', 'Urocultivo', 'VIH prueba rápida', 'GLUCOSA', 'GLUCOSA', 'TSH 3ra Generación', 'Hb y Ht'
 ];
-const data = { success: true, moneda: 'USD', asistente: { ia: true },
+const data = { success: true, moneda: 'USD',
   examens: names.map((nombre, index) => ({ id: index + 1, nombre, precio: (index + 1 + 0.25).toFixed(2), categoria: index === 25 ? 'Química urinaria' : 'Laboratorio' })),
   perfiles: [{ id: 10, nombre: 'PERFIL LIPÍDICO', precio: '4.50', incluidos: ['HDL', 'LDL'] },
     { id: 11, nombre: 'PERFIL TIROIDEO', precio: '6.00', incluidos: ['TSH', 'T4'] }] };
@@ -97,15 +97,7 @@ check(() => assert.equal(parseIntent('mis resultados de PSA').key, 'results'));
 check(() => assert.equal(parseIntent('tengo dolor qué análisis necesito').key, 'results'));
 check(() => assert.equal(parseIntent('ayuno para PSA').key, 'preparation'));
 check(() => assert.equal(parseIntent('a qué hora abren').key, 'hours'));
-const interpretation = { success: true, kind: 'matches', keys: ['exam:1'], needs_clarification: false, precio: '0.00' };
-check(() => assert.equal(validateInterpretation(interpretation, catalog).records[0].price, '1.25'));
-check(() => assert.throws(() => validateInterpretation({ ...interpretation, keys: ['exam:999999'] }, catalog)));
-check(() => assert.throws(() => validateInterpretation({ ...interpretation, keys: ['profile:10'] }, catalog, 'exams')));
-check(() => assert.equal(validateInterpretation({ ...interpretation, keys: ['exam:10', 'profile:10'] }, catalog).records.length, 2));
-check(() => assert.throws(() => validateInterpretation({ ...interpretation, kind: 'none' }, catalog)));
-check(() => assert.equal(catalog.aiEnabled, true));
-check(() => assert.equal(validateCatalog({ ...data, asistente: undefined }).aiEnabled, false));
 check(() => assert.equal(formatPrice('-1.00'), null));
 check(() => assert.equal(formatPrice('0.00'), '$0.00'));
 check(() => assert.equal(/\binnerHTML\b|insertAdjacentHTML|document\.write\(/.test(fs.readFileSync(new URL('merino-chat.js', base), 'utf8')), false));
-console.log(`${passed} comprobaciones: sinónimos, variantes, errores de escritura, contexto, precios del catálogo y respuestas de IA limitadas a registros públicos.`);
+console.log(`${passed} comprobaciones: sinónimos, variantes, errores de escritura, contexto y precios del catálogo.`);

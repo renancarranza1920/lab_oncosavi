@@ -20,20 +20,14 @@ try {
     pages.push(page);
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
-    let aiMode = 'success';
     let offline = false;
-    const bodies = [];
+    let legacyCalls = 0;
     await page.route('**/api/catalogo.php', async (route) => {
       await route.fulfill({ status: offline ? 503 : 200, contentType: 'application/json', body: JSON.stringify(offline ? { success: false } : catalog) });
     });
     await page.route('**/api/interpretar.php', async (route) => {
-      const body = route.request().postDataJSON();
-      bodies.push(body);
-      if (aiMode === 'down') return route.fulfill({ status: 503, contentType: 'application/json', body: '{"success":false}' });
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
-        success: true, kind: 'matches', needs_clarification: true,
-        keys: aiMode === 'invalid' ? ['exam:999999'] : ['exam:1', 'exam:2'], precio: '0.00', texto: '<script>window.EXECUTED=2</script>'
-      }) });
+      legacyCalls++;
+      await route.fulfill({ status: 410, contentType: 'application/json', body: '{"success":false}' });
     });
     await page.goto(origin, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: 'Abrir asistente de consultas Merino' }).click();
@@ -47,7 +41,7 @@ try {
     assert.equal(await answer.locator('.mc-record').count(), 4);
     assert.ok((await answer.innerText()).includes('PSA significa'));
     assert.ok((await answer.innerText()).includes('$23.45'));
-    assert.equal(bodies.length, 0);
+    assert.equal(legacyCalls, 0);
     checks += 4;
     answer = await ask('PSA total');
     assert.equal(await answer.locator('.mc-record').count(), 1);
@@ -57,7 +51,6 @@ try {
     assert.equal(await answer.locator('.mc-record-name').first().innerText(), 'PSA LIBRE');
     assert.ok((await answer.innerText()).includes('$39.87'));
     checks += 2;
-    aiMode = 'down';
     answer = await ask('glucoas');
     assert.equal(await answer.locator('.mc-record').count(), 0);
     assert.ok((await answer.innerText()).includes('nombres parecidos'));
@@ -66,24 +59,20 @@ try {
     answer = page.locator('.mc-message:not(.mc-message-user)').last();
     assert.ok((await answer.innerText()).includes('$5.25'));
     checks += 3;
-    aiMode = 'success';
     answer = await ask('Quiero cotizar aquel marcador llamado antígeno que solicitan para la próstata');
-    assert.equal(await answer.locator('.mc-record').count(), 2);
+    assert.equal(await answer.locator('.mc-record').count(), 4);
     assert.ok((await answer.innerText()).includes('$23.45'));
     assert.ok(!(await answer.innerText()).includes('$0.00'));
     assert.equal(await page.evaluate(() => window.EXECUTED), undefined);
-    assert.deepEqual(Object.keys(bodies.at(-1)).sort(), ['consulta', 'contexto', 'scope']);
-    assert.ok(bodies.at(-1).contexto.every((key) => /^(exam|profile):\d+$/.test(key)));
-    checks += 6;
-    aiMode = 'invalid';
+    assert.equal(legacyCalls, 0);
+    checks += 5;
     answer = await ask('nombre muy extraño de un análisis desconocido');
     assert.equal(await answer.locator('.mc-record').count(), 0);
     assert.ok((await answer.innerText()).includes('No encontré'));
     checks += 2;
-    const beforeMedical = bodies.length;
     answer = await ask('mis resultados de PSA, paciente de prueba');
     assert.ok((await answer.innerText()).includes('comunícate directamente'));
-    assert.equal(bodies.length, beforeMedical);
+    assert.equal(legacyCalls, 0);
     checks += 2;
     offline = true;
     answer = await ask('precio de PSA total');
@@ -107,5 +96,5 @@ try {
     if (process.env.MERINO_SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.MERINO_SCREENSHOT_DIR}/merino-chat-${width}.png` });
     await page.close();
   }
-  console.log(`${checks} comprobaciones de navegador en escritorio y móviles: nombres, contexto, precio actualizado, IA simulada, fallos, texto seguro y anchura.`);
+  console.log(`${checks} comprobaciones de navegador en escritorio y móviles: reconocimiento local, contexto, precio actualizado, ausencia de peticiones a intérpretes externos, texto seguro y anchura.`);
 } finally { await browser.close(); }

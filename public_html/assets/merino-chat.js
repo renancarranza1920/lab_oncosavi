@@ -86,23 +86,9 @@ export function validateCatalog(data) {
   };
   return {
     currency: 'USD',
-    aiEnabled: data.asistente?.ia === true,
     exams: data.examens.map((entry) => readRecord(entry, 'exam')),
     profiles: data.perfiles.map((entry) => readRecord(entry, 'profile'))
   };
-}
-
-export function validateInterpretation(data, catalog, scope = 'all') {
-  if (!data || data.success !== true || !['matches', 'none', 'contact'].includes(data.kind)
-      || !Array.isArray(data.keys) || data.keys.length > 20 || typeof data.needs_clarification !== 'boolean') {
-    throw new Error('Consulta no interpretada.');
-  }
-  const records = scope === 'profiles' ? catalog.profiles : scope === 'exams' ? catalog.exams : catalog.exams.concat(catalog.profiles);
-  const allowed = new Map(records.map((record) => [record.type + ':' + record.id, record]));
-  if (data.keys.some((key) => typeof key !== 'string' || !allowed.has(key))
-      || (data.kind === 'matches') !== (data.keys.length > 0)) throw new Error('Coincidencia no válida.');
-  return { kind: data.kind, records: [...new Set(data.keys)].map((key) => allowed.get(key)),
-    clarify: data.needs_clarification || data.keys.length > 1 };
 }
 
 function createNode(tag, className, text) {
@@ -318,21 +304,6 @@ function mountChat() {
     return catalogPromise;
   }
 
-  async function interpretQuery(query, catalog, scope, previous) {
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 12000);
-    try {
-      const response = await fetch(new URL(config.interpretationUrl, document.baseURI), {
-        method: 'POST', credentials: 'same-origin', cache: 'no-store',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ consulta: query, scope, contexto: previous.map((record) => record.type + ':' + record.id) }),
-        signal: controller.signal
-      });
-      if (!response.ok) throw new Error('No se pudo interpretar la consulta.');
-      return validateInterpretation(await response.json(), catalog, scope);
-    } finally { window.clearTimeout(timeout); }
-  }
-
   function renderRecords(response, records) {
     const container = createNode('div', 'mc-records');
     response.append(container);
@@ -372,30 +343,12 @@ function mountChat() {
     appendNextPage();
   }
 
-  async function showCatalog(intent, originalQuery) {
+  async function showCatalog(intent) {
     const response = message('Consultando el catálogo…');
     response.setAttribute('aria-busy', 'true');
     try {
       const loaded = await loadCatalog();
-      let resolved = resolveCatalog(loaded, intent.type === 'pcr' ? 'PCR' : intent.query, intent.scope);
-      let understoodByAI = false;
-      if (loaded.aiEnabled && intent.query && intent.type !== 'pcr'
-          && (!resolved.records.length || resolved.approximate || resolved.unmatched.length)) {
-        try {
-          const interpretation = await interpretQuery(originalQuery || intent.query, loaded, intent.scope, previousRecords);
-          if (interpretation.kind === 'contact') {
-            previousRecords = [];
-            response.replaceChildren();
-            appendParagraph(response, 'Para saber qué examen necesitas o consultar resultados, comunícate con el laboratorio o con tu médico.');
-            contactLink(response);
-            return;
-          }
-          if (interpretation.records.length) {
-            resolved = { records: interpretation.records, approximate: false, unmatched: [] };
-            understoodByAI = true;
-          }
-        } catch { /* El reconocimiento local sigue disponible si la IA falla. */ }
-      }
+      const resolved = resolveCatalog(loaded, intent.type === 'pcr' ? 'PCR' : intent.query, intent.scope);
       response.replaceChildren();
       const records = resolved.records;
       previousRecords = intent.query && !resolved.approximate && records.length <= 20 ? records : [];
@@ -417,8 +370,6 @@ function mountChat() {
         appendParagraph(response, intent.scope === 'profiles' ? 'Perfiles disponibles y su precio propio:' :
           intent.scope === 'all' ? 'Exámenes y perfiles disponibles con sus precios:' :
             'Exámenes disponibles y sus precios:');
-      } else if (understoodByAI) {
-        appendParagraph(response, 'Por el nombre que escribiste, estas son las coincidencias del catálogo. Comprueba cuál corresponde a tu consulta:');
       } else if (records.length === 1) {
         appendParagraph(response, 'Encontré esta coincidencia en el catálogo público:');
       } else {
@@ -471,7 +422,7 @@ function mountChat() {
       } else if (intent.type === 'info') {
         previousRecords = [];
         showInfo(intent.key);
-      } else await showCatalog(intent, query);
+      } else await showCatalog(intent);
     } finally {
       busy = false;
       submit.disabled = false;
@@ -504,7 +455,7 @@ function mountChat() {
     ask(value);
   });
   const greeting = message('Hola. Consulta precios de exámenes y perfiles, horarios, ubicación y servicios. Escribe una pregunta o elige una opción.');
-  appendParagraph(greeting, 'Las consultas difíciles pueden usar IA para reconocer el nombre del examen. No compartas datos personales ni resultados médicos.', 'mc-status');
+  appendParagraph(greeting, 'Reconozco siglas y nombres alternativos de exámenes. No compartas datos personales ni resultados médicos.', 'mc-status');
   menu(greeting);
 }
 

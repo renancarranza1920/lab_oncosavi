@@ -65,23 +65,7 @@ function cargarConfiguracion(string $path): array
         }
     }
 
-    return ['mysql' => $mysql, 'contacto' => $contacto, 'ia' => configuracionIa($config['ia'] ?? [])];
-}
-
-function configuracionIa(mixed $value): array
-{
-    $settings = is_array($value) ? $value : [];
-    $key = $settings['api_key'] ?? '';
-    $model = $settings['model'] ?? 'gpt-4.1-mini';
-    if (!is_string($key) || strlen($key) > 512 || preg_match('/[\x00-\x20\x7f]/', $key)) $key = '';
-    if (!is_string($model) || !preg_match('/\A[a-zA-Z0-9._-]{1,100}\z/', $model)) $model = 'gpt-4.1-mini';
-    $limit = filter_var($settings['daily_request_limit'] ?? 100, FILTER_VALIDATE_INT,
-        ['options' => ['min_range' => 1, 'max_range' => 10000]]);
-    return [
-        'enabled' => ($settings['enabled'] ?? false) === true && $key !== '',
-        'api_key' => $key, 'model' => $model,
-        'daily_request_limit' => $limit === false ? 100 : $limit,
-    ];
+    return ['mysql' => $mysql, 'contacto' => $contacto];
 }
 
 function conectarMysql(array $config): PDO
