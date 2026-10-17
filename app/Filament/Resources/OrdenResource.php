@@ -1170,196 +1170,72 @@ public static function getOrdenStep(): array
             ->actions([
 
                 Tables\Actions\Action::make('gestionarMuestras')
-
                     ->label('Gestionar Muestras')
-
-                    ->tooltip('Registrar muestras recibidas')
-
+                    ->tooltip('Registrar o corregir muestras recibidas')
                     ->icon('heroicon-o-beaker')
-
                     ->iconButton()
-
                     ->color('info')
-
-                    ->visible(fn(Orden $record): bool => in_array($record->estado, ['pendiente'])
-
+                    ->visible(fn (Orden $record): bool => in_array($record->estado, ['pendiente', 'en proceso', 'pausada', 'finalizado'], true)
                         && auth()->user()->can('procesar_muestras_orden'))
-
                     ->modalHeading('Registrar Muestras Recibidas')
-
-                    ->modalSubmitActionLabel('Guardar Estado')
-
+                    ->modalDescription('Marque únicamente las muestras que realmente recibió. Basta una muestra compatible por examen; no es necesario marcar todas las alternativas. Si corrige una orden con PDF generado, vuelva a generar el reporte después de guardar.')
+                    ->modalSubmitActionLabel('Guardar muestras')
                     ->form(function (Orden $record) {
-
                         $detalles = $record->detalleOrden()->with('examen.muestras')->get();
-
-
-
                         $opcionesMuestras = [];
-
                         $valoresPorDefecto = [];
 
-
-
                         foreach ($detalles as $detalle) {
-
-                            if (!$detalle->examen || $detalle->examen->muestras->isEmpty())
-
-                                continue;
-
-
-
-                            // Obtenemos las muestras ya recibidas para ESTE detalle
-
-                            $recibidas = $detalle->muestras_recibidas ?? [];
-
-
-
-                            foreach ($detalle->examen->muestras as $muestra) {
-
-                                // Creamos un ID único (detalle_id + muestra_id)
-
+                            foreach ($detalle->examen?->muestras ?? [] as $muestra) {
                                 $key = "d{$detalle->id}_m{$muestra->id}";
-
-                                $label = "{$detalle->examen->nombre}: {$muestra->nombre}";
-
-                                $opcionesMuestras[$key] = $label;
-
-
-
-                                // Si la muestra está en el array, la marcamos
-
-                                if (in_array($muestra->id, $recibidas)) {
-
+                                $opcionesMuestras[$key] = "{$detalle->examen->nombre}: {$muestra->nombre}";
+                                if (in_array($muestra->id, $detalle->muestras_recibidas ?? [])) {
                                     $valoresPorDefecto[] = $key;
-
                                 }
-
                             }
-
                         }
-
-
 
                         if (empty($opcionesMuestras)) {
-
-                            return [Forms\Components\Placeholder::make('no_muestras')->content('Este examen no tiene muestras asociadas.')];
-
+                            return [Forms\Components\Placeholder::make('no_muestras')
+                                ->content('Los exámenes de esta orden no tienen muestras configuradas. Puede guardar para continuar con el procesamiento.')];
                         }
-
-
 
                         return [
-
                             CheckboxList::make('muestras_recibidas_list')
-
-                                ->label('Marcar muestras como recibidas')
-
+                                ->label('Muestras realmente recibidas')
+                                ->helperText('Seleccione al menos una opción por cada examen que tenga muestras configuradas.')
                                 ->options($opcionesMuestras)
-
-                                ->default($valoresPorDefecto) // Carga el estado guardado
-
-                                ->columns(1)
-
-                                ->bulkToggleable(),
-
+                                ->default($valoresPorDefecto)
+                                ->columns(1),
                         ];
-
                     })
-
-                    ->action(function (Orden $record, array $data) {
-
-                        $selectedKeys = $data['muestras_recibidas_list'] ?? [];
-
-                        $detalles = $record->detalleOrden()->with('examen.muestras')->get();
-
-
-
-                        $totalMuestrasRequeridas = 0;
-
-                        $totalMuestrasRecibidas = 0;
-
-
-
-                        DB::transaction(function () use ($detalles, $selectedKeys, &$totalMuestrasRequeridas, &$totalMuestrasRecibidas) {
-
-                            foreach ($detalles as $detalle) {
-
-                                $muestrasDeEsteDetalle = [];
-
-                                if ($detalle->examen->muestras->isEmpty())
-
-                                    continue;
-
-
-
-                                foreach ($detalle->examen->muestras as $muestra) {
-
-                                    $totalMuestrasRequeridas++;
-
-                                    $key = "d{$detalle->id}_m{$muestra->id}";
-
-                                    if (in_array($key, $selectedKeys)) {
-
-                                        $muestrasDeEsteDetalle[] = $muestra->id;
-
-                                        $totalMuestrasRecibidas++;
-
-                                    }
-
-                                }
-
-                                $detalle->muestras_recibidas = $muestrasDeEsteDetalle;
-
-                                $detalle->save();
-
-                            }
-
-                        });
-
-
-
-                        // --- LÓGICA DE AUDITORÍA Y ESTADO ---
-
-                        if ($totalMuestrasRequeridas > 0 && $totalMuestrasRequeridas === $totalMuestrasRecibidas) {
-
-                            $record->estado = 'en proceso';
-
-                            $record->fecha_toma_muestra = Carbon::now(); // <-- GUARDAR FECHA
-
-                            $record->toma_muestra_user_id = auth()->id(); // <-- GUARDAR USUARIO
-
-                            Notification::make()->title('¡Todas las muestras recibidas!')->body('La orden está lista para procesar.')->success()->send();
-
-                        } else {
-
-                            $record->estado = 'pendiente';
-
-                            $record->fecha_toma_muestra = null; // <-- LIMPIAR FECHA
-
-                            $record->toma_muestra_user_id = null; // <-- LIMPIAR USUARIO
-
-                            $notificacion = ($totalMuestrasRecibidas > 0)
-
-                                ? Notification::make()->title('Muestras guardadas')->body('Aún faltan muestras por recibir. La orden sigue pendiente.')->info()
-
-                                : Notification::make()->title('Muestras guardadas')->body('No se ha recibido ninguna muestra.')->warning();
-
-                            $notificacion->send();
-
+                    ->action(function (Orden $record, array $data, $livewire) {
+                        try {
+                            $resumen = app(\App\Services\RecepcionMuestras::class)->registrar(
+                                $record, $data['muestras_recibidas_list'] ?? [], auth()->id(),
+                            );
+                        } catch (\Illuminate\Validation\ValidationException $exception) {
+                            $ruta = $livewire->getMountedTableActionForm()->getStatePath();
+                            throw \Illuminate\Validation\ValidationException::withMessages(
+                                collect($exception->errors())->mapWithKeys(fn ($mensajes, $campo) => ["{$ruta}.{$campo}" => $mensajes])->all(),
+                            );
                         }
 
-                        $record->save();
+                        if ($resumen['faltantes']) {
+                            Notification::make()->title('Recepción parcial guardada')
+                                ->body('Falta registrar al menos una muestra para: '.implode(', ', $resumen['faltantes']).'. La orden sigue pendiente.')
+                                ->warning()->send();
+                        } else {
+                            $mensaje = match ($record->estado) {
+                                'finalizado' => 'La orden sigue finalizada. Vuelva a generar el reporte PDF para incorporar las muestras corregidas.',
+                                'pausada' => 'Las muestras están registradas. La orden conserva su estado pausado.',
+                                default => 'Las muestras están registradas. La orden está lista para procesar.',
+                            };
+                            Notification::make()->title('Muestras guardadas')->body($mensaje)->success()->send();
+                        }
 
                         return redirect(static::getUrlOrdenFiltrada($record));
-
                     }),
-
-
-
-
-
-
 
                 Tables\Actions\Action::make('ingresarResultados')
 
@@ -1878,6 +1754,7 @@ $record->update([
                     $examenes_data[] = [
 
                         'nombre' => $detalle->examen->nombre,
+                        'muestras' => $detalle->nombresMuestrasRecibidas(),
 
                         'pruebas_unitarias' => $dataUnitarias,
 
@@ -1934,6 +1811,7 @@ $record->update([
                     $examenes_data[] = [
 
                         'nombre' => $detalle->nombre_examen,
+                        'muestras' => $detalle->nombresMuestrasRecibidas(),
 
                         'pruebas_unitarias' => $dataUnitarias,
 
@@ -2026,6 +1904,7 @@ $record->update([
                         $examenesFiltrados[] = [
 
                             'nombre' => $ex['nombre'],
+                            'muestras' => $ex['muestras'],
 
                             'pruebas_unitarias' => $unitariasUser,
 

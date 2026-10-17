@@ -141,7 +141,7 @@ class ReporteResultadosDisenoTest extends TestCase
             ];
         }
 
-        return [['nombre' => $nombre, 'pruebas_unitarias' => $pruebas, 'matrices' => []]];
+        return [['nombre' => $nombre, 'muestras' => ['Muestra de ejemplo'], 'pruebas_unitarias' => $pruebas, 'matrices' => []]];
     }
 
     private function datosReporte(int $filasOrina = 24): array

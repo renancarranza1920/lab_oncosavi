@@ -600,11 +600,9 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                     <table class="results-table{{ $esGigante ? ' results-table--extensa' : '' }}" style="width: 100%; {{ $saltoPaginaStr }}">
                                         <thead>
                                             @php
-                                                $nombresExamenes = array_column($listaExamenes, 'nombre');
-                                                $muestras = $orden->detalleOrden
-                                                    ->filter(fn ($detalle) => in_array($detalle->nombre_examen ?? $detalle->examen?->nombre, $nombresExamenes))
-                                                    ->flatMap(fn ($detalle) => $detalle->examen?->muestras ?? collect())
-                                                    ->pluck('nombre')->filter()->unique();
+                                                $muestras = collect($listaExamenes)
+                                                    ->flatMap(fn ($examen) => $examen['muestras'] ?? [])
+                                                    ->filter()->unique();
                                             @endphp
                                             @if ($muestras->isNotEmpty())
                                                 <tr><th class="muestra-header" colspan="{{ $esTablaConRef ? 3 : 2 }}">MUESTRA: {{ mb_strtoupper($muestras->implode(', ')) }}</th></tr>
