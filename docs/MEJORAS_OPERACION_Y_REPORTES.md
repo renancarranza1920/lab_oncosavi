@@ -86,3 +86,20 @@ resultados para evitar una página que contenga únicamente sellos.
 La regeneración sigue leyendo las imágenes actuales del autor de los resultados.
 Los documentos ya guardados se mantienen;
 para ver estos cambios es necesario regenerarlos.
+
+### Firmas al terminar los resultados de coprología
+
+Los exámenes con referencia y sin referencia de una misma área comparten un solo
+bloque de sellos y firma, después del último resultado. Así, Helicobacter pylori
+y General de heces no intercalan firmas entre ambas tablas ni consumen una hoja
+adicional por la última fila. Se conservan los tamaños de los sellos, la firma
+y el texto de resultados.
+
+Los hemogramas y generales de orina que se separan mediante un salto de página
+conservan su firma. Las tablas extensas siguen dividiéndose cuando lo necesitan,
+con encabezados repetidos y la firma junto a sus últimos resultados.
+
+Para aplicar el ajuste a un archivo existente, vuelva a generar el reporte
+completo o parcial desde el panel. Una reproducción con datos de ejemplo y las
+cuatro áreas del caso pasó de cinco a cuatro páginas sin eliminar resultados.
+La validación de PDFs, muestras y permisos pasó 45 pruebas (601 aserciones).

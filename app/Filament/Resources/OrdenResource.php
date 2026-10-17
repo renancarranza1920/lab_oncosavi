@@ -1171,14 +1171,14 @@ public static function getOrdenStep(): array
 
                 Tables\Actions\Action::make('gestionarMuestras')
                     ->label('Gestionar Muestras')
-                    ->tooltip('Registrar o corregir muestras recibidas')
+                    ->tooltip('Gestionar muestras')
                     ->icon('heroicon-o-beaker')
                     ->iconButton()
                     ->color('info')
                     ->visible(fn (Orden $record): bool => in_array($record->estado, ['pendiente', 'en proceso', 'pausada', 'finalizado'], true)
                         && auth()->user()->can('procesar_muestras_orden'))
                     ->modalHeading('Registrar Muestras Recibidas')
-                    ->modalDescription('Marque únicamente las muestras que realmente recibió. Basta una muestra compatible por examen; no es necesario marcar todas las alternativas. Si corrige una orden con PDF generado, vuelva a generar el reporte después de guardar.')
+                    ->modalDescription('Seleccione las muestras recibidas.')
                     ->modalSubmitActionLabel('Guardar muestras')
                     ->form(function (Orden $record) {
                         $detalles = $record->detalleOrden()->with('examen.muestras')->get();
@@ -1197,13 +1197,12 @@ public static function getOrdenStep(): array
 
                         if (empty($opcionesMuestras)) {
                             return [Forms\Components\Placeholder::make('no_muestras')
-                                ->content('Los exámenes de esta orden no tienen muestras configuradas. Puede guardar para continuar con el procesamiento.')];
+                                ->content('Sin muestras configuradas. Guarde para continuar.')];
                         }
 
                         return [
                             CheckboxList::make('muestras_recibidas_list')
-                                ->label('Muestras realmente recibidas')
-                                ->helperText('Seleccione al menos una opción por cada examen que tenga muestras configuradas.')
+                                ->label('Muestras recibidas')
                                 ->options($opcionesMuestras)
                                 ->default($valoresPorDefecto)
                                 ->columns(1),
@@ -1222,14 +1221,14 @@ public static function getOrdenStep(): array
                         }
 
                         if ($resumen['faltantes']) {
-                            Notification::make()->title('Recepción parcial guardada')
-                                ->body('Falta registrar al menos una muestra para: '.implode(', ', $resumen['faltantes']).'. La orden sigue pendiente.')
+                            Notification::make()->title('Recepción parcial')
+                                ->body('Falta muestra para: '.implode(', ', $resumen['faltantes']).'.')
                                 ->warning()->send();
                         } else {
                             $mensaje = match ($record->estado) {
-                                'finalizado' => 'La orden sigue finalizada. Vuelva a generar el reporte PDF para incorporar las muestras corregidas.',
-                                'pausada' => 'Las muestras están registradas. La orden conserva su estado pausado.',
-                                default => 'Las muestras están registradas. La orden está lista para procesar.',
+                                'finalizado' => 'Genere nuevamente el PDF.',
+                                'pausada' => 'La orden sigue pausada.',
+                                default => 'Orden lista para procesar.',
                             };
                             Notification::make()->title('Muestras guardadas')->body($mensaje)->success()->send();
                         }
