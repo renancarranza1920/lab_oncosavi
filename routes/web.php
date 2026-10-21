@@ -48,17 +48,25 @@ Route::get('/orden/{orden}/boleta', function (App\Models\Orden $orden) {
     return $pdf->stream("boleta-{$orden->id}.pdf");
 })->name('orden.boleta.pdf')->middleware('auth');
 
-Route::get('/orden/{orden}/reporte-guardado', function (App\Models\Orden $orden) {
+Route::get('/orden/{orden}/reporte-guardado', function (Request $request, App\Models\Orden $orden) {
     abort_unless(auth()->user()->can('view_orden') && auth()->user()->can('descargar_reporte_orden'), 403);
     abort_unless($orden->reporteGuardadoExists(), 404);
 
-    return response()->file($orden->reporteGuardadoFullPath(), [
+    $headers = [
         'Content-Type' => 'application/pdf',
-        'Content-Disposition' => 'inline; filename="' . $orden->reporteGuardadoFileName() . '"',
         'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
         'Pragma' => 'no-cache',
         'Expires' => '0',
-    ]);
+    ];
+
+    if ($request->boolean('descargar')) {
+        abort_unless($orden->estado === 'finalizado', 404);
+
+        return response()->download($orden->reporteGuardadoFullPath(), $orden->reporteGuardadoFileName(), $headers);
+    }
+
+    return response()->file($orden->reporteGuardadoFullPath(), $headers)
+        ->setContentDisposition('inline', $orden->reporteGuardadoFileName());
 })->name('orden.reporte.guardado')->middleware('auth');
 
 
