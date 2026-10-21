@@ -565,6 +565,13 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                         $esTablaConRef = $bloque['tiene_referencia'];
                                         $listaExamenes = $bloque['examenes'];
                                         $esGigante = ($bloque['tipo'] === 'gigante');
+                                        $bloqueSiguiente = $bloques[$indexBloque + 1] ?? null;
+
+                                        // Los bloques con y sin referencia comparten la firma al final.
+                                        // Los exámenes separados por un salto forzado conservan la suya.
+                                        $incluirFirmasBloque = $esGigante
+                                            || $bloqueSiguiente === null
+                                            || $bloqueSiguiente['tipo'] === 'gigante';
 
                                         // Controlamos los saltos de página
                                         $saltoPaginaStr = '';
@@ -600,11 +607,9 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                     <table class="results-table{{ $esGigante ? ' results-table--extensa' : '' }}" style="width: 100%; {{ $saltoPaginaStr }}">
                                         <thead>
                                             @php
-                                                $nombresExamenes = array_column($listaExamenes, 'nombre');
-                                                $muestras = $orden->detalleOrden
-                                                    ->filter(fn ($detalle) => in_array($detalle->nombre_examen ?? $detalle->examen?->nombre, $nombresExamenes))
-                                                    ->flatMap(fn ($detalle) => $detalle->examen?->muestras ?? collect())
-                                                    ->pluck('nombre')->filter()->unique();
+                                                $muestras = collect($listaExamenes)
+                                                    ->flatMap(fn ($examen) => $examen['muestras'] ?? [])
+                                                    ->filter()->unique();
                                             @endphp
                                             @if ($muestras->isNotEmpty())
                                                 <tr><th class="muestra-header" colspan="{{ $esTablaConRef ? 3 : 2 }}">MUESTRA: {{ mb_strtoupper($muestras->implode(', ')) }}</th></tr>
@@ -746,7 +751,9 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                                 </tr>
                                             @endif
                                         </tbody>
-                                        @include('pdf.firmas')
+                                        @if ($incluirFirmasBloque)
+                                            @include('pdf.firmas')
+                                        @endif
                                     </table>
                                 @endforeach
                 </div>
