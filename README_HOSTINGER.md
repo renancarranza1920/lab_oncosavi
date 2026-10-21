@@ -46,6 +46,10 @@ bash scripts/update-hostinger.sh
 
 El script comprueba la rama y que no hayas modificado archivos versionados, obtiene `lameri_new` con `git pull --ff-only`, pone el sistema en mantenimiento durante el cambio, aplica las migraciones pendientes y reconstruye las cachés. Ejecuta Composer de producción en cada actualización para regenerar el mapa de clases, incluso si no cambió `composer.lock`; si las dependencias ya están instaladas no vuelve a descargarlas. Retira únicamente los archivos de caché generados de Laravel y Filament antes de volver a cargar la aplicación. Conserva `.env`, `APP_KEY`, los usuarios, la base y los archivos de `storage`. No ejecuta seeders ni publica assets sobre los archivos de Git. También intenta salir de mantenimiento si falla un paso; conserva el mensaje del error para corregirlo antes de repetir la actualización.
 
+Las tarjetas de órdenes finalizadas con un reporte guardado incluyen el icono
+**Descargar PDF**, junto al visor. Descarga el archivo existente en PC, tablet
+y celular con el permiso de descarga habitual, conservando sus firmas y sellos.
+
 La terminal debe disponer de Git, PHP 8.3 o superior y **Composer 2**. Comprueba `php -v` y `composer --version`; si los ejecutables tienen otros nombres, puedes indicar sus rutas:
 
 ```bash

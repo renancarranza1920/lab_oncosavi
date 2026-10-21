@@ -2177,6 +2177,18 @@ $record->update([
 
                 ->modalCancelActionLabel('Cerrar'),
 
+                Tables\Actions\Action::make('descargarReporteGuardado')
+                    ->label('Descargar PDF')
+                    ->tooltip('Descargar PDF')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->iconButton()
+                    ->color('primary')
+                    ->visible(fn (Orden $record): bool => $record->estado === 'finalizado'
+                        && auth()->user()->can('view_orden')
+                        && auth()->user()->can('descargar_reporte_orden')
+                        && $record->reporteGuardadoExists())
+                    ->url(fn (Orden $record): string => route('orden.reporte.guardado', ['orden' => $record, 'descargar' => 1])),
+
 
 
                 Tables\Actions\Action::make('restaurarOrden')
