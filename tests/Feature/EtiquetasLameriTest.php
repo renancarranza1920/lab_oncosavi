@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Pages\DetalleOrdenKanban;
 use App\Filament\Resources\OrdenResource\Pages\ListOrdens;
+use App\Filament\Widgets\UltimasOrdenesWidget;
 use App\Models\Cliente;
 use App\Models\DetalleOrden;
 use App\Models\Examen;
@@ -65,20 +66,28 @@ class EtiquetasLameriTest extends TestCase
         $this->assertSame($cantidad, substr_count($zpl, '^FDLABORATORIO MERINO^FS'));
     }
 
-    public function test_etiquetas_se_pueden_abrir_y_reimprimir_despues_de_recibir_muestras(): void
+    public function test_boton_etiquetas_solo_aparece_en_la_pestana_pendientes(): void
     {
-        $ordenes = collect(['pendiente', 'en proceso', 'pausada', 'finalizado'])
+        $ordenes = collect(['pendiente', 'en proceso', 'pausada', 'finalizado', 'cancelado'])
             ->map(fn ($estado) => $this->crearOrden('Ejemplo', $estado));
-        $cancelada = $this->crearOrden('Cancelada', 'cancelado');
-        $pagina = Livewire::test(ListOrdens::class)->set('activeTab', 'todas');
+        $pagina = Livewire::test(ListOrdens::class)->set('activeTab', 'pendiente');
 
-        foreach ($ordenes as $orden) {
-            $pagina->assertTableActionVisible('imprimirEtiquetas', $orden);
+        $pagina->assertTableActionVisible('imprimirEtiquetas', $ordenes[0]);
+
+        foreach ($ordenes->skip(1) as $orden) {
+            $pagina->set('activeTab', $orden->estado)
+                ->assertTableActionHidden('imprimirEtiquetas', $orden);
         }
-        $pagina->assertTableActionHidden('imprimirEtiquetas', $cancelada);
 
-        $detalle = $this->agregarExamen($ordenes[1]);
-        Livewire::test(DetalleOrdenKanban::class, ['ordenId' => $ordenes[1]->id])
+        $pagina->set('activeTab', 'todas')
+            ->assertTableActionHidden('imprimirEtiquetas', $ordenes[0]);
+
+        Livewire::test(UltimasOrdenesWidget::class)
+            ->assertTableActionVisible('etiquetas', $ordenes[0])
+            ->assertTableActionHidden('etiquetas', $ordenes[1]);
+
+        $detalle = $this->agregarExamen($ordenes[0]);
+        Livewire::test(DetalleOrdenKanban::class, ['ordenId' => $ordenes[0]->id])
             ->assertOk()->assertSee($detalle->nombre_examen)
             ->assertActionVisible('Generar ZPL');
     }
@@ -214,7 +223,8 @@ class EtiquetasLameriTest extends TestCase
 
         $consulta->revokePermissionTo('imprimir_etiquetas_orden');
         $this->actingAs($consulta->fresh());
-        Livewire::test(ListOrdens::class)->set('activeTab', 'todas')->assertTableActionHidden('imprimirEtiquetas', $orden);
+        $orden->update(['estado' => 'pendiente']);
+        Livewire::test(ListOrdens::class)->set('activeTab', 'pendiente')->assertTableActionHidden('imprimirEtiquetas', $orden);
         Livewire::test(DetalleOrdenKanban::class, ['ordenId' => $orden->id])->assertForbidden();
 
         auth()->logout();

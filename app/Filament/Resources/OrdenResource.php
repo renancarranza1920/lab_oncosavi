@@ -1264,7 +1264,9 @@ public static function getOrdenStep(): array
 
                     ->color('gray')
 
-                    ->visible(fn(Orden $record): bool => in_array($record->estado, ['pendiente', 'en proceso', 'pausada', 'finalizado'])
+                    ->visible(fn(Orden $record, $livewire): bool => $record->estado === 'pendiente'
+
+                        && $livewire->activeTab === 'pendiente'
 
                         && auth()->user()->can('imprimir_etiquetas_orden'))
 

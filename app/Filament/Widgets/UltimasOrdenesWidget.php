@@ -75,7 +75,8 @@ class UltimasOrdenesWidget extends BaseWidget
             ->actions([
                 Action::make('etiquetas')
                     ->label('Etiquetas')
-                    ->visible(fn () => auth()->user()->can('imprimir_etiquetas_orden'))
+                    ->visible(fn (Orden $record) => $record->estado === 'pendiente'
+                        && auth()->user()->can('imprimir_etiquetas_orden'))
                     ->icon('heroicon-o-ticket')
                     ->color('gray')
                     ->url(fn (Orden $record) => DetalleOrdenKanban::getUrl([

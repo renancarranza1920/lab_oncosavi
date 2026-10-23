@@ -77,8 +77,8 @@ navegador de recepción, guardado superior y edades de clientes.
 
 ### Ver e imprimir etiquetas
 
-Las etiquetas están habilitadas por defecto. Desde el icono de etiqueta de la
-tarjeta de una orden pendiente, en proceso, pausada o finalizada se abre el
+Las etiquetas están habilitadas por defecto. El icono de etiqueta se muestra
+únicamente en la pestaña **Pendientes**, para las órdenes pendientes, y abre el
 tablero original por recipientes. Conserva la impresión individual, por grupo
 y de todas las etiquetas, con los permisos existentes.
 
