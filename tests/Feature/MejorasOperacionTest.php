@@ -79,7 +79,7 @@ class MejorasOperacionTest extends TestCase
     public function test_recepcion_y_finalizacion_abren_la_pestana_filtrada_por_orden(): void
     {
         [$orden, $detalle, $muestra] = $this->orden();
-        Livewire::test(ListOrdens::class)->set('activeTab', 'todas')
+        Livewire::test(ListOrdens::class)->set('activeTab', 'pendiente')
             ->callTableAction('gestionarMuestras', $orden, ['muestras_recibidas_list' => ['d'.$detalle->id.'_m'.$muestra->id]])
             ->assertRedirect(OrdenResource::getUrlOrdenFiltrada($orden->fresh(), 'en proceso'));
         $this->assertSame('en proceso', $orden->fresh()->estado);

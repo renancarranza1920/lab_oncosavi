@@ -54,9 +54,12 @@ y celular con el permiso de descarga habitual, conservando sus firmas y sellos.
 
 - **Gestionar muestras** funciona igual que en Oncosavi: basta una muestra
   compatible por examen para pasar automáticamente a En proceso al guardar.
-  Si a otro examen le falta muestra, la orden sigue pendiente. Se pueden corregir
-  muestras en órdenes procesadas, pausadas o finalizadas con el permiso existente,
-  conservando estado, resultados, fecha de toma y receptor originales.
+  Si a otro examen le falta muestra, la orden sigue pendiente. El botón aparece
+  únicamente en las pestañas **Pendientes** y **En proceso**, con el permiso
+  existente. En proceso se pueden corregir las muestras conservando estado,
+  resultados, fecha de toma y receptor originales. **Seleccionar todas las
+  muestras** marca las opciones del formulario; **Deseleccionar todas** las
+  desmarca. Los cambios se confirman con **Guardar muestras**.
 - **Ingresar resultados** incluye **Guardar Resultados** al inicio de la página
   y conserva el botón inferior. Ambos guardan los mismos datos sin finalizar
   la orden ni reasignar resultados de otros autores.

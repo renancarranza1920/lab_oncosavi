@@ -1175,12 +1175,18 @@ public static function getOrdenStep(): array
                     ->icon('heroicon-o-beaker')
                     ->iconButton()
                     ->color('info')
-                    ->visible(fn (Orden $record): bool => in_array($record->estado, ['pendiente', 'en proceso', 'pausada', 'finalizado'], true)
+                    ->visible(fn (?Orden $record, $livewire): bool => $record !== null
+                        && in_array($record->estado, ['pendiente', 'en proceso'], true)
+                        && $livewire->activeTab === $record->estado
                         && auth()->user()->can('procesar_muestras_orden'))
                     ->modalHeading('Registrar Muestras Recibidas')
                     ->modalDescription('Seleccione las muestras recibidas.')
                     ->modalSubmitActionLabel('Guardar muestras')
-                    ->form(function (Orden $record) {
+                    ->form(function (?Orden $record) {
+                        if ($record === null) {
+                            return [];
+                        }
+
                         $detalles = $record->detalleOrden()->with('examen.muestras')->get();
                         $opcionesMuestras = [];
                         $valoresPorDefecto = [];
@@ -1205,6 +1211,17 @@ public static function getOrdenStep(): array
                                 ->label('Muestras recibidas')
                                 ->options($opcionesMuestras)
                                 ->default($valoresPorDefecto)
+                                ->bulkToggleable()
+                                ->selectAllAction(fn (FormAction $action) => $action
+                                    ->label('Seleccionar todas las muestras')
+                                    ->button()
+                                    ->outlined()
+                                    ->icon('heroicon-o-check-circle'))
+                                ->deselectAllAction(fn (FormAction $action) => $action
+                                    ->label('Deseleccionar todas')
+                                    ->button()
+                                    ->outlined()
+                                    ->icon('heroicon-o-x-circle'))
                                 ->columns(1),
                         ];
                     })
