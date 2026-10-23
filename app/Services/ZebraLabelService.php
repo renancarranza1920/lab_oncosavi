@@ -30,7 +30,7 @@ class ZebraLabelService
 
     public function generarZpl(DetalleOrden $detalle): string
     {
-        $labNombre = str_replace(['^', '~'], '', config('laboratorio.nombre'));
+        $labNombre = str_replace(['^', '~'], '', config('laboratorio.nombre_etiquetas'));
         date_default_timezone_set('America/El_Salvador');
         
         $examen = strtoupper(substr($detalle->nombre_examen, 0, 30));
@@ -75,7 +75,7 @@ class ZebraLabelService
 
     private function generarZplPorColor($color, $items): string
     {
-        $labNombre = str_replace(['^', '~'], '', config('laboratorio.nombre'));
+        $labNombre = str_replace(['^', '~'], '', config('laboratorio.nombre_etiquetas'));
         date_default_timezone_set('America/El_Salvador');
         // === Paciente (primer nombre + primer apellido) ===
         $nombre = $items->first()->orden->cliente->nombre ?? 'PACIENTE';
@@ -119,6 +119,7 @@ class ZebraLabelService
         $bloques = $examenesUnicos->chunk(4);
 
         $zpl = '';
+        $ordenId = $items->first()->orden->id;
 
         foreach ($bloques as $bloque) {
     $examenLines = '';
@@ -134,7 +135,6 @@ class ZebraLabelService
 
         $examenLines .= "^FO{$posX},{$posY}^ADN,8,4^FD-{$examenTexto}^FS\n";
     }
-$ordenId = $items->first()->orden->id;
     // Plantilla fija de la etiqueta
 // Asegúrate de tener el ID disponible antes: $ordenId = $items->first()->orden->id;
 

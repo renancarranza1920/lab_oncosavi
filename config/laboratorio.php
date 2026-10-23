@@ -7,8 +7,8 @@ $whatsappUrl = 'https://wa.me/50375954210?'.http_build_query([
 ], '', '&', PHP_QUERY_RFC3986);
 
 return [
-    // Reactivar cuando estén disponibles las etiquetas y la impresora.
-    'impresion_etiquetas_habilitada' => env('IMPRESION_ETIQUETAS_HABILITADA', false),
+    'impresion_etiquetas_habilitada' => env('IMPRESION_ETIQUETAS_HABILITADA', true),
+    'nombre_etiquetas' => 'LABORATORIO MERINO',
     'nombre' => $nombre,
     'nombre_corto' => 'MERINO',
     'sede' => 'San Vicente',

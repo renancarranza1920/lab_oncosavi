@@ -1,7 +1,7 @@
 <script src="{{ asset('js/qz-tray.js') }}"></script>
 <script src="{{ asset('js/sha256.min.js') }}"></script>
-<script src="{{ asset('js/sign-message.js') }}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.9.0/jsrsasign-all-min.js"></script>
+<script src="{{ asset('js/sign-message.js') }}"></script>
 <script>
     function onStart() {
         setTimeout(() => document.body.classList.add("grabbing"))
@@ -111,9 +111,11 @@ resolve("-----BEGIN CERTIFICATE-----\n" +
 
 
 
-    // 3. IMPRESIÓN (esto está OK)
-    document.addEventListener('livewire:init', () => {
-        Livewire.on('imprimirZplFrontend', (eventData) => {
+    // Registrar también si Livewire ya inició al navegar desde otra página.
+    // Retirar el listener anterior evita duplicar las etiquetas al volver al tablero.
+    function registerPrintListener() {
+        window.lameriZplPrintCleanup?.();
+        window.lameriZplPrintCleanup = Livewire.on('imprimirZplFrontend', (eventData) => {
             let zplCode = eventData.zpl || eventData[0]?.zpl;
 
             if (!zplCode) {
@@ -139,7 +141,18 @@ resolve("-----BEGIN CERTIFICATE-----\n" +
             })
             .catch(err => alert("Error: " + err));
         });
-    });
+    }
+
+    if (window.Livewire) {
+        registerPrintListener();
+    } else {
+        document.addEventListener('livewire:init', registerPrintListener, { once: true });
+    }
+
+    document.addEventListener('livewire:navigating', () => {
+        window.lameriZplPrintCleanup?.();
+        window.lameriZplPrintCleanup = null;
+    }, { once: true });
 });
 
 </script>

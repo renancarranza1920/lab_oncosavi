@@ -4,7 +4,7 @@ El sistema de **LABORATORIO CLÍNICO MERINO** utiliza la estructura clínica, lo
 
 ## Órdenes
 
-Con `IMPRESION_ETIQUETAS_HABILITADA=false` (valor predeterminado), crear una orden regresa al listado sin filtros. El regreso desde Kanban tampoco añade una búsqueda por ID. Las etiquetas se conservan ocultas y se pueden reactivar con esa misma opción.
+Crear una orden regresa a la pestaña Pendientes filtrada por la nueva orden. Las etiquetas están habilitadas por defecto y se abren desde el icono de la tarjeta en órdenes pendientes, en proceso, pausadas y finalizadas. El tablero conserva la distribución e impresión ZPL originales de Merino; los permisos controlan su acceso y el envío a la impresora. Una instalación que conserve `IMPRESION_ETIQUETAS_HABILITADA=false` en `.env` debe cambiarla a `true` y actualizar las cachés según [README_HOSTINGER.md](../README_HOSTINGER.md#ver-e-imprimir-etiquetas).
 
 Las acciones de muestras, pausa, reanudación, finalización, cancelación o restauración conservan la pestaña elegida. Completar desde Ingresar resultados regresa al listado sin seleccionar una pestaña. El detalle de una orden usa los colores del tema también al pasar el cursor en modo oscuro.
 

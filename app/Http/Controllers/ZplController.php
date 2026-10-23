@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 
 use App\Models\DetalleOrden;
+use App\Models\Orden;
 use App\Services\ZebraLabelService;
 use Filament\Notifications\Notification;
 use Illuminate\Http\Request;
@@ -41,6 +42,19 @@ public function group($status, $ordenId)
     return response()->json([
         'zpl' => $zpl
     ]);
+}
+
+public function all($ordenId)
+{
+    $orden = Orden::findOrFail($ordenId);
+    $detalles = $orden->detalleOrden()
+        ->with(['orden.cliente', 'examen.tipoExamen'])
+        ->ordered()
+        ->get();
+
+    $zpl = (new ZebraLabelService())->generarZplMultiple($detalles);
+
+    return response()->json(['zpl' => $zpl]);
 }
 
 

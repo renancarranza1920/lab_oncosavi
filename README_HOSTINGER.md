@@ -75,6 +75,37 @@ guardado, confirme las muestras reales y vuelva a generar su PDF completo o parc
 Verificación: 162 pruebas correctas (2424 aserciones), más comprobación local en
 navegador de recepción, guardado superior y edades de clientes.
 
+### Ver e imprimir etiquetas
+
+Las etiquetas están habilitadas por defecto. Desde el icono de etiqueta de la
+tarjeta de una orden pendiente, en proceso, pausada o finalizada se abre el
+tablero original por recipientes. Conserva la impresión individual, por grupo
+y de todas las etiquetas, con los permisos existentes.
+
+Se conserva la plantilla original de Merino: encabezado **LABORATORIO MERINO**,
+406 × 203 puntos a 203 dpi (aproximadamente 50,8 × 25,4 mm), posiciones, fuentes,
+paciente, recipiente, fecha, hora, número de orden y agrupación de exámenes.
+Los cultivos mantienen una etiqueta por examen. Imprimir o mover recipientes
+no equivale a recibir muestras ni cambia el estado clínico de la orden.
+
+La impresora se utiliza desde el equipo de recepción, con **QZ Tray** abierto y
+el controlador **ZDesigner ZD230-203dpi ZPL**, igual que en el flujo anterior.
+Hostinger sirve los datos de las etiquetas; la conexión USB y la autorización
+de QZ se realizan en ese equipo. La revisión local comprueba la generación ZPL
+y el envío al navegador; la salida física debe comprobarse en la impresora.
+
+Si la instalación conserva `IMPRESION_ETIQUETAS_HABILITADA=false` en `.env`,
+actívala antes de ejecutar el actualizador, que conserva ese archivo privado:
+
+```bash
+cd ~/domains/app.laboratorioclinicomerino.com
+sed -i 's/^IMPRESION_ETIQUETAS_HABILITADA=.*/IMPRESION_ETIQUETAS_HABILITADA=true/' .env
+PATH="/opt/alt/php83/usr/bin:$PATH" bash scripts/update-hostinger.sh
+```
+
+Si la variable no existe, se utiliza el valor habilitado por defecto. No se
+necesita ejecutar seeders ni reinstalar el catálogo para activar las etiquetas.
+
 La terminal debe disponer de Git, PHP 8.3 o superior y **Composer 2**. Comprueba `php -v` y `composer --version`; si los ejecutables tienen otros nombres, puedes indicar sus rutas:
 
 ```bash

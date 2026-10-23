@@ -8,7 +8,7 @@
     </div>
 
     <!-- Botón imprimir grupo -->
-    @if (config('laboratorio.impresion_etiquetas_habilitada'))
+    @if (config('laboratorio.impresion_etiquetas_habilitada') && auth()->user()->can('imprimir_etiquetas_kanban'))
     <x-filament::icon-button
         wire:click="printGroup('{{ $status['id'] }}')"
         color="gray"

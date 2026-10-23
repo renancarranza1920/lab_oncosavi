@@ -17,7 +17,7 @@
     {{ $record->{static::$recordTitleAttribute} }}
 
     <!-- Botón imprimir individual usando Livewire -->
-    @if (config('laboratorio.impresion_etiquetas_habilitada'))
+    @if (config('laboratorio.impresion_etiquetas_habilitada') && auth()->user()->can('imprimir_etiquetas_kanban'))
     <x-filament::icon-button
         wire:click.stop="printSingle({{ $record->getKey() }})"
         color="gray"

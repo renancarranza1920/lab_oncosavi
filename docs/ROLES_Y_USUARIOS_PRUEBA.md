@@ -14,7 +14,7 @@
 | Mi perfil | Cuenta, firma y sello propios; sello institucional | Cuenta propia | Cuenta, firma y sello propios |
 | Bitácora | Todos los eventos, solo lectura | Sin acceso | Sin acceso |
 
-La lista exacta de acciones está en `config/roles.php`. Se conservan los permisos heredados de reactivos aunque este proyecto no tenga ese recurso. Los permisos de impresión siguen asignados, pero los botones del Kanban permanecen ocultos mientras `IMPRESION_ETIQUETAS_HABILITADA=false`.
+La lista exacta de acciones está en `config/roles.php`. Se conservan los permisos heredados de reactivos aunque este proyecto no tenga ese recurso. Las etiquetas están habilitadas por defecto: `imprimir_etiquetas_orden` permite abrir el tablero, `imprimir_etiquetas_kanban` permite imprimir y `mover_etiquetas_kanban` permite organizar recipientes. No se necesita volver a ejecutar el seeder para reactivar la impresión. Si se establece `IMPRESION_ETIQUETAS_HABILITADA=false` en `.env`, se ocultan los botones de impresión y se bloquea el envío desde las acciones del tablero.
 
 Los accesos se validan en páginas, rutas y acciones. Compartir PDF abre los enlaces de WhatsApp/correo existentes; la distribución del proyecto no envía mensajes a destinatarios reales. Las cuentas del portal `/expediente` se gestionan aparte y no acceden al administrador; consulta [PORTAL_MEDICOS.md](PORTAL_MEDICOS.md).
 

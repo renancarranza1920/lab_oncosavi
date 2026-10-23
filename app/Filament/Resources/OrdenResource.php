@@ -1256,7 +1256,7 @@ public static function getOrdenStep(): array
 
                 Tables\Actions\Action::make('imprimirEtiquetas')
 
-                    ->tooltip('Imprimir Etiquetas')
+                    ->tooltip('Ver e imprimir etiquetas')
 
                     ->icon('heroicon-o-tag')
 
@@ -1264,9 +1264,7 @@ public static function getOrdenStep(): array
 
                     ->color('gray')
 
-                    // Visible si la orden no está finalizada o cancelada
-
-                    ->visible(fn(Orden $record): bool => in_array($record->estado, ['pendiente'])
+                    ->visible(fn(Orden $record): bool => in_array($record->estado, ['pendiente', 'en proceso', 'pausada', 'finalizado'])
 
                         && auth()->user()->can('imprimir_etiquetas_orden'))
 
