@@ -6,7 +6,7 @@ El sistema de **LABORATORIO CLÍNICO MERINO** utiliza la estructura clínica, lo
 
 Crear una orden regresa a la pestaña Pendientes filtrada por la nueva orden. Las etiquetas están habilitadas por defecto; el icono de la tarjeta aparece únicamente en la pestaña Pendientes para órdenes pendientes. El tablero conserva la distribución e impresión ZPL originales de Merino; los permisos controlan su acceso y el envío a la impresora. Una instalación que conserve `IMPRESION_ETIQUETAS_HABILITADA=false` en `.env` debe cambiarla a `true` y actualizar las cachés según [README_HOSTINGER.md](../README_HOSTINGER.md#ver-e-imprimir-etiquetas).
 
-**Gestionar muestras** se muestra únicamente en las pestañas Pendientes y En proceso. El formulario permite seleccionar todas las muestras o deseleccionarlas; ambas opciones modifican la selección, que se confirma con **Guardar muestras**. Sigue siendo suficiente una muestra compatible por examen para pasar a En proceso.
+**Gestionar muestras** se muestra únicamente en la pestaña Pendientes. El formulario permite seleccionar todas las muestras o deseleccionarlas. **Guardar muestras** conserva una recepción parcial y pasa a En proceso al completar los exámenes. **Guardar y pasar a proceso** exige al menos una muestra compatible por cada examen con muestras configuradas; si falta alguna, muestra el error sin guardar esa selección. No hace falta marcar todas las alternativas de un examen.
 
 Las acciones de muestras, pausa, reanudación, finalización, cancelación o restauración conservan la pestaña elegida. Completar desde Ingresar resultados regresa al listado sin seleccionar una pestaña. El detalle de una orden usa los colores del tema también al pasar el cursor en modo oscuro.
 

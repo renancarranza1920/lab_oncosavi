@@ -1176,12 +1176,18 @@ public static function getOrdenStep(): array
                     ->iconButton()
                     ->color('info')
                     ->visible(fn (?Orden $record, $livewire): bool => $record !== null
-                        && in_array($record->estado, ['pendiente', 'en proceso'], true)
-                        && $livewire->activeTab === $record->estado
+                        && $record->estado === 'pendiente'
+                        && $livewire->activeTab === 'pendiente'
                         && auth()->user()->can('procesar_muestras_orden'))
                     ->modalHeading('Registrar Muestras Recibidas')
                     ->modalDescription('Seleccione las muestras recibidas.')
                     ->modalSubmitActionLabel('Guardar muestras')
+                    ->extraModalFooterActions(fn (Tables\Actions\Action $action): array => [
+                        $action->makeModalSubmitAction('guardarYPasarAProceso', arguments: ['iniciarProceso' => true])
+                            ->label('Guardar y pasar a proceso')
+                            ->icon('heroicon-o-play')
+                            ->color('primary'),
+                    ])
                     ->form(function (?Orden $record) {
                         if ($record === null) {
                             return [];
@@ -1225,10 +1231,11 @@ public static function getOrdenStep(): array
                                 ->columns(1),
                         ];
                     })
-                    ->action(function (Orden $record, array $data, $livewire) {
+                    ->action(function (Orden $record, array $data, array $arguments, $livewire) {
                         try {
                             $resumen = app(\App\Services\RecepcionMuestras::class)->registrar(
                                 $record, $data['muestras_recibidas_list'] ?? [], auth()->id(),
+                                exigirRecepcionCompleta: ($arguments['iniciarProceso'] ?? false) === true,
                             );
                         } catch (\Illuminate\Validation\ValidationException $exception) {
                             $ruta = $livewire->getMountedTableActionForm()->getStatePath();

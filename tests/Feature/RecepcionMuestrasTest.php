@@ -56,7 +56,19 @@ class RecepcionMuestrasTest extends TestCase
         return "d{$detalle->id}_m{$muestra->id}";
     }
 
-    public function test_gestionar_muestras_solo_aparece_en_pendientes_y_en_proceso(): void
+    private function agregarSegundoExamen(Orden $orden, Muestra $muestra): DetalleOrden
+    {
+        $tipo = TipoExamen::create(['nombre' => 'Química']);
+        $examen = Examen::create(['nombre' => 'Glucosa', 'precio' => 10, 'tipo_examen_id' => $tipo->id]);
+        $examen->muestras()->attach($muestra);
+
+        return DetalleOrden::create([
+            'orden_id' => $orden->id, 'examen_id' => $examen->id,
+            'nombre_examen' => $examen->nombre, 'precio_examen' => 10, 'status' => 'pendiente',
+        ]);
+    }
+
+    public function test_gestionar_muestras_solo_aparece_en_pendientes(): void
     {
         [$pendiente] = $this->crearOrden();
         [$enProceso] = $this->crearOrden();
@@ -65,7 +77,9 @@ class RecepcionMuestrasTest extends TestCase
         $pagina = Livewire::test(ListOrdens::class)->set('activeTab', 'pendiente')
             ->assertTableActionVisible('gestionarMuestras', $pendiente)
             ->set('activeTab', 'en proceso')
-            ->assertTableActionVisible('gestionarMuestras', $enProceso)
+            ->assertTableActionHidden('gestionarMuestras', $enProceso)
+            ->call('mountTableAction', 'gestionarMuestras', (string) $enProceso->id)
+            ->assertSet('mountedTableActions', [])
             ->set('activeTab', 'todas')
             ->assertTableActionHidden('gestionarMuestras', $pendiente)
             ->assertTableActionHidden('gestionarMuestras', $enProceso)
@@ -130,6 +144,88 @@ class RecepcionMuestrasTest extends TestCase
         $this->assertNotNull($orden->fresh()->fecha_toma_muestra);
     }
 
+    public function test_boton_guardar_y_pasar_a_proceso_rechaza_una_seleccion_vacia_sin_escribir(): void
+    {
+        [$orden, $detalle] = $this->crearOrden();
+
+        Livewire::test(ListOrdens::class)->set('activeTab', 'pendiente')
+            ->mountTableAction('gestionarMuestras', $orden)
+            ->assertSee('Guardar y pasar a proceso')
+            ->callMountedTableAction(['iniciarProceso' => true])
+            ->assertHasTableActionErrors(['muestras_recibidas_list']);
+
+        $this->assertSame('pendiente', $orden->fresh()->estado);
+        $this->assertNull($detalle->fresh()->muestras_recibidas);
+        $this->assertNull($orden->fresh()->fecha_toma_muestra);
+        $this->assertNull($orden->fresh()->toma_muestra_user_id);
+        $this->assertSame(0, Activity::where('description', 'Muestras recibidas actualizadas')->count());
+    }
+
+    public function test_boton_guardar_y_pasar_a_proceso_exige_una_muestra_por_cada_examen(): void
+    {
+        [$orden, $detalle, $muestras] = $this->crearOrden();
+        $otro = $this->agregarSegundoExamen($orden, $muestras[0]);
+
+        $pagina = Livewire::test(ListOrdens::class)->set('activeTab', 'pendiente')
+            ->callTableAction('gestionarMuestras', $orden, [
+                'muestras_recibidas_list' => [$this->clave($detalle, $muestras[0])],
+            ], arguments: ['iniciarProceso' => true])
+            ->assertHasTableActionErrors(['muestras_recibidas_list']);
+
+        $this->assertSame('pendiente', $orden->fresh()->estado);
+        $this->assertNull($detalle->fresh()->muestras_recibidas);
+        $this->assertNull($otro->fresh()->muestras_recibidas);
+        $this->assertNull($orden->fresh()->fecha_toma_muestra);
+        $this->assertNull($orden->fresh()->toma_muestra_user_id);
+        $this->assertSame(0, Activity::where('description', 'Muestras recibidas actualizadas')->count());
+
+        $pagina->callMountedTableAction()->assertHasNoTableActionErrors();
+        $this->assertSame('pendiente', $orden->fresh()->estado);
+        $this->assertSame([$muestras[0]->id], $detalle->fresh()->muestras_recibidas);
+        $this->assertEmpty($otro->fresh()->muestras_recibidas);
+    }
+
+    public function test_boton_guardar_y_pasar_a_proceso_registra_solo_las_alternativas_seleccionadas(): void
+    {
+        [$orden, $detalle, $muestras] = $this->crearOrden();
+        $otro = $this->agregarSegundoExamen($orden, $muestras[0]);
+
+        Livewire::test(ListOrdens::class)->set('activeTab', 'pendiente')
+            ->callTableAction('gestionarMuestras', $orden, [
+                'muestras_recibidas_list' => [
+                    $this->clave($detalle, $muestras[1]),
+                    $this->clave($otro, $muestras[0]),
+                ],
+            ], arguments: ['iniciarProceso' => true])
+            ->assertHasNoTableActionErrors();
+
+        $this->assertSame('en proceso', $orden->fresh()->estado);
+        $this->assertSame([$muestras[1]->id], $detalle->fresh()->muestras_recibidas);
+        $this->assertSame([$muestras[0]->id], $otro->fresh()->muestras_recibidas);
+        $this->assertSame(auth()->id(), $orden->fresh()->toma_muestra_user_id);
+        $this->assertNotNull($orden->fresh()->fecha_toma_muestra);
+        $evento = Activity::where('description', 'Muestras recibidas actualizadas')->sole();
+        $this->assertSame([$muestras[1]->id], $evento->properties['recibidas'][$detalle->id]);
+        $this->assertSame([$muestras[0]->id], $evento->properties['recibidas'][$otro->id]);
+    }
+
+    public function test_boton_guardar_y_pasar_a_proceso_no_bloquea_examenes_sin_muestras_configuradas(): void
+    {
+        [$orden, $detalle, $muestras] = $this->crearOrden();
+        $otro = $this->agregarSegundoExamen($orden, $muestras[0]);
+        $otro->examen->muestras()->detach();
+
+        Livewire::test(ListOrdens::class)->set('activeTab', 'pendiente')
+            ->callTableAction('gestionarMuestras', $orden, [
+                'muestras_recibidas_list' => [$this->clave($detalle, $muestras[0])],
+            ], arguments: ['iniciarProceso' => true])
+            ->assertHasNoTableActionErrors();
+
+        $this->assertSame('en proceso', $orden->fresh()->estado);
+        $this->assertSame([$muestras[0]->id], $detalle->fresh()->muestras_recibidas);
+        $this->assertEmpty($otro->fresh()->muestras_recibidas);
+    }
+
     public function test_sin_muestras_recibidas_sigue_pendiente(): void
     {
         [$orden, $detalle] = $this->crearOrden();
@@ -191,17 +287,8 @@ class RecepcionMuestrasTest extends TestCase
         Resultado::create(['detalle_orden_id' => $detalle->id, 'prueba_id' => $prueba->id, 'resultado' => 'Dato conservado', 'user_id' => $receptor->id]);
         $resultadosOriginales = Resultado::all()->toArray();
 
-        if ($estado === 'en proceso') {
-            Livewire::test(ListOrdens::class)->set('activeTab', $estado)
-                ->assertTableActionVisible('gestionarMuestras', $orden)
-                ->mountTableAction('gestionarMuestras', $orden)
-                ->set('mountedTableActionsData.0.muestras_recibidas_list', [$this->clave($detalle, $muestras[0])])
-                ->callMountedTableAction()
-                ->assertHasNoTableActionErrors();
-        } else {
-            // La restricción de pestañas no cambia las garantías del servicio clínico.
-            app(RecepcionMuestras::class)->registrar($orden, [$this->clave($detalle, $muestras[0])], auth()->id());
-        }
+        // La restricción de pestañas no cambia las garantías del servicio clínico.
+        app(RecepcionMuestras::class)->registrar($orden, [$this->clave($detalle, $muestras[0])], auth()->id());
 
         $this->assertSame($estado, $orden->fresh()->estado);
         $this->assertTrue($fecha->equalTo($orden->fresh()->fecha_toma_muestra));
@@ -218,9 +305,12 @@ class RecepcionMuestrasTest extends TestCase
         [$orden, $detalle, $muestras] = $this->crearOrden();
         $orden->update(['estado' => 'en proceso']);
         $detalle->forceFill(['muestras_recibidas' => [$muestras[0]->id]])->save();
-        Livewire::test(ListOrdens::class)->set('activeTab', 'en proceso')
-            ->callTableAction('gestionarMuestras', $orden, ['muestras_recibidas_list' => []])
-            ->assertHasTableActionErrors(['muestras_recibidas_list']);
+        try {
+            app(RecepcionMuestras::class)->registrar($orden, [], auth()->id());
+            $this->fail('Un examen ya procesado debía conservar al menos una muestra.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('muestras_recibidas_list', $exception->errors());
+        }
         $this->assertSame([$muestras[0]->id], $detalle->fresh()->muestras_recibidas);
         $this->assertSame('en proceso', $orden->fresh()->estado);
     }

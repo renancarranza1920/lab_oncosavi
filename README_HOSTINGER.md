@@ -55,11 +55,14 @@ y celular con el permiso de descarga habitual, conservando sus firmas y sellos.
 - **Gestionar muestras** funciona igual que en Oncosavi: basta una muestra
   compatible por examen para pasar automáticamente a En proceso al guardar.
   Si a otro examen le falta muestra, la orden sigue pendiente. El botón aparece
-  únicamente en las pestañas **Pendientes** y **En proceso**, con el permiso
-  existente. En proceso se pueden corregir las muestras conservando estado,
-  resultados, fecha de toma y receptor originales. **Seleccionar todas las
-  muestras** marca las opciones del formulario; **Deseleccionar todas** las
-  desmarca. Los cambios se confirman con **Guardar muestras**.
+  únicamente en la pestaña **Pendientes**, con el permiso existente.
+  **Guardar y pasar a proceso** exige una muestra compatible por cada examen
+  que tenga muestras configuradas; si falta alguna, muestra el error y conserva
+  el formulario sin guardar esa selección. **Guardar muestras** permite guardar
+  una recepción parcial y pasa a En proceso al completar los exámenes.
+  **Seleccionar todas las muestras** marca las opciones del formulario;
+  **Deseleccionar todas** las
+  desmarca. Ambos botones de guardado conservan únicamente las muestras marcadas.
 - **Ingresar resultados** incluye **Guardar Resultados** al inicio de la página
   y conserva el botón inferior. Ambos guardan los mismos datos sin finalizar
   la orden ni reasignar resultados de otros autores.

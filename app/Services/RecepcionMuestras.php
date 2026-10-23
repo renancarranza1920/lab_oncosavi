@@ -8,9 +8,9 @@ use Illuminate\Validation\ValidationException;
 
 class RecepcionMuestras
 {
-    public function registrar(Orden $orden, array $seleccionadas, int $usuarioId): array
+    public function registrar(Orden $orden, array $seleccionadas, int $usuarioId, bool $exigirRecepcionCompleta = false): array
     {
-        $resumen = DB::transaction(function () use ($orden, $seleccionadas, $usuarioId) {
+        $resumen = DB::transaction(function () use ($orden, $seleccionadas, $usuarioId, $exigirRecepcionCompleta) {
             $registro = Orden::query()->lockForUpdate()->findOrFail($orden->id);
 
             if (! in_array($registro->estado, ['pendiente', 'en proceso', 'pausada', 'finalizado'], true)) {
@@ -49,7 +49,7 @@ class RecepcionMuestras
                 ]);
             }
 
-            if ($registro->estado !== 'pendiente' && $faltantes) {
+            if (($registro->estado !== 'pendiente' || $exigirRecepcionCompleta) && $faltantes) {
                 throw ValidationException::withMessages([
                     'muestras_recibidas_list' => 'Registre al menos una muestra para: '.implode(', ', $faltantes).'.',
                 ]);
