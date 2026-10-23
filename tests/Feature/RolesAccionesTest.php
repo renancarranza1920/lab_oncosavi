@@ -97,13 +97,60 @@ class RolesAccionesTest extends TestCase
         Storage::disk('public')->assertExists($path);
         $this->assertStringStartsWith('%PDF-', Storage::disk('public')->get($path));
         $pagina->assertTableActionVisible('verReporteGuardado', $this->orden)
+            ->assertTableActionVisible('descargarReporteGuardado', $this->orden)
+            ->assertTableActionHasUrl('descargarReporteGuardado', route('orden.reporte.guardado', ['orden' => $this->orden, 'descargar' => 1]), $this->orden)
             ->assertTableActionVisible('enviarPorCorreoOWhatsApp', $this->orden);
-        $this->get(route('orden.reporte.guardado', $this->orden))->assertOk();
+        $visor = $this->get(route('orden.reporte.guardado', $this->orden))->assertOk();
+        $this->assertStringContainsString('inline;', $visor->headers->get('Content-Disposition'));
+        $original = Storage::disk('public')->get($path);
+        $descarga = $this->get(route('orden.reporte.guardado', ['orden' => $this->orden, 'descargar' => 1]))
+            ->assertOk()->assertDownload($this->orden->reporteGuardadoFileName())
+            ->assertHeader('Content-Type', 'application/pdf');
+        $this->assertSame($original, file_get_contents($descarga->baseResponse->getFile()->getPathname()));
+        $this->assertStringContainsString('no-store', $descarga->headers->get('Cache-Control'));
         $this->actingAs($this->usuarios['Laboratorista']);
         $this->get(route('orden.reporte.guardado', $this->orden))->assertOk();
         Role::findByName('Laboratorista')->revokePermissionTo('descargar_reporte_orden');
         $this->usuarios['Laboratorista']->unsetRelation('roles');
         $this->get(route('orden.reporte.guardado', $this->orden))->assertForbidden();
+    }
+
+    public function test_descarga_directa_solo_aparece_para_orden_finalizada_con_pdf_guardado(): void
+    {
+        Storage::fake('public');
+        $this->actingAs($this->usuarios['admin']);
+        $this->orden->update(['estado' => 'finalizado']);
+        $url = route('orden.reporte.guardado', ['orden' => $this->orden, 'descargar' => 1]);
+
+        Livewire::test(ListOrdens::class)->set('activeTab', 'todas')
+            ->assertTableActionHidden('descargarReporteGuardado', $this->orden);
+        $this->get($url)->assertNotFound();
+
+        Storage::disk('public')->put($this->orden->reporteGuardadoPath(), '%PDF-1.7 reporte de prueba');
+        foreach (['pendiente', 'en proceso', 'pausada', 'cancelado'] as $estado) {
+            $this->orden->update(['estado' => $estado]);
+            Livewire::test(ListOrdens::class)->set('activeTab', 'todas')
+                ->assertTableActionHidden('descargarReporteGuardado', $this->orden);
+            $this->get($url)->assertNotFound();
+        }
+    }
+
+    public function test_descarga_directa_exige_sesion_y_permisos_de_orden_y_descarga(): void
+    {
+        Storage::fake('public');
+        $this->orden->update(['estado' => 'finalizado']);
+        Storage::disk('public')->put($this->orden->reporteGuardadoPath(), '%PDF-1.7 reporte de prueba');
+        $url = route('orden.reporte.guardado', ['orden' => $this->orden, 'descargar' => 1]);
+        $this->getJson($url)->assertUnauthorized();
+
+        foreach (['view_orden', 'descargar_reporte_orden'] as $permiso) {
+            $usuario = User::factory()->create();
+            $usuario->givePermissionTo(['access_admin_panel', 'view_any_orden', $permiso]);
+            $this->actingAs($usuario);
+            Livewire::test(ListOrdens::class)->set('activeTab', 'todas')
+                ->assertTableActionHidden('descargarReporteGuardado', $this->orden);
+            $this->get($url)->assertForbidden();
+        }
     }
 
     public function test_laboratorista_sube_su_firma_y_sello_sin_editar_otros_usuarios_o_roles(): void

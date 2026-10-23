@@ -103,3 +103,10 @@ Para aplicar el ajuste a un archivo existente, vuelva a generar el reporte
 completo o parcial desde el panel. Una reproducción con datos de ejemplo y las
 cuatro áreas del caso pasó de cinco a cuatro páginas sin eliminar resultados.
 La validación de PDFs, muestras y permisos pasó 45 pruebas (601 aserciones).
+
+### Descarga del PDF desde la tarjeta de la orden
+
+Cuando la orden está finalizada y ya tiene un PDF guardado, su tarjeta muestra
+el icono **Descargar PDF** (flecha hacia abajo), junto al visor. Descarga el mismo
+archivo guardado en PC, tablet y celular sin depender de los controles del visor
+ni volver a generar resultados o firmas. Conserva el permiso de descarga existente.
