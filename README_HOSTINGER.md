@@ -50,6 +50,31 @@ Las tarjetas de órdenes finalizadas con un reporte guardado incluyen el icono
 **Descargar PDF**, junto al visor. Descarga el archivo existente en PC, tablet
 y celular con el permiso de descarga habitual, conservando sus firmas y sellos.
 
+### Muestras, guardado, firmas y edad de clientes
+
+- **Gestionar muestras** funciona igual que en Oncosavi: basta una muestra
+  compatible por examen para pasar automáticamente a En proceso al guardar.
+  Si a otro examen le falta muestra, la orden sigue pendiente. Se pueden corregir
+  muestras en órdenes procesadas, pausadas o finalizadas con el permiso existente,
+  conservando estado, resultados, fecha de toma y receptor originales.
+- **Ingresar resultados** incluye **Guardar Resultados** al inicio de la página
+  y conserva el botón inferior. Ambos guardan los mismos datos sin finalizar
+  la orden ni reasignar resultados de otros autores.
+- Los reportes completos y parciales muestran solo las muestras recibidas y
+  comparten una firma al terminar las tablas de la misma área. Los hemogramas
+  y generales de orina separados por un salto conservan su firma. Se mantiene
+  el diseño original de Merino, sus imágenes y las medidas de sellos y firmas.
+- **Clientes** muestra la edad como dato principal: años cumplidos, meses para
+  menores de un año y días para menores de un mes. La fecha de nacimiento queda
+  debajo. Se conserva la edad manual y los datos ausentes se indican sin inventar
+  una edad.
+
+La actualización utiliza los campos existentes y no requiere una carga inicial
+de datos. Para aplicar las muestras corregidas y la firma única a un archivo ya
+guardado, confirme las muestras reales y vuelva a generar su PDF completo o parcial.
+Verificación: 162 pruebas correctas (2424 aserciones), más comprobación local en
+navegador de recepción, guardado superior y edades de clientes.
+
 La terminal debe disponer de Git, PHP 8.3 o superior y **Composer 2**. Comprueba `php -v` y `composer --version`; si los ejecutables tienen otros nombres, puedes indicar sus rutas:
 
 ```bash

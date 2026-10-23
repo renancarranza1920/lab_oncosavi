@@ -40,6 +40,13 @@ class DetalleOrden extends Model implements Sortable
     {
         return $this->belongsTo(Examen::class);
     }
+
+    public function nombresMuestrasRecibidas(): array
+    {
+        return ($this->examen?->muestras ?? collect())
+            ->whereIn('id', $this->muestras_recibidas ?? [])
+            ->pluck('nombre')->filter()->unique()->values()->all();
+    }
     public function perfil()
     {
         return $this->belongsTo(Perfil::class, 'perfil_id');

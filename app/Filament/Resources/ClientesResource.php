@@ -291,13 +291,13 @@ class ClientesResource extends Resource
                        ->searchable(['nombre', 'apellido'])
                     ->sortable(['nombre']),
     
-                Tables\Columns\TextColumn::make('fecha_nacimiento')
-                    ->label('Fecha / Edad') // Puedes cambiar la etiqueta si gustas
-                    ->date('d/m/Y') // Arriba muestra la fecha: 17/09/2025
-                    ->description(function (Cliente $record) {
-                        // AQUÍ ESTÁ LA CLAVE: Llamamos a la función del modelo, NO calculamos nada aquí.
-                        return $record->edad_legible; 
-                    }),
+                Tables\Columns\TextColumn::make('edad_legible')
+                    ->label('Edad')
+                    ->getStateUsing(fn (Cliente $record): ?string => $record->edad_legible)
+                    ->placeholder('Sin edad registrada')
+                    ->description(fn (Cliente $record): ?string => $record->fecha_nacimiento
+                        ? \Carbon\Carbon::parse($record->fecha_nacimiento)->format('d/m/Y')
+                        : null),
     
                 Tables\Columns\TextColumn::make('telefono')->getStateUsing(fn (Cliente $record) => $record->telefonos_contacto)->listWithLineBreaks()
                     ->label('Teléfonos')

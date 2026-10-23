@@ -7,6 +7,7 @@ use App\Filament\Resources\OrdenResource\Pages\ListOrdens;
 use App\Models\Cliente;
 use App\Models\DetalleOrden;
 use App\Models\Examen;
+use App\Models\Muestra;
 use App\Models\Orden;
 use App\Models\Prueba;
 use App\Models\Resultado;
@@ -30,11 +31,15 @@ class RegeneracionResultadosPdfTest extends TestCase
 
     public static function casosRegeneracion(): array
     {
-        return ['autores conservados' => [false], 'autores recuperados desde bitácora' => [true]];
+        return [
+            'autores conservados' => [false],
+            'autores recuperados desde bitácora' => [true],
+            'exámenes externos' => [false, true],
+        ];
     }
 
     #[DataProvider('casosRegeneracion')]
-    public function test_regenerar_parcial_y_final_usa_las_imagenes_actuales_de_los_autores_sin_reasignar_resultados(bool $repararAutoria): void
+    public function test_regenerar_parcial_y_final_usa_las_imagenes_actuales_de_los_autores_sin_reasignar_resultados(bool $repararAutoria, bool $externo = false): void
     {
         Storage::fake('public');
         Storage::fake('local');
@@ -48,12 +53,16 @@ class RegeneracionResultadosPdfTest extends TestCase
         $autores = User::factory()->count(2)->create();
         $cliente = Cliente::create(['nombre' => 'Paciente', 'apellido' => 'Ejemplo', 'genero' => 'Femenino', 'fecha_nacimiento' => '1990-01-01']);
         $orden = Orden::create(['cliente_id' => $cliente->id, 'fecha' => now(), 'total' => 20, 'estado' => 'en proceso']);
+        $noRecibida = Muestra::create(['nombre' => 'Hisopado que no se recibió']);
         foreach ($autores as $i => $autor) {
             $tipo = TipoExamen::create(['nombre' => 'Área '.($i + 1)]);
-            $examen = Examen::create(['nombre' => 'Examen '.($i + 1), 'tipo_examen_id' => $tipo->id, 'precio' => 10]);
+            $examen = Examen::create(['nombre' => 'Cultivo de secreciones', 'tipo_examen_id' => $tipo->id, 'precio' => 10, 'es_externo' => $externo]);
+            $recibida = Muestra::create(['nombre' => 'Muestra recibida '.($i + 1)]);
+            $examen->muestras()->attach([$recibida->id, $noRecibida->id]);
             $prueba = Prueba::create(['nombre' => 'Prueba '.($i + 1), 'examen_id' => $examen->id, 'estado' => 'activo']);
             $detalle = DetalleOrden::create(['orden_id' => $orden->id, 'examen_id' => $examen->id, 'nombre_examen' => $examen->nombre, 'precio_examen' => 10, 'status' => 'pendiente']);
-            Resultado::create(['detalle_orden_id' => $detalle->id, 'prueba_id' => $prueba->id, 'resultado' => '12', 'user_id' => $autor->id, 'prueba_nombre_snapshot' => $prueba->nombre]);
+            $detalle->forceFill(['muestras_recibidas' => [$recibida->id]])->save();
+            Resultado::create(['detalle_orden_id' => $detalle->id, 'prueba_id' => $prueba->id, 'resultado' => '12', 'user_id' => $autor->id, 'prueba_nombre_snapshot' => $prueba->nombre, 'es_externo' => $externo]);
         }
         $antes = Resultado::orderBy('id')->get()->toArray();
         $capturados = [];
@@ -68,6 +77,7 @@ class RegeneracionResultadosPdfTest extends TestCase
         $pagina->call('generarPdfParcial')->assertFileDownloaded('PACIENTE-EJEMPLO - '.$orden->id.' P.PDF');
         $this->assertCount(2, $capturados['grupos_por_usuario']);
         $this->assertNull($capturados['grupos_por_usuario'][0]['sello_b64']);
+        $this->assertMuestrasDelReporte($capturados);
 
         if ($repararAutoria) {
             // Reproducir las autorías reemplazadas por la versión anterior.
@@ -87,6 +97,7 @@ class RegeneracionResultadosPdfTest extends TestCase
         $tabla = Livewire::test(ListOrdens::class)->set('activeTab', 'finalizado');
         $tabla->callTableAction('generarReporte', $orden)->assertFileDownloaded($orden->reporteGuardadoFileName());
         $this->assertNull($capturados['grupos_por_usuario'][0]['sello_b64']);
+        $this->assertMuestrasDelReporte($capturados);
 
         if ($repararAutoria) {
             $this->assertSame('Soporte técnico', $capturados['grupos_por_usuario'][0]['laboratorista']);
@@ -122,6 +133,7 @@ class RegeneracionResultadosPdfTest extends TestCase
         $this->assertSame($antes, Resultado::orderBy('id')->get()->toArray());
         // Usar la misma pantalla abierta antes de subir los sellos.
         $tabla->callTableAction('generarReporte', $orden)->assertFileDownloaded($orden->reporteGuardadoFileName());
+        $this->assertMuestrasDelReporte($capturados);
         foreach ($autores as $i => $autor) {
             $this->assertSame($autor->name, $capturados['grupos_por_usuario'][$i]['laboratorista']);
             $this->assertNotNull($capturados['grupos_por_usuario'][$i]['sello_b64']);
@@ -141,6 +153,20 @@ class RegeneracionResultadosPdfTest extends TestCase
             $personales = array_filter($imagenes, fn ($imagen) => abs((float) $imagen[1] - 127.5) < 0.001);
             $this->assertCount(2, $personales);
         }
+    }
+
+    private function assertMuestrasDelReporte(array $datos): void
+    {
+        foreach ($datos['grupos_por_usuario'] as $grupo) {
+            foreach ($grupo['datos'] as $area => $examenes) {
+                $examen = collect($examenes)->sole();
+                $this->assertSame(['Muestra recibida '.str_replace('Área ', '', $area)], $examen['muestras']);
+            }
+        }
+        $html = view('pdf.reporte_resultados', $datos)->render();
+        $this->assertStringNotContainsString('HISOPADO QUE NO SE RECIBIÓ', $html);
+        $this->assertStringContainsString('MUESTRA: MUESTRA RECIBIDA 1', $html);
+        $this->assertStringContainsString('MUESTRA: MUESTRA RECIBIDA 2', $html);
     }
 
     public function test_reemplazar_imagen_con_mismo_nombre_y_fecha_no_reutiliza_bytes_anteriores(): void

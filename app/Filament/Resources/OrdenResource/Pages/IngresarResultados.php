@@ -533,6 +533,12 @@ if (!$valorRef && $grupoTodasEdades) {
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('guardarResultados')
+                ->label('Guardar Resultados')
+                ->icon('heroicon-o-check')
+                ->visible(fn () => auth()->user()->can('ingresar_resultados_orden'))
+                ->action(fn () => $this->save()),
+
             Action::make('reconstruir')
                 ->label('Sincronizar con Catálogo')
                 ->color('warning')
@@ -1029,6 +1035,7 @@ public function generarPdfParcial()
                 if (!empty($resultadosExternos)) {
                     $examenes_data[] = [
                         'nombre' => $detalle->nombre_examen ?? $detalle->examen->nombre,
+                        'muestras' => $detalle->nombresMuestrasRecibidas(),
                         // 👇 LA MAGIA ESTÁ AQUÍ: Lo pasamos como pruebas_unitarias
                         'pruebas_unitarias' => $resultadosExternos, 
                         'matrices' => [],
@@ -1078,6 +1085,7 @@ public function generarPdfParcial()
             if (!empty($dataUnitarias) || !empty($dataMatrices)) {
                 $examenes_data[] = [
                     'nombre' => $detalle->nombre_examen ?? $detalle->examen->nombre,
+                    'muestras' => $detalle->nombresMuestrasRecibidas(),
                     'pruebas_unitarias' => $dataUnitarias,
                     'matrices' => $dataMatrices,
                     'externos' => [],
@@ -1148,6 +1156,7 @@ public function generarPdfParcial()
                 if (!empty($unitariasUser) || !empty($matricesUser) || !empty($externosUser)) {
     $exFiltrados[] = [
         'nombre' => $ex['nombre'],
+        'muestras' => $ex['muestras'],
         'pruebas_unitarias' => $unitariasUser,
         'matrices' => $matricesUser,
         'externos' => $externosUser,

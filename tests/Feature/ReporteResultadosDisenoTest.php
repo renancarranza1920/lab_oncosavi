@@ -170,6 +170,136 @@ class ReporteResultadosDisenoTest extends TestCase
         return ['uroanálisis de 24 filas' => [24], 'tabla de 70 filas' => [70]];
     }
 
+    public function test_inmunologia_comparte_una_firma_entre_resultados_con_y_sin_referencia(): void
+    {
+        $datos = $this->datosCoprologia(6);
+        $examenes = $datos['grupos_por_usuario'][0]['datos']['COPROLOGÍA'];
+        $examenes[0]['nombre'] = 'Proteína C reactiva';
+        $examenes[0]['pruebas_unitarias'][0] = [
+            'nombre' => 'PROTEÍNA C REACTIVA', 'resultado' => '1.0',
+            'referencia' => '&lt; 6', 'unidades' => 'mg/L', 'tipo_prueba' => '',
+        ];
+        $examenes[1]['nombre'] = 'Pruebas febriles';
+        foreach ($examenes as &$examen) {
+            $examen['muestras'] = ['Suero'];
+        }
+        unset($examen);
+        $datos['grupos_por_usuario'][0]['datos'] = ['INMUNOLOGÍA' => $examenes];
+        $distribucion = $this->distribucionReporte($datos);
+
+        $this->assertCount(1, $distribucion['paginas']);
+        $this->assertCount(7, $distribucion['filas'][1]);
+        $this->assertCount(3, $this->imagenesFirma($distribucion['paginas'][0]));
+        $this->assertCount(1, $distribucion['firmas'][1]);
+        $this->assertFirmaDespuesDeUltimaFila($distribucion, 1);
+    }
+
+    public function test_coprologia_con_y_sin_referencia_cabe_en_una_pagina_firmada_al_final(): void
+    {
+        $distribucion = $this->distribucionReporte($this->datosCoprologia(14));
+
+        $this->assertCount(1, $distribucion['paginas']);
+        $this->assertCount(15, $distribucion['filas'][1]);
+        $this->assertSame(3, count($this->imagenesFirma($distribucion['paginas'][0])));
+        $this->assertCount(1, $distribucion['firmas'][1]);
+        $this->assertFirmaDespuesDeUltimaFila($distribucion, 1);
+        $this->assertStringContainsString('PRUEBA COPROLÓGICA FINAL', $distribucion['filas'][1][14]['texto']);
+    }
+
+    public function test_coprologia_extensa_conserva_todas_las_filas_y_firma_solo_al_final(): void
+    {
+        $distribucion = $this->distribucionReporte($this->datosCoprologia(70));
+        $ultimaPagina = count($distribucion['paginas']);
+
+        $this->assertGreaterThan(1, $ultimaPagina);
+        $this->assertSame(71, array_sum(array_map('count', $distribucion['filas'])));
+        $this->assertSame([$ultimaPagina], array_keys($distribucion['firmas']));
+        foreach ($distribucion['paginas'] as $indice => $contenido) {
+            $pagina = $indice + 1;
+            $this->assertNotEmpty($distribucion['filas'][$pagina] ?? [], 'Cada página debe conservar resultados, no solo sellos.');
+            $this->assertSame($pagina === $ultimaPagina ? 3 : 0, count($this->imagenesFirma($contenido)));
+        }
+        $this->assertCount(1, $distribucion['firmas'][$ultimaPagina]);
+        $this->assertFirmaDespuesDeUltimaFila($distribucion, $ultimaPagina);
+        $ultimaFila = $distribucion['filas'][$ultimaPagina][array_key_last($distribucion['filas'][$ultimaPagina])];
+        $this->assertStringContainsString('PRUEBA COPROLÓGICA FINAL', $ultimaFila['texto']);
+    }
+
+    public function test_los_examenes_gigantes_conservan_firma_antes_de_cada_salto_forzado(): void
+    {
+        $datos = $this->datosCoprologia(3);
+        $coprologia = $datos['grupos_por_usuario'][0]['datos']['COPROLOGÍA'];
+        $datos['grupos_por_usuario'][0]['datos'] = ['ÁREA DE EJEMPLO' => [
+            ...$this->examen('Hemograma', 18),
+            ...$this->examen('General de orina', 24),
+            ...$coprologia,
+        ]];
+        $distribucion = $this->distribucionReporte($datos);
+
+        $this->assertCount(3, $distribucion['paginas']);
+        $this->assertSame([18, 24, 4], array_values(array_map('count', $distribucion['filas'])));
+        foreach ($distribucion['paginas'] as $indice => $contenido) {
+            $pagina = $indice + 1;
+            $this->assertSame(3, count($this->imagenesFirma($contenido)));
+            $this->assertCount(1, $distribucion['firmas'][$pagina]);
+            $this->assertFirmaDespuesDeUltimaFila($distribucion, $pagina);
+        }
+    }
+
+    private function distribucionReporte(array $datos): array
+    {
+        $pdf = ReporteResultadosPdf::generar($datos);
+        $filas = [];
+        $firmas = [];
+        $pdf->setCallbacks([[
+            'event' => 'end_frame',
+            'f' => function (\Dompdf\Frame $frame, \Dompdf\Canvas $canvas) use (&$filas, &$firmas): void {
+                $nodo = $frame->get_node();
+                if (!($nodo instanceof \DOMElement)) {
+                    return;
+                }
+                $clases = ' '.$nodo->getAttribute('class').' ';
+                $pagina = $canvas->get_page_number();
+                if ($nodo->nodeName === 'tr' && str_contains($clases, ' result-row ')) {
+                    [, $y, , $alto] = $frame->get_border_box();
+                    $filas[$pagina][] = ['texto' => $nodo->textContent, 'fin' => $y + $alto];
+                }
+                if ($nodo->nodeName === 'td' && str_contains($clases, ' firma-cell ')) {
+                    $firmas[$pagina][] = $frame->get_position('y');
+                }
+            },
+        ]]);
+        $this->assertStringStartsWith('%PDF-', $pdf->output());
+
+        return ['paginas' => $this->contenidoPaginas($pdf), 'filas' => $filas, 'firmas' => $firmas];
+    }
+
+    private function assertFirmaDespuesDeUltimaFila(array $distribucion, int $pagina): void
+    {
+        $finResultados = max(array_column($distribucion['filas'][$pagina], 'fin'));
+        $this->assertGreaterThanOrEqual($finResultados - 0.01, $distribucion['firmas'][$pagina][0]);
+    }
+
+    private function datosCoprologia(int $filasHeces): array
+    {
+        $datos = $this->datosReporte();
+        $helicobacter = $this->examen('Helicobacter pylori-Ag', 1)[0];
+        $helicobacter['muestras'] = ['Heces'];
+        $helicobacter['pruebas_unitarias'][0] = [
+            'nombre' => 'HELICOBACTER PYLORI - AG', 'resultado' => 'NEGATIVO (0.25)',
+            'referencia' => 'POSITIVO ≥ 1 COI<br>NEGATIVO &lt; 1 COI', 'unidades' => '', 'tipo_prueba' => '',
+        ];
+        $heces = $this->examen('General de heces', $filasHeces)[0];
+        $heces['muestras'] = ['Heces'];
+        foreach ($heces['pruebas_unitarias'] as $indice => &$prueba) {
+            $prueba['nombre'] = $indice === $filasHeces - 1 ? 'PRUEBA COPROLÓGICA FINAL' : 'PRUEBA COPROLÓGICA '.($indice + 1);
+        }
+        unset($prueba);
+        $datos['grupos_por_usuario'][0]['datos'] = ['COPROLOGÍA' => [$helicobacter, $heces]];
+
+        return $datos;
+    }
+
     private function imagenesFirma(string $contenido): array
     {
         preg_match_all('/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/I\d+ Do/', $contenido, $imagenes, PREG_SET_ORDER);
@@ -201,7 +331,7 @@ class ReporteResultadosDisenoTest extends TestCase
             ];
         }
 
-        return [['nombre' => $nombre, 'pruebas_unitarias' => $pruebas, 'matrices' => []]];
+        return [['nombre' => $nombre, 'muestras' => ['Muestra de ejemplo'], 'pruebas_unitarias' => $pruebas, 'matrices' => []]];
     }
 
     private function datosReporte(int $filasOrina = 24): array

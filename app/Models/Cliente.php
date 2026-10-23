@@ -232,30 +232,36 @@ protected static function booted(): void
 
         return null;
     }
-    // En app/Models/Cliente.php
+    public function getEdadLegibleAttribute(): ?string
+    {
+        if (! $this->fecha_nacimiento) {
+            if ($this->edad === null || $this->edad === '') {
+                return null;
+            }
 
-        public function getEdadLegibleAttribute()
-        {
-            // Si no hay fecha, devolvemos lo que haya en el campo 'edad' manual
-            if (!$this->fecha_nacimiento) {
-                return $this->edad . ' años';
-            }
-        
-            $nacimiento = \Carbon\Carbon::parse($this->fecha_nacimiento);
-            $ahora = \Carbon\Carbon::now();
-        
-            // Calculamos las diferencias como ENTEROS (int)
-            $anios = (int) $nacimiento->diffInYears($ahora);
-            $meses = (int) $nacimiento->diffInMonths($ahora);
-            $dias = (int) $nacimiento->diffInDays($ahora);
-        
-            // LÓGICA DE PRIORIDAD:
-            if ($anios > 0) {
-                return $anios . ' años'; // Ej: 30 años
-            } elseif ($meses > 0) {
-                return $meses . ' meses'; // Ej: 5 meses (Melody)
-            } else {
-                return $dias . ' días'; // Ej: 3 días (Recién nacido)
-            }
+            $anios = (int) $this->edad;
+
+            return $anios.' '.($anios === 1 ? 'año' : 'años');
         }
+
+        $nacimiento = Carbon::parse($this->fecha_nacimiento)->startOfDay();
+        $hoy = Carbon::today();
+        if ($nacimiento->isAfter($hoy)) {
+            return null;
+        }
+
+        $anios = (int) $nacimiento->diffInYears($hoy);
+        if ($anios > 0) {
+            return $anios.' '.($anios === 1 ? 'año' : 'años');
+        }
+
+        $meses = (int) $nacimiento->diffInMonths($hoy);
+        if ($meses > 0) {
+            return $meses.' '.($meses === 1 ? 'mes' : 'meses');
+        }
+
+        $dias = (int) $nacimiento->diffInDays($hoy);
+
+        return $dias.' '.($dias === 1 ? 'día' : 'días');
+    }
 }
