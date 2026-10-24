@@ -3,6 +3,7 @@
 
 
 use App\Http\Controllers\ZplController;
+use App\Http\Controllers\QzController;
 use App\Models\DetalleOrden;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
@@ -70,27 +71,12 @@ Route::get('/orden/{orden}/reporte-guardado', function (Request $request, App\Mo
 })->name('orden.reporte.guardado')->middleware('auth');
 
 
-Route::get('/sign-message', function() {
-    $message = request('request');
-
-    $privateKey = openssl_pkey_get_private(file_get_contents(storage_path('app/private-key.pem')));
-
-    openssl_sign($message, $signature, $privateKey, OPENSSL_ALGO_SHA256);
-
-    return base64_encode($signature); // ✔ QZ solo acepta Base64
-})->middleware(['auth', 'can:imprimir_etiquetas_kanban']);
-
-
-Route::get('/test-key', function () {
-    $privateKey = storage_path('app/private-key.pem');
-
-    $pkeyid = openssl_pkey_get_private(file_get_contents($privateKey));
-    if ($pkeyid === false) {
-        return "❌ Clave privada NO válida";
-    }
-
-    return "✔ Clave privada cargada correctamente";
-})->middleware(['auth', 'can:imprimir_etiquetas_kanban']);
+Route::middleware(['auth', 'can:imprimir_etiquetas_kanban'])->group(function () {
+    Route::get('/qz/certificado', [QzController::class, 'certificado'])->name('qz.certificado');
+    Route::post('/qz/firmar', [QzController::class, 'firmar'])->name('qz.firmar');
+    Route::post('/sign-message', [QzController::class, 'firmar']);
+    Route::get('/test-key', [QzController::class, 'estado']);
+});
 
 
 

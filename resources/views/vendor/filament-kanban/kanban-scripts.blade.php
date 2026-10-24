@@ -1,158 +1,110 @@
-<script src="{{ asset('js/qz-tray.js') }}"></script>
-<script src="{{ asset('js/sha256.min.js') }}"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.9.0/jsrsasign-all-min.js"></script>
-<script src="{{ asset('js/sign-message.js') }}"></script>
 <script>
-    function onStart() {
-        setTimeout(() => document.body.classList.add("grabbing"))
+(() => {
+    const moduleUrl = @js(asset('js/sign-message.js').'?v='.substr(hash_file('sha256', public_path('js/sign-message.js')), 0, 16));
+    const config = {
+        sdkUrl: @js(asset('js/qz-tray.js').'?v='.substr(hash_file('sha256', public_path('js/qz-tray.js')), 0, 16)),
+        certificateUrl: @js(route('qz.certificado')),
+        signatureUrl: @js(route('qz.firmar')),
+    };
+    const statuses = @js($statuses->pluck('id')->values()->toArray());
+    const printingEnabled = @js((bool) (config('laboratorio.impresion_etiquetas_habilitada') && auth()->user()?->can('imprimir_etiquetas_kanban')));
+
+    function loadSigningModule() {
+        if (window.lameriQzModuleUrl && window.lameriQzModuleUrl !== moduleUrl) {
+            window.location.reload();
+            return Promise.reject(new Error('Se actualizó la impresión. Recargando la página.'));
+        }
+        if (window.lameriQz) return Promise.resolve(window.lameriQz);
+
+        if (!window.lameriQzModulePromise) {
+            window.lameriQzModuleUrl = moduleUrl;
+            window.lameriQzModulePromise = new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.id = 'lameri-qz-signing';
+                script.src = moduleUrl;
+                script.onload = () => window.lameriQz
+                    ? resolve(window.lameriQz)
+                    : reject(new Error('No se pudo preparar la firma de las etiquetas.'));
+                script.onerror = () => {
+                    script.remove();
+                    reject(new Error('No se pudo cargar la firma de las etiquetas.'));
+                };
+                document.head.appendChild(script);
+            }).catch(error => {
+                window.lameriQzModulePromise = null;
+                throw error;
+            });
+        }
+        return window.lameriQzModulePromise;
     }
 
-    function onEnd() {
-        document.body.classList.remove("grabbing")
+    // Los scripts externos se cargan una sola vez en head y se esperan antes
+    // de configurar QZ. Livewire no puede reemplazar después el SDK configurado.
+    if (printingEnabled) {
+        loadSigningModule().then(client => client.init(config)).catch(() => {
+            // El botón de impresión vuelve a intentar y muestra el error al usuario.
+        });
     }
 
-    function setData(dataTransfer, el) {
-        dataTransfer.setData('id', el.id)
+    window.lameriKanbanCleanup?.();
+    window.lameriZplPrintCleanup?.();
+    let stopped = false;
+    let removePrintListener;
+    const sortables = [];
+
+    function registerPrintListener() {
+        if (!printingEnabled || stopped || removePrintListener || !window.Livewire) return;
+        removePrintListener = Livewire.on('imprimirZplFrontend', eventData => {
+            const zpl = eventData?.zpl || eventData?.[0]?.zpl;
+            loadSigningModule()
+                .then(client => client.init(config).then(() => client.print(zpl)))
+                .catch(error => alert('No se pudieron imprimir las etiquetas: ' + error.message));
+        });
     }
 
-    function onAdd(e) {
-        const recordId = e.item.id
-        const status = e.to.dataset.statusId
-        const fromOrderedIds = [].slice.call(e.from.children).map(child => child.id)
-        const toOrderedIds = [].slice.call(e.to.children).map(child => child.id)
-
-        Livewire.dispatch('status-changed', {recordId, status, fromOrderedIds, toOrderedIds})
-    }
-
-    function onUpdate(e) {
-        const recordId = e.item.id
-        const status = e.from.dataset.statusId
-        const orderedIds = [].slice.call(e.from.children).map(child => child.id)
-
-        Livewire.dispatch('sort-changed', {recordId, status, orderedIds})
-    }
-
-    document.addEventListener('livewire:navigated', () => {
-        const statuses = @js($statuses->pluck('id')->values()->toArray());
-
+    function setupSortables() {
+        if (stopped || !window.Sortable) return;
         statuses.forEach(status => {
             const container = document.querySelector(`[data-status-id='${status}']`);
-            if (container) {
-                Sortable.create(container, {
-                    group: 'filament-kanban',
-                    ghostClass: 'opacity-50',
-                    animation: 150,
-                    onStart,
-                    onEnd,
-                    onUpdate,
-                    setData,
-                    onAdd,
-                });
-            }
-        });
-    });
-</script>
-
-<script>
-// Función para esperar a que la librería QZ cargue
-function waitForQZ(callback) {
-    if (window.qz) {
-        callback();
-    } else {
-        setTimeout(() => waitForQZ(callback), 100);
-    }
-}
-
-waitForQZ(() => {
-    console.log("🔥 Librería QZ Tray cargada. Configurando certificado...");
-
- qz.security.setCertificatePromise(function(resolve, reject) {
-        //Preferred method - from server
-//        fetch("assets/signing/digital-certificate.txt", {cache: 'no-store', headers: {'Content-Type': 'text/plain'}})
-//          .then(function(data) { data.ok ? resolve(data.text()) : reject(data.text()); });
-
-        //Alternate method 1 - anonymous
-//        resolve();  // remove this line in live environment
-
-        //Alternate method 2 - direct
-       // Alternate method 2 - direct
-resolve("-----BEGIN CERTIFICATE-----\n" +
-"MIIECzCCAvOgAwIBAgIGAZstp8QSMA0GCSqGSIb3DQEBCwUAMIGiMQswCQYDVQQG\n" +
-"EwJVUzELMAkGA1UECAwCTlkxEjAQBgNVBAcMCUNhbmFzdG90YTEbMBkGA1UECgwS\n" +
-"UVogSW5kdXN0cmllcywgTExDMRswGQYDVQQLDBJRWiBJbmR1c3RyaWVzLCBMTEMx\n" +
-"HDAaBgkqhkiG9w0BCQEWDXN1cHBvcnRAcXouaW8xGjAYBgNVBAMMEVFaIFRyYXkg\n" +
-"RGVtbyBDZXJ0MB4XDTI1MTIxNjE4NTIwOFoXDTQ1MTIxNjE4NTIwOFowgaIxCzAJ\n" +
-"BgNVBAYTAlVTMQswCQYDVQQIDAJOWTESMBAGA1UEBwwJQ2FuYXN0b3RhMRswGQYD\n" +
-"VQQKDBJRWiBJbmR1c3RyaWVzLCBMTEMxGzAZBgNVBAsMElFaIEluZHVzdHJpZXMs\n" +
-"IExMQzEcMBoGCSqGSIb3DQEJARYNc3VwcG9ydEBxei5pbzEaMBgGA1UEAwwRUVog\n" +
-"VHJheSBEZW1vIENlcnQwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC7\n" +
-"07oFBeJZmihUsesYmJhwBsI2gbAsqZ73y/7kYimyDVVLDjAm9vprXHUBHEiKqpCM\n" +
-"S0yukIl7XQYoUX55wVxsqpZ6lf1hjwf9bm/i09Q2sUqz5Vo+5O8M1AL1dxTcpHph\n" +
-"n8OB58x+4bBEgQMWKMU9jw6kWdzfKyD75UvCEJ1/Keh4fYKqxgPxrsQwJqCQzrZn\n" +
-"Vl0ZWjEjnafwZFgN4aj3/2200h60vkk2bwbYxwr7DkvjqXSYeVjs8qrtq7MEcEno\n" +
-"MXh3DXvZBcq6UFWe2QNrsjFPYnFsgZ5z8Sq4K8a5BOhDV62XBXxNSb8I3L15VAxc\n" +
-"8nY76t8p2Mbnfb4atM4TAgMBAAGjRTBDMBIGA1UdEwEB/wQIMAYBAf8CAQEwDgYD\n" +
-"VR0PAQH/BAQDAgEGMB0GA1UdDgQWBBRZzIxcPBX3WYJ6lapv7CUSeueW7jANBgkq\n" +
-"hkiG9w0BAQsFAAOCAQEAaXYaKoHAfVN5rREVD9stj9tAPjUeKGuLhUM6uZO2c6os\n" +
-"odu+zB+XMgx6yZElWfkNYhCfG1LDQVDHhdHU7kQOWOnPymJ6n9MIE81DkTJjbZC2\n" +
-"WiwsGJ+AVo6o+i+v5oRzeKvSVlT8r16G128ks9nBbW7VhmNKLs7k+Cj5XjG5Z7Un\n" +
-"QbTkcWO7W5jrgr0lraNCG2d1XCKSyI2pSmodiCJ5ET38On6ke8wBkp+7aOED8GGJ\n" +
-"K68yjb7UEhsYra4HYAySIHRAaAATK5VnJlJPkelUc/cxmuuDV0MsnlBRCPMr/ocp\n" +
-"xnXVMQu6XGMWAdV+CNAOAlmkIJxbYkXXbC33xrGXCQ==\n" +
-"-----END CERTIFICATE-----");
-
-
-
-
-    });
-
-    qz.security.setSignatureAlgorithm("SHA512"); // Since 2.1
-
-
-
-
-    // Registrar también si Livewire ya inició al navegar desde otra página.
-    // Retirar el listener anterior evita duplicar las etiquetas al volver al tablero.
-    function registerPrintListener() {
-        window.lameriZplPrintCleanup?.();
-        window.lameriZplPrintCleanup = Livewire.on('imprimirZplFrontend', (eventData) => {
-            let zplCode = eventData.zpl || eventData[0]?.zpl;
-
-            if (!zplCode) {
-                alert("Error: No se recibió código ZPL.");
-                return;
-            }
-
-            let connectionPromise = qz.websocket.isActive()
-                ? Promise.resolve()
-                : qz.websocket.connect();
-
-            connectionPromise.then(() => {
-                const printerName = "ZDesigner ZD230-203dpi ZPL";
-
-                return qz.printers.find(printerName).then(() => {
-                    let config = qz.configs.create(printerName, { raw: true });
-                    return qz.print(config, [{
-                        type: 'raw',
-                        format: 'plain',
-                        data: zplCode
-                    }]);
-                });
-            })
-            .catch(err => alert("Error: " + err));
+            if (!container || Sortable.get(container)) return;
+            sortables.push(Sortable.create(container, {
+                group: 'filament-kanban',
+                ghostClass: 'opacity-50',
+                animation: 150,
+                onStart: () => document.body.classList.add('grabbing'),
+                onEnd: () => document.body.classList.remove('grabbing'),
+                setData: (dataTransfer, element) => dataTransfer.setData('id', element.id),
+                onAdd: event => Livewire.dispatch('status-changed', {
+                    recordId: event.item.id,
+                    status: event.to.dataset.statusId,
+                    fromOrderedIds: Array.from(event.from.children).map(child => child.id),
+                    toOrderedIds: Array.from(event.to.children).map(child => child.id),
+                }),
+                onUpdate: event => Livewire.dispatch('sort-changed', {
+                    recordId: event.item.id,
+                    status: event.from.dataset.statusId,
+                    orderedIds: Array.from(event.from.children).map(child => child.id),
+                }),
+            }));
         });
     }
 
-    if (window.Livewire) {
-        registerPrintListener();
-    } else {
-        document.addEventListener('livewire:init', registerPrintListener, { once: true });
+    function cleanup() {
+        if (stopped) return;
+        stopped = true;
+        removePrintListener?.();
+        sortables.forEach(sortable => sortable.destroy());
+        document.body.classList.remove('grabbing');
+        document.removeEventListener('livewire:init', registerPrintListener);
+        document.removeEventListener('livewire:navigated', setupSortables);
+        document.removeEventListener('livewire:navigating', cleanup);
     }
 
-    document.addEventListener('livewire:navigating', () => {
-        window.lameriZplPrintCleanup?.();
-        window.lameriZplPrintCleanup = null;
-    }, { once: true });
-});
-
+    window.lameriKanbanCleanup = cleanup;
+    registerPrintListener();
+    setupSortables();
+    document.addEventListener('livewire:init', registerPrintListener, { once: true });
+    document.addEventListener('livewire:navigated', setupSortables);
+    document.addEventListener('livewire:navigating', cleanup, { once: true });
+})();
 </script>

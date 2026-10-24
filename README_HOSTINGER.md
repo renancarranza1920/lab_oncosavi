@@ -100,6 +100,13 @@ Hostinger sirve los datos de las etiquetas; la conexión USB y la autorización
 de QZ se realizan en ese equipo. La revisión local comprueba la generación ZPL
 y el envío al navegador; la salida física debe comprobarse en la impresora.
 
+La firma utiliza SHA512 en el servidor y conserva el par de certificado/clave
+en almacenamiento privado. El SDK se carga una sola vez, incluso al navegar
+con Livewire. Para migrar el certificado que ya utiliza la computadora y los
+archivos modificados manualmente, sigue [Firma y certificados de QZ](docs/QZ_IMPRESION.md)
+antes de la primera actualización de esta versión. Las actualizaciones posteriores
+conservan la configuración y utilizan el script habitual.
+
 Si la instalación conserva `IMPRESION_ETIQUETAS_HABILITADA=false` en `.env`,
 actívala antes de ejecutar el actualizador, que conserva ese archivo privado:
 
