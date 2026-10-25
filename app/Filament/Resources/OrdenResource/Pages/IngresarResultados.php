@@ -172,6 +172,7 @@ protected function prepareInitialData(): array
         $resultadosExternosDB = $this->record->resultados()
             ->where('detalle_orden_id', $detalle->id)
             ->where('es_externo', true)
+            ->orderBy('id')
             ->get();
 
         $dataExternos = [];
@@ -184,6 +185,8 @@ protected function prepareInitialData(): array
                 'valor_referencia' => $resExt->valor_referencia_snapshot,
                 'unidades' => $resExt->unidades_snapshot,
                 'alertar' => $resExt->alertar,
+                'observaciones' => $resExt->observaciones ?? '',
+                'mostrar_observaciones' => filled($resExt->observaciones),
             ];
         }
 
@@ -439,7 +442,31 @@ if (!$valorRef && $grupoTodasEdades) {
             'notas' =>'',
             'unidades' => '',
             'alertar' => false,
+            'observaciones' => '',
+            'mostrar_observaciones' => false,
         ];
+    }
+
+    public function addExternalObservationRow($detalleId, $index = null): void
+    {
+        abort_unless(auth()->user()?->can('ingresar_resultados_orden'), 403);
+        abort_unless($this->record->detalleOrden()->whereKey($detalleId)->exists(), 404);
+        $filas = $this->data['resultados_examenes'][$detalleId]['externos'] ?? [];
+        $index ??= array_key_last($filas);
+        abort_unless($index !== null && isset($filas[$index]), 404);
+
+        $this->data['resultados_examenes'][$detalleId]['externos'][$index]['observaciones'] ??= '';
+        $this->data['resultados_examenes'][$detalleId]['externos'][$index]['mostrar_observaciones'] = true;
+    }
+
+    public function removeExternalObservationRow($detalleId, $index): void
+    {
+        abort_unless(auth()->user()?->can('ingresar_resultados_orden'), 403);
+        abort_unless($this->record->detalleOrden()->whereKey($detalleId)->exists(), 404);
+        abort_unless(isset($this->data['resultados_examenes'][$detalleId]['externos'][$index]), 404);
+
+        $this->data['resultados_examenes'][$detalleId]['externos'][$index]['observaciones'] = '';
+        $this->data['resultados_examenes'][$detalleId]['externos'][$index]['mostrar_observaciones'] = false;
     }
 
     public function removeExternalRow($detalleId, $index)
@@ -796,7 +823,7 @@ if (!$valorRef && $grupoTodasEdades) {
             'alertar' => (bool) ($fila['alertar'] ?? false),
         ];
         if ($esExterno) {
-            foreach (['prueba_nombre', 'valor_referencia', 'unidades'] as $campo) {
+            foreach (['prueba_nombre', 'valor_referencia', 'unidades', 'observaciones'] as $campo) {
                 $estado[$campo] = (string) ($fila[$campo] ?? '');
             }
         }
@@ -812,6 +839,7 @@ if (!$valorRef && $grupoTodasEdades) {
             'prueba_nombre' => $resultado?->prueba_nombre_snapshot,
             'valor_referencia' => $resultado?->valor_referencia_snapshot,
             'unidades' => $resultado?->unidades_snapshot,
+            'observaciones' => $resultado?->observaciones,
         ], $esExterno);
         $clave = $this->claveResultado($detalleId, $fila, $esExterno);
         $inicial = $this->resultadosIniciales[$clave] ?? $this->estadoEditableResultado([], $esExterno);
@@ -886,6 +914,7 @@ protected function guardarResultadoExterno(int $detalleId, array $ext): bool
         'resultado' => $ext['resultado'],
         'valor_referencia_snapshot' => $ext['valor_referencia'],
         'unidades_snapshot' => $ext['unidades'],
+        'observaciones' => filled($ext['observaciones'] ?? null) ? $ext['observaciones'] : null,
         'es_externo' => 1,
         'alertar' => (bool) ($ext['alertar'] ?? false),
     ];
@@ -1076,6 +1105,7 @@ public function generarPdfParcial()
                         return [
                             'nombre' => $res->prueba_nombre_snapshot ?? 'Prueba Externa',
                             'resultado' => $res->resultado,
+                            'observaciones' => $res->observaciones,
                             'referencia' => $res->valor_referencia_snapshot ?? $res->valor_referencia_externo ?? '',
                             'unidades' => $res->unidades_snapshot ?? '',
                             'fecha_resultado' => $res->updated_at->format('d/m/Y'),

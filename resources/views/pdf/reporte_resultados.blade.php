@@ -650,7 +650,7 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                                 @endif
 
                                                 @foreach($sinGrupo as $pruebaData)
-                                                    <tr class="result-row">
+                                                    <tr class="result-row" @if(trim((string) ($pruebaData['observaciones'] ?? '')) !== '') style="page-break-after: avoid;" @endif>
                                                         <td><div class="result-prueba-name">{{ $pruebaData['nombre'] }}</div></td>
                                                         <td>
                                                             <div class="result-value @if($esFueraDeRango($pruebaData['resultado'], $pruebaData['referencia'], $pruebaData['alertar'] ?? false)) fuera-de-rango @endif">
@@ -674,12 +674,13 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                                             <td style="text-align: {{ $alineacion }}; {{ $padding }} font-size: 8.5px;">{!! $refFinal !!}</td>
                                                         @endif
                                                     </tr>
+                                                    @include('pdf.observacion-externa')
                                                 @endforeach
 
                                                 @foreach($conGrupo as $nombreGrupo => $items)
                                                     <tr class="group-title-row"><td colspan="{{ $esTablaConRef ? 3 : 2 }}">{{ $nombreGrupo }}</td></tr>
                                                     @foreach($items as $pruebaData)
-                                                        <tr class="result-row">
+                                                        <tr class="result-row" @if(trim((string) ($pruebaData['observaciones'] ?? '')) !== '') style="page-break-after: avoid;" @endif>
                                                             <td><div class="result-prueba-name">{{ $pruebaData['nombre'] }}</div></td>
                                                             <td>
                                                                 <div class="result-value @if($esFueraDeRango($pruebaData['resultado'], $pruebaData['referencia'], $pruebaData['alertar'] ?? false)) fuera-de-rango @endif">
@@ -703,6 +704,7 @@ $agregarUnidadesPorLinea = function ($referencia, $unidad)
                                                                 <td style="text-align: {{ $alineacion }}; {{ $padding }} font-size: 8.5px;">{!! $refFinal !!}</td>
                                                             @endif
                                                         </tr>
+                                                        @include('pdf.observacion-externa')
                                                     @endforeach
                                                 @endforeach
 
