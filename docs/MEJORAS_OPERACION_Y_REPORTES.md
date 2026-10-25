@@ -31,6 +31,18 @@ Los formularios de contraseña del administrador, usuarios, perfil, restablecimi
 
 ## Resultados y solicitud de exámenes
 
+**Sincronizar con Catálogo** actualiza la definición de las pruebas y los nombres,
+referencias y unidades guardados de los resultados internos existentes. Usa la
+misma selección de edad, género y embarazo que la pantalla de resultados;
+conserva el valor, autor, fecha y marcas del resultado. No elimina resultados
+externos ni históricos y registra la sincronización en bitácora.
+
+Después de agregar o corregir una referencia, sincronice la orden y genere
+nuevamente su PDF. No necesita modificar ni volver a guardar el número para
+corregir una referencia antigua que decía `N/A`. Si había un parcial, se invalida
+para evitar enviar el documento anterior. Imprimir sigue leyendo la referencia
+guardada; no cambia datos históricos por consultar un reporte.
+
 El PDF de resultados usa membrete azul marino/celeste, el logo del laboratorio, datos del paciente, muestras registradas, un cangrejo tenue recortado por el borde izquierdo y ONCOSAVI vertical a la derecha. Conserva pruebas, resultados, referencias, matrices, observaciones, firmas y sellos. El encabezado y el pie se repiten en cada página.
 
 El catálogo imprimible se presenta como una solicitud con espacios para paciente, edad, fecha, sexo y firma del médico, tres columnas, círculos y áreas/perfiles. Incluye indicaciones generales al pie. **Incluir precios en la solicitud de exámenes** permite imprimir además las tarifas. Se conservan todos los nombres: un catálogo que exceda dos páginas legibles muestra un aviso y no se corta silenciosamente.
@@ -65,6 +77,11 @@ al generar resultados completos y parciales; los PDFs ya guardados deben regener
 La imagen y su configuración se guardan dentro de `storage`, en el volumen persistente
 `laravel_storage`, por lo que sobreviven a la reconstrucción del contenedor. No es
 necesario copiar `sello.png` por SSH: se carga desde este apartado y se pulsa Guardar.
+
+La opción **Incluir sellos y firmas** del PDF final controla también este sello.
+Al desactivarla no se carga ni imprime el sello institucional, el sello personal
+ni la firma. El membrete, logo y demás elementos de Oncosavi se conservan. Genere
+el PDF nuevamente para aplicar la elección a un archivo que ya estaba guardado.
 
 ## Actualización segura del contenedor
 

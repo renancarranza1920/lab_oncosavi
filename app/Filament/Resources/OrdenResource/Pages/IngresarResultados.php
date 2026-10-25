@@ -4,6 +4,7 @@ namespace App\Filament\Resources\OrdenResource\Pages;
 
 use App\Filament\Resources\OrdenResource;
 use App\Models\Examen;
+use App\Models\DetalleOrden;
 use App\Models\GrupoEtario;
 use App\Models\Orden;
 use App\Models\Prueba; // Asegúrate de importar el modelo
@@ -541,63 +542,7 @@ if (!$valorRef && $grupoTodasEdades) {
                 ->requiresConfirmation()
                 ->modalHeading('¿Actualizar definición de pruebas?')
                 ->modalDescription('Esto actualizará la orden con la configuración actual del catálogo (nombres y valores de referencia).')
-                ->action(function () {
-                    foreach ($this->record->detalleOrden as $detalle) {
-                        if ($detalle->examen_id) {
-                            
-                             // 🔥 LIMPIEZA INTELIGENTE
-                            if ($detalle->examen && !$detalle->examen->es_externo) {
-                    
-                                $this->record->resultados()
-                                    ->where('detalle_orden_id', $detalle->id)
-                                    ->where('es_externo', true)
-                                    ->delete();
-                            }
-                            
-                            // 1. Cargamos la data FRESCA con la relación correcta
-                            $examenFresco = Examen::with([
-                                'pruebas.valoresReferencia',
-                            ])->find($detalle->examen_id);
-
-                            if ($examenFresco) {
-                                // 2. Generamos el NUEVO SNAPSHOT
-                                $nuevoSnapshot = $examenFresco->pruebas->where('estado', 'activo')->map(function ($prueba) {
-                                    $data = [
-                                        'id' => $prueba->id,
-                                        'nombre' => $prueba->nombre,
-                                        'tipo_conjunto' => $prueba->tipo_conjunto,
-                                        'tipo_prueba_id' => $prueba->tipo_prueba_id,
-                                        'valores_referencia' => [],
-                                    ];
-
-                                    // CORRECCIÓN: Usamos la colección y sacamos el primero
-                                    $data['valores_referencia'] = $prueba->valoresReferencia
-                                            ->filter(function ($val) use ($prueba) {
-                                                return $val->prueba_id === $prueba->id || is_null($val->prueba_id);
-                                            })
-                                            ->map(function ($val) {
-                                                return [
-                                                    'grupo_etario_id' => $val->grupo_etario_id,
-                                                    'genero' => $val->genero,
-                                                    'valor_min' => $val->valor_min,
-                                                    'valor_max' => $val->valor_max,
-                                                    'nota' => $val->nota, 
-                                                    'operador' => $val->operador,
-                                                    'unidades' => $val->unidades,
-                                                    'descriptivo' => $val->descriptivo,
-                                                ];
-                                            })->values()->toArray();
-                                    return $data;
-                                })->toArray();
-
-                                // 3. Guardamos
-                                $detalle->update(['pruebas_snapshot' => $nuevoSnapshot]);
-                            }
-                        }
-                    }
-                    Notification::make()->title('Orden sincronizada')->success()->send();
-                    return redirect(request()->header('Referer'));
-                }),
+                ->action(fn () => $this->sincronizarConCatalogo()),
 
             Action::make('completar')->label('Completar Orden')->color('success')->icon('heroicon-o-check-circle')
                 ->visible(fn() => auth()->user()->can('finalizar_orden'))
@@ -654,6 +599,100 @@ if (!$valorRef && $grupoTodasEdades) {
         ];
     }
 
+    public function sincronizarConCatalogo()
+    {
+        abort_unless(auth()->user()?->can('ingresar_resultados_orden')
+            && auth()->user()->can('sincronizar_catalogo_orden'), 403);
+
+        $modificados = DB::transaction(function (): bool {
+            $orden = Orden::query()->lockForUpdate()->findOrFail($this->record->id);
+            abort_unless(static::getResource()::canView($orden), 404);
+            abort_if(in_array($orden->estado, ['finalizado', 'cancelado'], true), 403);
+            $this->record = $orden->load('cliente');
+
+            $detalles = $orden->detalleOrden()->lockForUpdate()->get();
+            $resultados = $orden->resultados()->lockForUpdate()->get()
+                ->filter(fn (Resultado $resultado) => ! $resultado->es_externo && $resultado->prueba_id !== null)
+                ->groupBy(fn (Resultado $resultado) => $resultado->detalle_orden_id.':'.$resultado->prueba_id);
+            $detallesActualizados = [];
+            $referenciasActualizadas = [];
+
+            foreach ($detalles as $detalle) {
+                $examen = $detalle->examen_id
+                    ? Examen::with('pruebas.valoresReferencia')->find($detalle->examen_id)
+                    : null;
+                if (! $examen || $examen->es_externo) {
+                    continue;
+                }
+
+                $snapshot = $examen->pruebas->where('estado', 'activo')->map(fn (Prueba $prueba) => [
+                    'id' => $prueba->id,
+                    'nombre' => $prueba->nombre,
+                    'tipo_conjunto' => $prueba->tipo_conjunto,
+                    'tipo_prueba_id' => $prueba->tipo_prueba_id,
+                    'valores_referencia' => $prueba->valoresReferencia->map(fn ($valor) => [
+                        'grupo_etario_id' => $valor->grupo_etario_id,
+                        'genero' => $valor->genero,
+                        'valor_min' => $valor->valor_min,
+                        'valor_max' => $valor->valor_max,
+                        'nota' => $valor->nota,
+                        'operador' => $valor->operador,
+                        'unidades' => $valor->unidades,
+                        'descriptivo' => $valor->descriptivo,
+                    ])->values()->all(),
+                ])->values()->all();
+
+                $detalle->fill(['pruebas_snapshot' => $snapshot]);
+                if ($detalle->isDirty()) {
+                    $detalle->save();
+                    $detallesActualizados[] = $detalle->id;
+                }
+
+                foreach ($snapshot as $definicion) {
+                    $filas = $resultados->get($detalle->id.':'.$definicion['id'], collect());
+                    if ($filas->isEmpty()) {
+                        continue;
+                    }
+
+                    $datos = $this->getPruebaData(json_decode(json_encode($definicion)), $detalle->id);
+                    $metadatos = [
+                        'prueba_nombre_snapshot' => $datos['prueba_nombre'],
+                        'valor_referencia_snapshot' => $datos['valor_referencia'],
+                        'unidades_snapshot' => $datos['unidades'],
+                    ];
+                    foreach ($filas as $resultado) {
+                        $anteriores = array_intersect_key($resultado->getRawOriginal(), $metadatos);
+                        $resultado->fill($metadatos);
+                        if (! $resultado->isDirty()) {
+                            continue;
+                        }
+                        Resultado::withoutTimestamps(fn () => $resultado->save());
+                        $referenciasActualizadas[$resultado->id] = ['antes' => $anteriores, 'despues' => $metadatos];
+                    }
+                }
+            }
+
+            if (! $detallesActualizados && ! $referenciasActualizadas) {
+                return false;
+            }
+
+            activity('Órdenes')->performedOn($orden)->causedBy(auth()->user())
+                ->withProperties(['detalles_actualizados' => $detallesActualizados, 'referencias_actualizadas' => $referenciasActualizadas])
+                ->log('Referencias de la orden sincronizadas con catálogo');
+
+            return true;
+        });
+
+        if ($modificados) {
+            $this->eliminarPdfParcial();
+        }
+        $this->record->unsetRelation('detalleOrden')->unsetRelation('resultados');
+        $this->cargarFormularioResultados();
+        Notification::make()->title('Orden sincronizada')->success()->send();
+
+        return redirect(static::getResource()::getUrl('ingresar-resultados', ['record' => $this->record]));
+    }
+
     public function save(): void
     {
         abort_unless(auth()->user()?->can('ingresar_resultados_orden'), 403);
@@ -661,7 +700,7 @@ if (!$valorRef && $grupoTodasEdades) {
 
         $modificados = DB::transaction(function () use ($formData): bool {
             // Serializar los guardados de esta orden, incluyendo filas nuevas.
-            $this->record->newQuery()->lockForUpdate()->findOrFail($this->record->id);
+            $this->record = $this->record->newQuery()->lockForUpdate()->findOrFail($this->record->id);
             $modificados = false;
 
             foreach ($this->filasResultados($formData) as [$detalleId, $fila, $esExterno]) {
@@ -676,10 +715,11 @@ if (!$valorRef && $grupoTodasEdades) {
                 if ((! $esExterno || ! empty($fila['id'])) && ! array_key_exists($clave, $this->resultadosIniciales)) {
                     $this->conflictoResultado();
                 }
-                $this->record->detalleOrden()->whereKey($detalleId)->firstOrFail();
+                $detalle = $this->record->detalleOrden()->whereKey($detalleId)->firstOrFail();
                 if ($esExterno) {
                     $modificados = $this->guardarResultadoExterno($detalleId, $fila) || $modificados;
                 } else {
+                    $fila = $this->conDefinicionActual($detalle, $fila);
                     $modificados = $this->guardarResultado($detalleId, $fila) || $modificados;
                 }
             }
@@ -701,6 +741,26 @@ if (!$valorRef && $grupoTodasEdades) {
         foreach ($this->filasResultados($this->data['resultados_examenes'] ?? []) as [$detalleId, $fila, $esExterno]) {
             $this->resultadosIniciales[$this->claveResultado($detalleId, $fila, $esExterno)] = $this->estadoEditableResultado($fila, $esExterno);
         }
+    }
+
+    private function conDefinicionActual(DetalleOrden $detalle, array $fila): array
+    {
+        if ($detalle->pruebas_snapshot) {
+            $definicion = collect($detalle->pruebas_snapshot)->firstWhere('id', $fila['prueba_id']);
+            if (! $definicion) {
+                $this->conflictoResultado();
+            }
+            $prueba = json_decode(json_encode($definicion));
+        } else {
+            $prueba = Prueba::where('examen_id', $detalle->examen_id)->find($fila['prueba_id']);
+            if (! $prueba) {
+                $this->conflictoResultado();
+            }
+        }
+
+        $datos = $this->getPruebaData($prueba, $detalle->id);
+
+        return array_replace($fila, array_intersect_key($datos, array_flip(['prueba_nombre', 'valor_referencia', 'unidades'])));
     }
 
     private function filasResultados(array $examenes): \Generator

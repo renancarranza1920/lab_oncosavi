@@ -1961,7 +1961,7 @@ $record->update([
             'logo_b64' => $imgToBase64($pathLogo, 260, 210),
 
             // Sello institucional configurado por un administrador.
-            'sello_registro_b64' => \App\Support\SelloLaboratorio::base64(),
+            'sello_registro_b64' => $incluirFirmas ? \App\Support\SelloLaboratorio::base64() : null,
 
         ];
 
