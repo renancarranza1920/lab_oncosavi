@@ -35,6 +35,18 @@ Los formularios de contraseña del administrador, usuarios, perfil, restablecimi
 
 ## Resultados y solicitud de exámenes
 
+En los exámenes externos, **Añadir fila de resultados** crea otro resultado.
+**Añadir fila de observaciones** abre un área de texto debajo del último resultado;
+el icono de observaciones de cada fila permite añadirla a un resultado anterior.
+La nota se guarda al pulsar **Guardar resultados** y aparece debajo de ese mismo
+resultado en el PDF parcial y final, conservando sus saltos de línea. Quitar la
+observación conserva el resultado. No se utiliza el campo de observaciones generales.
+Los PDFs existentes deben generarse de nuevo para incluir estas notas.
+
+Los campos de resultados permiten escribir o pegar una coma, por ejemplo `10,5`.
+Este ajuste corresponde al campo de entrada; conserva las reglas existentes de
+guardado, referencias, colores y formato numérico. No requiere nuevas migraciones.
+
 **Sincronizar con Catálogo**, en una orden que todavía permite esa acción,
 actualiza la definición de sus pruebas y los nombres, referencias y unidades
 guardados de los resultados internos existentes. Utiliza la misma selección de

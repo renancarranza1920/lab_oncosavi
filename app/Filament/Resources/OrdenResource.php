@@ -1758,6 +1758,8 @@ $record->update([
 
                         'resultado' => $res->resultado,
 
+                        'observaciones' => $res->observaciones,
+
                         'referencia' => $res->valor_referencia_snapshot ?? 'N/A',
 
                         'unidades' => $res->unidades_snapshot ?? '',

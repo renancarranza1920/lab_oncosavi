@@ -150,10 +150,10 @@
 
 @if($sinReferencia)
     {{-- INPUT CON SUGERENCIAS CUALITATIVAS --}}
-    <x-filament::input 
-        type="text"
+    <x-resultado-input
+        :valor="$prueba['resultado'] ?? ''"
         list="sugerencias_{{ $inputId }}"
-        x-mask:dynamic="/^-?[\d,]*(\.\d*)?$/.test($input) ? $money($input, '.', ',', 20) : ''" wire:model.defer="data.resultados_examenes.{{ $detalleId }}.pruebas_unitarias.{{ $originalIndex }}.resultado"
+        wire:model.defer="data.resultados_examenes.{{ $detalleId }}.pruebas_unitarias.{{ $originalIndex }}.resultado"
     />
 
     <datalist id="sugerencias_{{ $inputId }}">
@@ -189,10 +189,10 @@
     </datalist>
 @else
     {{-- INPUT NORMAL NUMÉRICO --}}
-    <x-filament::input 
-        type="text"
+    <x-resultado-input
+        :valor="$prueba['resultado'] ?? ''"
         step="any"
-        x-mask:dynamic="/^-?[\d,]*(\.\d*)?$/.test($input) ? $money($input, '.', ',', 20) : ''" wire:model.defer="data.resultados_examenes.{{ $detalleId }}.pruebas_unitarias.{{ $originalIndex }}.resultado"
+        wire:model.defer="data.resultados_examenes.{{ $detalleId }}.pruebas_unitarias.{{ $originalIndex }}.resultado"
     />
 @endif
 
@@ -277,8 +277,8 @@
                                                                         <td class="px-4 py-2 text-center border-l dark:border-gray-700">
                                                                             @if (isset($matriz['data'][$fila][$columna]))
                                                                                 <x-filament::input.wrapper>
-                                                                                    <x-filament::input type="text" 
-                                                                                        x-mask:dynamic="/^-?[\d,]*(\.\d*)?$/.test($input) ? $money($input, '.', ',', 20) : ''" wire:model.defer="data.resultados_examenes.{{ $detalleId }}.matrices.{{ $tipoConjunto }}.data.{{ $fila }}.{{ $columna }}.resultado"/>
+                                                                                    <x-resultado-input :valor="$matriz['data'][$fila][$columna]['resultado'] ?? ''"
+                                                                                        wire:model.defer="data.resultados_examenes.{{ $detalleId }}.matrices.{{ $tipoConjunto }}.data.{{ $fila }}.{{ $columna }}.resultado"/>
                                                                                 </x-filament::input.wrapper>
                                                                             @endif
                                                                         </td>
@@ -319,7 +319,7 @@
                                                             <x-filament::input type="text" placeholder="Nombre..." wire:model.defer="data.resultados_examenes.{{ $detalleId }}.externos.{{ $index }}.prueba_nombre"/>
                                                         </td>
                                                         <td class="px-3 py-2">
-                                                            <x-filament::input type="text" placeholder="Resultado..." x-mask:dynamic="/^-?[\d,]*(\.\d*)?$/.test($input) ? $money($input, '.', ',', 20) : ''" wire:model.defer="data.resultados_examenes.{{ $detalleId }}.externos.{{ $index }}.resultado"/>
+                                                            <x-resultado-input :valor="$ext['resultado'] ?? ''" placeholder="Resultado..." wire:model.defer="data.resultados_examenes.{{ $detalleId }}.externos.{{ $index }}.resultado"/>
                                                         </td>
                                                         <td class="px-3 py-2">
                                                             <x-filament::input type="text" placeholder="Referencia..." wire:model.defer="data.resultados_examenes.{{ $detalleId }}.externos.{{ $index }}.valor_referencia"/>
@@ -333,20 +333,64 @@
                                                             />
                                                         </td>
                                                         <td class="px-3 py-2 text-center">
+                                                            <x-filament::icon-button
+                                                                color="gray"
+                                                                icon="heroicon-o-chat-bubble-bottom-center-text"
+                                                                label="Añadir observaciones a este resultado"
+                                                                :disabled="($ext['mostrar_observaciones'] ?? false) || filled($ext['observaciones'] ?? '')"
+                                                                wire:click="addExternalObservationRow({{ $detalleId }}, {{ $index }})"
+                                                            />
                                                             <x-filament::icon-button color="danger" icon="heroicon-o-trash" label="Eliminar resultado externo" wire:click="removeExternalRow({{ $detalleId }}, {{ $index }})" />
                                                         </td>
                                                     </tr>
+                                                    @if(($ext['mostrar_observaciones'] ?? false) || filled($ext['observaciones'] ?? ''))
+                                                        <tr wire:key="observaciones-{{ $detalleId }}-{{ $ext['temp_id'] }}" class="border-b dark:border-gray-700">
+                                                            <td colspan="6" class="px-3 py-3">
+                                                                <div class="flex items-center justify-between gap-3 mb-2">
+                                                                    <label for="observaciones_{{ $detalleId }}_{{ $ext['temp_id'] }}" class="text-sm font-medium text-gray-900 dark:text-white">
+                                                                        Observaciones de {{ $ext['prueba_nombre'] ?: 'este resultado' }}
+                                                                    </label>
+                                                                    <x-filament::icon-button
+                                                                        color="danger"
+                                                                        icon="heroicon-o-trash"
+                                                                        label="Eliminar observaciones"
+                                                                        wire:click="removeExternalObservationRow({{ $detalleId }}, {{ $index }})"
+                                                                    />
+                                                                </div>
+                                                                <x-filament::input.wrapper>
+                                                                    <textarea
+                                                                        id="observaciones_{{ $detalleId }}_{{ $ext['temp_id'] }}"
+                                                                        rows="5"
+                                                                        class="block w-full border-0 bg-transparent px-3 py-2 text-sm text-gray-950 focus:ring-0 dark:text-white"
+                                                                        placeholder="Escriba las observaciones de este resultado..."
+                                                                        wire:model.defer="data.resultados_examenes.{{ $detalleId }}.externos.{{ $index }}.observaciones"
+                                                                    ></textarea>
+                                                                </x-filament::input.wrapper>
+                                                            </td>
+                                                        </tr>
+                                                    @endif
                                                 @empty
                                                     <tr>
-                                                        <td colspan="5" class="px-3 py-6 text-center text-gray-400 italic">No hay resultados externos agregados.</td>
+                                                        <td colspan="6" class="px-3 py-6 text-center text-gray-400 italic">No hay resultados externos agregados.</td>
                                                     </tr>
                                                 @endforelse
                                             </tbody>
                                         </table>
                                     </div>
-                                    <x-filament::button type="button" size="sm" color="gray" icon="heroicon-m-plus" wire:click="addExternalRow({{ $detalleId }})">
-                                        Agregar Fila de Resultado
-                                    </x-filament::button>
+                                    @php
+                                        $ultimaFilaExterna = collect($examenData['externos'] ?? [])->last();
+                                        $observacionesDisponibles = $ultimaFilaExterna
+                                            && !($ultimaFilaExterna['mostrar_observaciones'] ?? false)
+                                            && !filled($ultimaFilaExterna['observaciones'] ?? '');
+                                    @endphp
+                                    <div class="flex flex-wrap items-center gap-3">
+                                        <x-filament::button type="button" size="sm" color="gray" icon="heroicon-m-plus" wire:click="addExternalRow({{ $detalleId }})">
+                                            Añadir fila de resultados
+                                        </x-filament::button>
+                                        <x-filament::button type="button" size="sm" color="gray" icon="heroicon-o-chat-bubble-bottom-center-text" :disabled="!$observacionesDisponibles" wire:click="addExternalObservationRow({{ $detalleId }})">
+                                            Añadir fila de observaciones
+                                        </x-filament::button>
+                                    </div>
                                 </div>
                             @endif
 
