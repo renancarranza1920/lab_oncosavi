@@ -35,6 +35,17 @@ Los formularios de contraseña del administrador, usuarios, perfil, restablecimi
 
 ## Resultados y solicitud de exámenes
 
+**Sincronizar con Catálogo**, en una orden que todavía permite esa acción,
+actualiza la definición de sus pruebas y los nombres, referencias y unidades
+guardados de los resultados internos existentes. Utiliza la misma selección de
+grupo etario, género y embarazo que la pantalla de resultados; conserva el valor,
+autor, fecha y marcas de cada resultado. La sincronización queda en bitácora y
+no elimina resultados externos ni pruebas históricas. Si había un PDF parcial,
+se invalida para evitar enviar la copia anterior. Genere el PDF de nuevo después
+de sincronizar; no necesita alterar ni volver a guardar los valores numéricos.
+Los reportes siguen leyendo la referencia guardada, sin cambiar datos históricos
+por el solo hecho de imprimir.
+
 El PDF de resultados conserva la estructura original de Lameri: membrete, tarjeta de paciente de cinco columnas, médico, marca de agua, esquinas, tablas amarillas, tipografía y pie. Mantiene las muestras registradas, pruebas, resultados, referencias, matrices, observaciones, firmas y sellos del sistema actualizado. El encabezado y el pie se repiten en cada página. Cotización, comprobante y boleta también conservan sus plantillas originales.
 
 El catálogo imprimible se presenta como una solicitud con espacios para paciente, edad, fecha, sexo y firma del médico, tres columnas, círculos y áreas/perfiles. Incluye indicaciones generales al pie. **Incluir precios en la solicitud de exámenes** permite imprimir además las tarifas. Se conservan todos los nombres: un catálogo que exceda dos páginas legibles muestra un aviso y no se corta silenciosamente.
@@ -44,6 +55,10 @@ Los PDFs ya guardados conservan su contenido. Para aplicar el diseño o las imá
 ## Sellos, firmas y autoría
 
 En **Mi perfil → Sello del laboratorio**, únicamente el rol `admin` puede subir, reemplazar o retirar el sello institucional (PNG, máximo 2 MB). Es compartido por el laboratorio y separado del sello y firma personales de cada usuario. Se incluye al generar resultados completos y parciales; los PDFs ya guardados deben regenerarse. La imagen y su configuración se guardan dentro de `storage`: conserva esta carpeta cuando actualices el código en Hostinger.
+
+En las opciones del PDF final, **Incluir sellos y firmas** controla también el
+sello institucional. Si se desactiva, no se carga ni imprime ninguno de esos
+sellos o firmas. El membrete, logo y demás elementos originales se conservan.
 
 El encabezado muestra fecha y hora de **registro** (creación de la orden) e **impresión** (generación del PDF), en hora de El Salvador. Los sellos institucional y personal y la firma se colocan después de los resultados, dentro de la tabla, siguiendo el espacio ocupado por su contenido. El sello institucional tiene 130 px de ancho; el sello personal, 170 × 90 px; la firma, 170 × 105 px. Al paginar, el bloque se mantiene junto a los resultados para evitar una página que contenga únicamente sellos.
 

@@ -66,10 +66,18 @@ y celular con el permiso de descarga habitual, conservando sus firmas y sellos.
 - **Ingresar resultados** incluye **Guardar Resultados** al inicio de la página
   y conserva el botón inferior. Ambos guardan los mismos datos sin finalizar
   la orden ni reasignar resultados de otros autores.
+- **Sincronizar con Catálogo** actualiza también el nombre, la referencia y las
+  unidades guardadas de los resultados internos existentes, usando las mismas
+  reglas de edad y género del formulario. Conserva el valor, autor, fecha y
+  marcas del resultado. No elimina resultados externos ni históricos. Tras
+  sincronizar, genere nuevamente el PDF; no hace falta modificar ni volver a
+  guardar el número para corregir una referencia antigua que decía `N/A`.
 - Los reportes completos y parciales muestran solo las muestras recibidas y
   comparten una firma al terminar las tablas de la misma área. Los hemogramas
   y generales de orina separados por un salto conservan su firma. Se mantiene
   el diseño original de Merino, sus imágenes y las medidas de sellos y firmas.
+  Al generar el reporte final, desactivar **Incluir sellos y firmas** excluye
+  tanto el sello del laboratorio como los sellos y firmas personales.
 - **Clientes** muestra la edad como dato principal: años cumplidos, meses para
   menores de un año y días para menores de un mes. La fecha de nacimiento queda
   debajo. Se conserva la edad manual y los datos ausentes se indican sin inventar
@@ -78,8 +86,9 @@ y celular con el permiso de descarga habitual, conservando sus firmas y sellos.
 La actualización utiliza los campos existentes y no requiere una carga inicial
 de datos. Para aplicar las muestras corregidas y la firma única a un archivo ya
 guardado, confirme las muestras reales y vuelva a generar su PDF completo o parcial.
-Verificación: 162 pruebas correctas (2424 aserciones), más comprobación local en
-navegador de recepción, guardado superior y edades de clientes.
+Verificación: 195 pruebas correctas (2892 aserciones), más comprobación local en
+navegador de recepción, guardado superior, edades de clientes, sincronización
+de referencias y PDFs con sellos activados y desactivados.
 
 ### Ver e imprimir etiquetas
 
