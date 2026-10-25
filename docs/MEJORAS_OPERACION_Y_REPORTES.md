@@ -39,7 +39,8 @@ En los exámenes externos, **Añadir fila de resultados** crea otro resultado.
 **Añadir fila de observaciones** abre un área de texto debajo del último resultado;
 el icono de observaciones de cada fila permite añadirla a un resultado anterior.
 La nota se guarda al pulsar **Guardar resultados** y aparece debajo de ese mismo
-resultado en el PDF parcial y final, conservando sus saltos de línea. Quitar la
+resultado en el PDF parcial y final, conservando sus saltos de línea. Se imprime
+sin un título adicional, alineada al inicio del valor y hacia la derecha. Quitar la
 observación conserva el resultado. No se utiliza el campo de observaciones generales.
 Los PDFs existentes deben generarse de nuevo para incluir estas notas.
 
