@@ -4,18 +4,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow,noarchive">
-    <title>@yield('title', 'Control de calidad') · Oncosavi · Prueba</title>
+    <title>@yield('title', 'Control de calidad') · Oncosavi</title>
     <link rel="icon" href="{{ asset('images/oncosavi.png') }}">
     <link rel="stylesheet" href="{{ asset('qa-demo/qa.css') }}?v=1">
     <script src="{{ asset('qa-demo/qa.js') }}?v=1" defer></script>
 </head>
 <body>
 <a class="skip" href="#contenido">Ir al contenido</a>
-<div class="open-banner"><strong>PRUEBA ABIERTA · DATOS DE DEMOSTRACIÓN</strong> · Sin inicio de sesión. Los nombres de quien registra y revisa se escriben manualmente.</div>
+<div class="open-banner"><strong>DATOS DE DEMOSTRACIÓN</strong></div>
 <header class="header">
     <div class="header-inner">
         <a class="brand" href="{{ route('qa-demo.index') }}"><img src="{{ asset('images/oncosavi.png') }}" width="54" height="54" alt="Logo Oncosavi"><span><b>ONCOSAVI</b><small>SAN VICENTE</small></span></a>
-        <div class="header-label"><strong>Control de calidad de química</strong>Espacio independiente para revisar la funcionalidad</div>
+        <div class="header-label"><strong>Control de calidad de química</strong>Registro y seguimiento de controles</div>
     </div>
 </header>
 @php
@@ -40,6 +40,6 @@
     @endif
     @yield('content')
 </main>
-<footer class="footer">Este espacio guarda únicamente registros de prueba de control de calidad. Las mediciones, gráficas y revisiones de esta prueba no autorizan resultados clínicos ni ejecutan la calibración de una máquina.</footer>
+<footer class="footer">Control de calidad de química · Oncosavi</footer>
 </body>
 </html>

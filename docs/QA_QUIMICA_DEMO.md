@@ -115,6 +115,12 @@ controles históricos con sus objetivos y límites originales. La apertura y la
 estabilidad de cada frasco se consideran junto con la caducidad del lote; se
 aplica la fecha límite más próxima.
 
+Las pantallas y el PDF utilizan textos de uso diario para el laboratorista. Los
+datos simulados se identifican con el rótulo «Datos de demostración». Las
+configuraciones de ejemplo instaladas con la primera versión también muestran
+los textos actualizados, sin reescribir sus mediciones ni los límites históricos.
+No es necesario borrar registros ni volver a preparar los ejemplos.
+
 ## Actualizar el catálogo o reactivar la prueba
 
 Después de añadir pruebas al catálogo principal, vuelve a ejecutar:

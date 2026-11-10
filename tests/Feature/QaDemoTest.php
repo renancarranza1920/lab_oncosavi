@@ -96,6 +96,45 @@ class QaDemoTest extends TestCase
         $this->assertStringNotContainsString('/public/', realpath($this->qaRoot.'/demo.sqlite'));
     }
 
+    public function test_los_ejemplos_ya_instalados_cambian_de_presentacion_sin_reescribir_el_historial(): void
+    {
+        $qa = $this->prepare(true);
+        $db = $qa->connection();
+        $configuration = $db->table('qa_configurations')->first();
+        $data = json_decode($configuration->data_json, true);
+        foreach ($data['analytes'] as &$analyte) {
+            $analyte['method'] = 'Método ilustrativo: confirmar con el laboratorio';
+        }
+        unset($analyte);
+        $legacyData = json_encode($data, JSON_UNESCAPED_UNICODE);
+        $db->table('qa_configurations')->where('id', $configuration->id)->update(['data_json' => $legacyData]);
+        $run = $db->table('qa_runs')->where('configuration_id', $configuration->id)->first();
+        $snapshot = json_decode($run->configuration_snapshot, true);
+        foreach ($snapshot['analytes'] as &$analyte) {
+            $analyte['method'] = 'Método ilustrativo: confirmar con el laboratorio';
+        }
+        unset($analyte);
+        $db->table('qa_runs')->where('id', $run->id)->update([
+            'configuration_snapshot' => json_encode($snapshot, JSON_UNESCAPED_UNICODE),
+            'notes' => 'Registro ilustrativo para revisar el módulo.',
+        ]);
+        $before = $db->table('qa_runs')->where('id', $run->id)->first();
+
+        foreach (['/qa-quimica/configuracion', '/qa-quimica/mediciones/nueva'] as $url) {
+            $this->get($url)->assertOk()->assertSee('Método del equipo')
+                ->assertDontSee('confirmar con el laboratorio')->assertDontSee('PRUEBA ABIERTA');
+        }
+        $this->get('/qa-quimica/mediciones/'.$run->id)->assertOk()
+            ->assertSee('Control habitual de química.')->assertDontSee('Registro ilustrativo para revisar el módulo.');
+        $csv = $this->get('/qa-quimica/exportar.csv')->assertOk()->streamedContent();
+        $this->assertStringContainsString('Control habitual de química.', $csv);
+        $this->assertStringNotContainsString('Registro ilustrativo para revisar el módulo.', $csv);
+        $this->get('/qa-quimica/informe.pdf')->assertOk();
+
+        $this->assertEquals($before, $db->table('qa_runs')->where('id', $run->id)->first());
+        $this->assertSame($legacyData, $db->table('qa_configurations')->where('id', $configuration->id)->value('data_json'));
+    }
+
     public function test_guardar_nuevos_limites_crea_otra_version_y_preserva_la_evaluacion_historica(): void
     {
         $qa = $this->prepare();

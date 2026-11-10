@@ -37,7 +37,7 @@
     <div><label for="configuration-equipment">Equipo <span class="required">*</span></label><select id="configuration-equipment" name="equipment_id" required><option value="">Seleccionar equipo</option>@foreach($equipment as $eq)<option value="{{ $eq['id'] }}" @selected((string)old('equipment_id',$selectedConfiguration['equipment_id'] ?? request('equipment_id'))===(string)$eq['id'])>{{ $eq['name'] }} · {{ $eq['model'] ?? '' }}</option>@endforeach</select></div>
     <div><label for="configuration-label">Nombre de esta configuración <span class="required">*</span></label><input id="configuration-label" name="label" required maxlength="150" value="{{ old('label',$selectedConfiguration['label'] ?? '') }}" placeholder="Controles de química · noviembre"></div>
     <div><label for="configured-by">Configurado por <span class="required">*</span></label><input id="configured-by" name="configured_by" required maxlength="120" value="{{ old('configured_by',$selectedConfiguration['configured_by'] ?? '') }}" placeholder="Nombre y apellido"></div>
-</div><p class="hint">En esta prueba abierta el nombre se declara manualmente. Confirma la hoja, las unidades y el método con el responsable del laboratorio.</p></section>
+</div><p class="hint">Copia la unidad y el método indicados en la hoja del control utilizado.</p></section>
 <section class="section"><h2>3. Identificar los controles y sus frascos</h2><p class="muted">El lote es el número que identifica el material utilizado. La apertura corresponde al frasco concreto que está en uso.</p>
 <div class="grid three">
 @foreach($levels as $key=>$label)
@@ -65,8 +65,8 @@
 @foreach($levels as $levelKey=>$levelLabel)<tr><th scope="row">{{ $levelLabel }}</th>@foreach(['target'=>'esperado','min'=>'mínimo','max'=>'máximo'] as $fieldKey=>$fieldLabel)<td><label class="sr-only" for="target-{{ $item['id'] }}-{{ $levelKey }}-{{ $fieldKey }}">{{ $item['name'] }} {{ $levelLabel }} {{ $fieldLabel }}</label><input data-analyte-field id="target-{{ $item['id'] }}-{{ $levelKey }}-{{ $fieldKey }}" name="analytes[{{ $i }}][targets][{{ $levelKey }}][{{ $fieldKey }}]" inputmode="decimal" maxlength="30" required value="{{ data_get($selected,'targets.'.$levelKey.'.'.$fieldKey,'') }}" @disabled(!$on)></td>@endforeach</tr>@endforeach
 </tbody></table></div>
 </div></details>
-@empty<div class="empty"><h3>No hay un catálogo preparado</h3><p>El responsable debe importar la copia de las pruebas antes de configurar los controles.</p></div>@endforelse
-<p class="hint">Admite coma o punto decimal. El valor esperado debe quedar entre el mínimo y el máximo. Esta comparación utiliza límites configurados, sin asignar desviaciones estándar por suposición.</p>
+@empty<div class="empty"><h3>No hay un catálogo preparado</h3><p>El catálogo de pruebas debe estar disponible para configurar los controles.</p></div>@endforelse
+<p class="hint">Admite coma o punto decimal. El valor esperado debe quedar entre el mínimo y el máximo.</p>
 </section>
 <div class="actions end"><a class="button secondary" href="{{ route('qa-demo.index') }}">Volver al resumen</a><button type="submit">Guardar nueva versión</button></div>
 </form>

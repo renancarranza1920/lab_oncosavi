@@ -3,7 +3,7 @@
 @section('content')
 <div class="page-heading"><div><p class="eyebrow">Seguimiento de los controles</p><h1>Control de calidad de química</h1><p class="muted">El personal mide en la máquina, registra las lecturas y el responsable revisa lo ocurrido.</p></div><div class="actions"><a class="button" href="{{ route('qa-demo.runs.create') }}">Registrar mediciones</a></div></div>
 <div class="stats">
-    <div class="stat"><strong>{{ $overview['equipment_count'] ?? count($equipment ?? []) }}</strong><span>Equipos configurados</span><small>Identificados dentro de esta prueba</small></div>
+    <div class="stat"><strong>{{ $overview['equipment_count'] ?? count($equipment ?? []) }}</strong><span>Equipos configurados</span><small>Disponibles para registrar controles</small></div>
     <div class="stat"><strong>{{ $overview['configuration_count'] ?? count($configurations ?? []) }}</strong><span>Configuraciones de control</span><small>Lotes, niveles y valores esperados</small></div>
     <div class="stat"><strong>{{ $overview['run_count'] ?? 0 }}</strong><span>Registros de medición</span><small>El historial conserva las repeticiones</small></div>
     <div class="stat"><strong>{{ $overview['pending_count'] ?? 0 }}</strong><span>Pendientes de revisión</span><small>La revisión se realiza por separado</small></div>

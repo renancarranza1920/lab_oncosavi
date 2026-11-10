@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\QaDemo;
 
 use App\Http\Controllers\Controller;
+use App\QaDemo\QaDemoPresentation;
 use App\QaDemo\QaDemoService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Closure;
@@ -19,7 +20,7 @@ class QaDemoController extends Controller
 
     public function index(): View
     {
-        return view('qa-demo.index', $this->common() + ['overview' => $this->qa->overview()]);
+        return $this->page('qa-demo.index', $this->common() + ['overview' => $this->qa->overview()]);
     }
 
     public function configuration(Request $request): View
@@ -32,7 +33,7 @@ class QaDemoController extends Controller
             ? $this->qa->configuration($configurationId)
             : ($configurations !== [] ? $this->qa->configuration((int) $configurations[0]['id']) : null);
 
-        return view('qa-demo.configuration', $this->common() + [
+        return $this->page('qa-demo.configuration', $this->common() + [
             'catalog' => $this->qa->catalog(),
             'selectedConfiguration' => $selected,
             'selectedEquipmentId' => $equipmentId ?? ($selected['equipment_id'] ?? null),
@@ -45,7 +46,7 @@ class QaDemoController extends Controller
         $id = $this->qa->createEquipment($data);
 
         return redirect()->route('qa-demo.configuration.index', ['equipment_id' => $id])
-            ->with('success', 'Equipo de prueba registrado. Ahora puede configurar sus controles.');
+            ->with('success', 'Equipo registrado. Ahora puede configurar sus controles.');
     }
 
     public function updateEquipment(Request $request, int $equipment): RedirectResponse
@@ -96,7 +97,7 @@ class QaDemoController extends Controller
     {
         $filters = $this->filters($request);
 
-        return view('qa-demo.runs.index', $this->common($filters) + [
+        return $this->page('qa-demo.runs.index', $this->common($filters) + [
             'runs' => $this->qa->runs($filters),
             'runsTotal' => $this->qa->countRuns($filters),
         ]);
@@ -115,7 +116,7 @@ class QaDemoController extends Controller
             abort_unless($parent !== null, 422, 'Seleccione el registro original para repetirlo o corregirlo.');
         }
 
-        return view('qa-demo.runs.form', $this->common() + [
+        return $this->page('qa-demo.runs.form', $this->common() + [
             'configuration' => $configuration,
             'run' => null,
             'parentRun' => $parent,
@@ -139,7 +140,7 @@ class QaDemoController extends Controller
         $record = $this->qa->run($run);
         $related = $record['related_runs'] ?? $this->qa->runs(['parent_run_id' => $run]);
 
-        return view('qa-demo.runs.show', $this->common() + [
+        return $this->page('qa-demo.runs.show', $this->common() + [
             'run' => $record,
             'relatedRuns' => $related,
             'events' => $this->qa->events(['equipment_id' => $record['equipment']['id']]),
@@ -151,7 +152,7 @@ class QaDemoController extends Controller
         $record = $this->qa->run($run);
         abort_unless($record['status'] === 'draft', 409, 'Un registro presentado conserva sus lecturas. Use una corrección o repetición vinculada.');
 
-        return view('qa-demo.runs.form', $this->common() + [
+        return $this->page('qa-demo.runs.form', $this->common() + [
             'configuration' => $this->qa->configuration((int) $record['configuration_id']),
             'run' => $record,
             'parentRun' => ! empty($record['parent_run_id']) ? $this->qa->run((int) $record['parent_run_id']) : null,
@@ -196,7 +197,7 @@ class QaDemoController extends Controller
             }
         }
 
-        return view('qa-demo.charts', $this->common($filters) + [
+        return $this->page('qa-demo.charts', $this->common($filters) + [
             'chart' => $chart,
             'configuration' => $configuration,
         ]);
@@ -207,7 +208,7 @@ class QaDemoController extends Controller
         $filters = $this->filters($request);
         $selectedId = $this->optionalId($request, 'event_id');
 
-        return view('qa-demo.events', $this->common($filters) + [
+        return $this->page('qa-demo.events', $this->common($filters) + [
             'events' => $this->qa->events($filters),
             'selectedEvent' => $selectedId !== null ? $this->qa->event($selectedId) : null,
         ]);
@@ -275,13 +276,18 @@ class QaDemoController extends Controller
             'dpi' => 96,
             'defaultFont' => 'DejaVu Sans',
             'chroot' => base_path(),
-        ])->loadView('qa-demo.pdf', [
+        ])->loadView('qa-demo.pdf', QaDemoPresentation::data([
             'runs' => $fullRuns,
             'filters' => $filters,
             'chart' => $chart,
             'generatedAt' => now('America/El_Salvador'),
             'logoPath' => public_path('images/oncosavi.png'),
-        ])->setPaper('a4', 'landscape')->download('oncosavi-qa-controles.pdf');
+        ]))->setPaper('a4', 'landscape')->download('oncosavi-qa-controles.pdf');
+    }
+
+    private function page(string $view, array $data): View
+    {
+        return view($view, QaDemoPresentation::data($data));
     }
 
     private function common(array $filters = []): array
@@ -383,7 +389,7 @@ class QaDemoController extends Controller
             'Registro', 'Equipo', 'Configuración', 'Medido el', 'Guardado el', 'Registrado por', 'Tipo',
             'Prueba', 'Nivel', 'Lote', 'Unidad', 'Lectura original', 'Valor numérico', 'Valor esperado',
             'Mínimo', 'Máximo', 'Comparación', 'Revisión', 'Motivo de faltantes', 'Notas',
-            'Último revisor declarado', 'Fecha de revisión', 'Comentario de revisión',
+            'Último revisor', 'Fecha de revisión', 'Comentario de revisión',
         ]];
         foreach ($this->qa->runs($filters) as $summary) {
             $run = $this->qa->run((int) $summary['id']);
@@ -424,7 +430,7 @@ class QaDemoController extends Controller
 
     private function safeCsvCell(mixed $value): string
     {
-        $text = (string) ($value ?? '');
+        $text = QaDemoPresentation::text((string) ($value ?? ''));
         if (preg_match('/^[+-]?\d+(?:[.,]\d+)?$/D', $text)) {
             return $text;
         }
