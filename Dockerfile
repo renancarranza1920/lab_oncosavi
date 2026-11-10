@@ -33,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libicu-dev \
     libonig-dev \
     libxml2-dev \
+    libsqlite3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 
@@ -53,6 +54,16 @@ RUN docker-php-ext-install -j"$(nproc)" \
     pcntl \
     opcache \
     curl
+
+# El módulo de prueba usa su propio SQLite privado. Algunas versiones de la
+# imagen PHP ya incluyen estas extensiones; se evita cargarlas por duplicado.
+RUN if ! php -r 'exit(extension_loaded("pdo_sqlite") ? 0 : 1);'; then \
+        docker-php-ext-install -j"$(nproc)" pdo_sqlite; \
+    fi \
+    && if ! php -r 'exit(extension_loaded("sqlite3") ? 0 : 1);'; then \
+        docker-php-ext-install -j"$(nproc)" sqlite3; \
+    fi \
+    && php -r 'new PDO("sqlite::memory:"); new SQLite3(":memory:");'
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 

@@ -1,0 +1,45 @@
+@extends('qa-demo.layout')
+@section('title','Registrar mediciones')
+@section('content')
+@php
+    $run=$run ?? null; $parentRun=$parentRun ?? null; $configuration=$configuration ?? null;
+    $kindLabels=['routine'=>'Control habitual','additional'=>'Control adicional','repeat'=>'Repetición','correction'=>'Corrección de captura','before_event'=>'Antes de calibración / mantenimiento','after_event'=>'Después de calibración / mantenimiento'];
+    $currentKind=old('kind',$run['kind'] ?? $kind ?? request('kind',$parentRun?'repeat':'routine'));
+    $oldValues=[];
+    foreach($run['measurements'] ?? [] as $measurement) $oldValues[$measurement['catalog_id']][$measurement['level']]=$measurement['raw_value'] ?? '';
+    $values=old('values',$oldValues);
+    $parentId=old('parent_run_id',$run['parent_run_id'] ?? $parentRun['id'] ?? request('parent_run_id'));
+    $measuredDefault=$run['measured_at'] ?? ($currentKind==='correction' ? ($parentRun['measured_at'] ?? null) : null) ?? now('America/El_Salvador')->format('Y-m-d\TH:i');
+    $measuredValue=old('measured_at',\Carbon\Carbon::parse($measuredDefault)->format('Y-m-d\TH:i:s'));
+    $allowedParentPairs=[]; foreach($parentRun['measurements'] ?? [] as $m) $allowedParentPairs[$m['catalog_id']][$m['level']]=true;
+    $levels=['low'=>'Bajo','medium'=>'Medio','high'=>'Alto'];
+@endphp
+<div class="page-heading"><div><p class="eyebrow">Captura del laboratorista</p><h1>{{ $run?'Editar borrador':'Registrar mediciones' }}</h1><p class="muted">Copia las lecturas obtenidas en la máquina. Guarda los números reales, aunque alguno esté fuera de límites.</p></div><a class="button secondary" href="{{ route('qa-demo.runs.index') }}">Ver historial</a></div>
+@if(!$run && !$parentRun)
+<section class="section hide-print"><form method="get" action="{{ route('qa-demo.runs.create') }}" class="inline-fields"><div><label for="choose-configuration">Controles que se utilizaron</label><select id="choose-configuration" name="configuration_id"><option value="">Seleccionar configuración</option>@foreach($configurations ?? [] as $cfg)<option value="{{ $cfg['id'] }}" @selected((int)($configuration['id'] ?? 0)===(int)$cfg['id'])>{{ $cfg['equipment_name'] ?? '' }} · {{ $cfg['label'] ?? '' }} · v{{ $cfg['version'] ?? 1 }}{{ !empty($cfg['active'])?' · actual':' · histórica' }}</option>@endforeach</select></div><div class="actions"><button type="submit" class="secondary">Cargar controles</button></div></form></section>
+@endif
+@if($configuration)
+@if($parentRun)<div class="notice"><strong>{{ $currentKind==='correction'?'Corrección de captura':'Nueva medición relacionada' }} con {{ $parentRun['number'] ?? 'QC-'.$parentRun['id'] }}.</strong> Completa sólo las lecturas que vuelves a registrar. El registro anterior se conserva. <a href="{{ route('qa-demo.runs.show',$parentRun['id']) }}">Ver original</a></div>@endif
+<section class="section"><div class="section-heading"><div><h2>{{ data_get($configuration,'equipment.name','Equipo') }} · {{ $configuration['label'] ?? 'Controles' }}</h2><p class="muted">Versión {{ $configuration['version'] ?? 1 }} · Los límites y lotes de esta versión quedarán guardados con el registro.</p></div><span class="badge">{{ count($configuration['analytes'] ?? []) }} pruebas · 3 niveles</span></div><div class="grid three">@foreach($levels as $key=>$label)<div class="level-card"><h3>Nivel {{ mb_strtolower($label) }}</h3><strong>{{ data_get($configuration,'levels.'.$key.'.lot','') }}</strong><p class="hint">{{ data_get($configuration,'levels.'.$key.'.product','') }}</p><p class="hint">Apertura {{ data_get($configuration,'levels.'.$key.'.opened_on','') }} · Uso hasta {{ data_get($configuration,'levels.'.$key.'.use_until','') }}</p></div>@endforeach</div></section>
+<form action="{{ $run?route('qa-demo.runs.update',$run['id']):route('qa-demo.runs.store') }}" method="post" data-save-form data-testid="run-form">@csrf @if($run) @method('PUT') @endif
+<input type="hidden" name="configuration_id" value="{{ $configuration['id'] }}">
+@if($parentId)<input type="hidden" name="parent_run_id" value="{{ $parentId }}">@endif
+<section class="section"><div class="grid four">
+<div><label for="measured-at">Fecha y hora de medición <span class="required">*</span></label><input id="measured-at" type="datetime-local" step="1" name="measured_at" value="{{ $measuredValue }}" required @readonly($currentKind==='correction')><p class="hint">{{ $currentKind==='correction'?'La corrección conserva la fecha y hora de la medición original.':'Hora de El Salvador en que se midió el control.' }}</p></div>
+<div><label for="operator">Registrado por <span class="required">*</span></label><input id="operator" name="operator" required maxlength="120" value="{{ old('operator',$run['operator'] ?? '') }}" placeholder="Nombre y apellido"><p class="hint">Nombre declarado manualmente en esta prueba.</p></div>
+<div><label for="run-kind">Tipo de medición</label><select id="run-kind" name="kind" data-run-kind @if($parentRun) data-parent-measured="{{ \Carbon\Carbon::parse($parentRun['measured_at'])->format('Y-m-d\TH:i:s') }}" @endif>@foreach($kindLabels as $key=>$label)@if($parentId?in_array($key,['repeat','correction']):!in_array($key,['repeat','correction']))<option value="{{ $key }}" @selected($currentKind===$key)>{{ $label }}</option>@endif @endforeach</select></div>
+<div><label for="run-event">Evento relacionado, si corresponde</label><select id="run-event" name="event_id"><option value="">Sin evento</option>@foreach($events ?? [] as $event)<option value="{{ $event['id'] }}" @selected((string)old('event_id',$run['event_id'] ?? request('event_id'))===(string)$event['id'])>{{ ($event['type'] ?? '')==='calibration'?'Calibración':'Mantenimiento' }} · {{ \Carbon\Carbon::parse($event['occurred_at'])->format('d/m H:i') }}</option>@endforeach</select></div>
+</div></section>
+<section class="section"><div class="section-heading"><div><h2>Lecturas de los controles</h2><p class="muted">Admite coma o punto decimal. El cero se guarda como una lectura real; una casilla vacía significa que no se realizó.</p></div></div>
+<div class="table-wrap"><table class="readings-table"><thead><tr><th>Prueba / método</th><th>Unidad</th>@foreach($levels as $key=>$label)<th>{{ $label }} medido</th>@endforeach</tr></thead><tbody>
+@foreach($configuration['analytes'] ?? [] as $analyte)
+<tr><td><strong>{{ $analyte['name'] }}</strong><div class="hint">{{ $analyte['exam_name'] ?? '' }} · {{ $analyte['method'] ?? '' }}</div></td><td>{{ $analyte['unit'] }}</td>
+@foreach($levels as $level=>$label)<td class="numeric" data-label="{{ $label }} medido"><label class="sr-only" for="reading-{{ $analyte['catalog_id'] }}-{{ $level }}">{{ $analyte['name'] }} {{ $label }} medido</label>@if(!$parentRun || isset($allowedParentPairs[$analyte['catalog_id']][$level]))<input id="reading-{{ $analyte['catalog_id'] }}-{{ $level }}" name="values[{{ $analyte['catalog_id'] }}][{{ $level }}]" inputmode="decimal" maxlength="30" value="{{ data_get($values,$analyte['catalog_id'].'.'.$level,'') }}" autocomplete="off">@else<span class="muted small">No corresponde al registro original</span>@endif<span class="range">Esperado {{ data_get($analyte,'targets.'.$level.'.target') }} · Límites {{ data_get($analyte,'targets.'.$level.'.min') }} a {{ data_get($analyte,'targets.'.$level.'.max') }}</span></td>@endforeach
+</tr>@endforeach
+</tbody></table></div></section>
+<section class="section"><div class="grid two"><div><label for="missing-reason">Motivo de las lecturas no realizadas</label><textarea id="missing-reason" name="missing_reason" rows="3" maxlength="2000" placeholder="Indica por qué quedaron lecturas sin procesar, si corresponde.">{{ old('missing_reason',$run['missing_reason'] ?? '') }}</textarea><p class="hint">En una repetición sólo se registran las lecturas nuevas; las demás casillas quedan vacías.</p></div><div><label for="run-notes">Observaciones o motivo de la corrección</label><textarea id="run-notes" name="notes" rows="3" maxlength="4000" @required($currentKind==='correction') placeholder="Describe lo ocurrido o la evidencia de una corrección.">{{ old('notes',$run['notes'] ?? '') }}</textarea><p class="hint">Una corrección requiere explicar el motivo y conserva el dato anterior.</p></div></div></section>
+<div class="notice"><strong>Guardar no equivale a aprobar el equipo.</strong> La comparación numérica y la revisión del responsable son pasos distintos. Una vez presentadas, las lecturas se conservan; las repeticiones y correcciones se agregan como registros relacionados.</div>
+<div class="actions end"><button class="secondary" type="submit" name="action" value="draft">Guardar borrador</button><button type="submit" name="action" value="submit">Guardar mediciones</button></div>
+</form>
+@else<div class="empty"><h2>Primero prepara los controles</h2><p>Necesitas un equipo y una configuración con pruebas, lotes y límites.</p><a class="button" href="{{ route('qa-demo.configuration.index') }}">Abrir configuración</a></div>@endif
+@endsection
