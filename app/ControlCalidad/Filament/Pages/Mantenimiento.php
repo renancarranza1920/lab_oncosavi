@@ -24,6 +24,8 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -66,20 +68,18 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
     public function secciones(): array
     {
         return [
-            'areas' => 'Áreas y equipos',
-            'productos' => 'Productos de control',
-            'lotes' => 'Lotes',
-            'pruebas' => 'Pruebas y niveles',
+            'areas' => 'Áreas',
+            'productos' => 'Productos',
+            'pruebas' => 'Pruebas',
         ];
     }
 
     public function descripcion(): string
     {
         return match ($this->seccion) {
-            'productos' => 'Registra los productos de control que utiliza el laboratorio.',
-            'lotes' => 'Identifica cada lote, su producto y su fecha de caducidad.',
+            'productos' => 'Registra el nombre del producto de control, su lote y la fecha de caducidad.',
             'pruebas' => 'Crea las pruebas del área y agrega sus niveles y valores de control.',
-            default => 'Identifica las áreas de química y hematología y el equipo de cada una.',
+            default => 'Agrega las áreas del laboratorio y el nombre del equipo de cada una.',
         };
     }
 
@@ -91,10 +91,9 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
             ->recordTitleAttribute('nombre')
             ->recordUrl(null)
             ->recordAction(null)
-            ->defaultSort('nombre')
+            ->defaultSort($this->seccion === 'productos' ? 'numero' : 'nombre')
             ->emptyStateHeading('Todavía no hay '.mb_strtolower($this->secciones()[$this->seccion]))
             ->emptyStateDescription(fn (): string => match (true) {
-                $this->seccion === 'lotes' && ! Producto::query()->exists() => 'Primero registra un producto en Productos de control.',
                 $this->seccion === 'pruebas' && ! Area::query()->exists() => 'Primero registra un área y equipo.',
                 $this->seccion === 'pruebas' && ! Lote::query()->exists() => 'Registra el producto y su lote para configurar los niveles de la prueba.',
                 default => 'Usa el botón de agregar para registrar el primero.',
@@ -115,13 +114,15 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
             ->actions([
                 EditAction::make('editar')
                     ->label('Editar')
-                    ->modalHeading(fn (Model $record): string => 'Editar '.$record->nombre)
+                    ->modalHeading(fn (Model $record): string => 'Editar '.($record instanceof Lote ? $record->producto->nombre : $record->nombre))
                     ->modalSubmitActionLabel('Guardar cambios')
                     ->form($this->campos())
                     ->modalWidth($this->seccion === 'pruebas' ? '6xl' : '2xl')
                     ->authorize(fn (): bool => static::canAccess())
                     ->mutateRecordDataUsing(function (array $data, Model $record): array {
-                        if ($record instanceof Prueba) {
+                        if ($record instanceof Lote) {
+                            $data['producto_nombre'] = $record->producto->nombre;
+                        } elseif ($record instanceof Prueba) {
                             $data['niveles'] = $record->niveles()->with('valorControlActual')->orderBy('orden')->get()
                                 ->map(fn ($nivel): array => [
                                     'id' => $nivel->id,
@@ -144,8 +145,7 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
     private function consulta(): Builder
     {
         return match ($this->seccion) {
-            'productos' => Producto::query(),
-            'lotes' => Lote::query()->with('producto'),
+            'productos' => Lote::query()->with('producto'),
             'pruebas' => Prueba::query()->with('area'),
             default => Area::query(),
         };
@@ -154,8 +154,7 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
     private function modelo(): string
     {
         return match ($this->seccion) {
-            'productos' => Producto::class,
-            'lotes' => Lote::class,
+            'productos' => Lote::class,
             'pruebas' => Prueba::class,
             default => Area::class,
         };
@@ -165,9 +164,8 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
     {
         return match ($this->seccion) {
             'productos' => 'Nuevo producto',
-            'lotes' => 'Nuevo lote',
             'pruebas' => 'Nueva prueba',
-            default => 'Nueva área y equipo',
+            default => 'Nueva área',
         };
     }
 
@@ -175,13 +173,8 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
     {
         return match ($this->seccion) {
             'productos' => [
-                TextColumn::make('nombre')->label('Producto de control')->searchable()->sortable(),
-                TextColumn::make('lotes_count')->label('Lotes registrados')->counts('lotes')->badge(),
-            ],
-            'lotes' => [
-                TextColumn::make('producto.nombre')->label('Producto')->searchable()->wrap(),
-                TextColumn::make('nombre')->label('Nombre del lote')->searchable()->sortable(),
-                TextColumn::make('numero')->label('Número de lote')->searchable(),
+                TextColumn::make('producto.nombre')->label('Producto de control')->searchable()->sortable()->wrap(),
+                TextColumn::make('numero')->label('Número de lote')->searchable()->sortable(),
                 TextColumn::make('caduca_el')->label('Caducidad')->date('d/m/Y')->sortable(),
             ],
             'pruebas' => [
@@ -202,19 +195,17 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
     {
         return match ($this->seccion) {
             'productos' => [
-                TextInput::make('nombre')->label('Nombre del producto')->required()->maxLength(160)
-                    ->unique(table: Producto::class, column: 'nombre', ignoreRecord: true),
-            ],
-            'lotes' => [
-                Select::make('producto_id')->label('Producto de control')->required()->searchable()->native(false)
-                    ->options(fn (): array => Producto::query()->orderBy('nombre')->pluck('nombre', 'id')->all())
-                    ->exists(Producto::class, 'id'),
-                TextInput::make('nombre')->label('Nombre del lote')->required()->maxLength(160),
+                TextInput::make('producto_nombre')->label('Nombre del producto de control')->required()->maxLength(160),
                 TextInput::make('numero')->label('Número de lote')->required()->maxLength(100)
-                    ->rules(fn (Get $get, ?Model $record): array => [
-                        Rule::unique(Lote::class, 'numero')->where('producto_id', $get('producto_id'))->ignore($record?->getKey()),
-                    ]),
-                DatePicker::make('caduca_el')->label('Caducidad del lote')->required()->displayFormat('d/m/Y'),
+                    ->rules(function (Get $get, ?Model $record): array {
+                        $nombre = trim((string) $get('producto_nombre'));
+                        $productoId = Producto::query()->whereRaw('LOWER(nombre) = ?', [mb_strtolower($nombre)])->value('id');
+
+                        return $productoId === null ? [] : [
+                            Rule::unique(Lote::class, 'numero')->where('producto_id', $productoId)->ignore($record?->getKey()),
+                        ];
+                    }),
+                DatePicker::make('caduca_el')->label('Fecha de caducidad del lote')->required()->displayFormat('d/m/Y'),
             ],
             'pruebas' => [
                 Grid::make(2)->schema([
@@ -231,7 +222,7 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
                         TextInput::make('nombre')->label('Nombre del nivel')->required()->maxLength(80),
                         Select::make('lote_id')->label('Producto y lote')->required()->searchable()->native(false)
                             ->options(fn (): array => Lote::query()->with('producto')->orderBy('nombre')->get()
-                                ->mapWithKeys(fn (Lote $lote): array => [$lote->id => $lote->producto->nombre.' · '.$lote->nombre.' · '.$lote->numero])->all())
+                                ->mapWithKeys(fn (Lote $lote): array => [$lote->id => $lote->producto->nombre.' · '.$lote->numero])->all())
                             ->exists(Lote::class, 'id'),
                         Grid::make(3)->schema([
                             $this->campoValor('esperado', 'Valor esperado'),
@@ -243,8 +234,7 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
                     ->addActionLabel('Agregar nivel'),
             ],
             default => [
-                Select::make('nombre')->label('Área')->options(['Química' => 'Química', 'Hematología' => 'Hematología'])
-                    ->required()->native(false),
+                TextInput::make('nombre')->label('Nombre del área')->required()->maxLength(80),
                 TextInput::make('equipo')->label('Nombre del equipo')->required()->maxLength(160)
                     ->rules(fn (Get $get, ?Model $record): array => [
                         Rule::unique(Area::class, 'equipo')->where('nombre', $get('nombre'))->ignore($record?->getKey()),
@@ -264,6 +254,9 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
         $this->authorizeMaintenance();
 
         try {
+            if ($this->seccion === 'productos') {
+                return $this->guardarProductoYLote($data, $record);
+            }
             if ($this->seccion === 'pruebas') {
                 return app(ControlCalidadService::class)->guardarPrueba($data, auth()->user(), $record);
             }
@@ -279,6 +272,39 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
 
             throw $exception;
         }
+    }
+
+    private function guardarProductoYLote(array $data, ?Model $record): Lote
+    {
+        foreach (['producto_nombre', 'numero'] as $field) {
+            if (isset($data[$field]) && is_string($data[$field])) {
+                $data[$field] = trim($data[$field]);
+            }
+        }
+        $valid = Validator::make($data, [
+            'producto_nombre' => ['required', 'string', 'max:160'],
+            'numero' => ['required', 'string', 'max:100'],
+            'caduca_el' => ['required', 'date_format:Y-m-d'],
+        ])->validate();
+
+        return DB::transaction(function () use ($valid, $record): Lote {
+            $producto = Producto::query()->whereRaw('LOWER(nombre) = ?', [mb_strtolower($valid['producto_nombre'])])->first()
+                ?? Producto::firstOrCreate(['nombre' => $valid['producto_nombre']]);
+            Validator::make($valid, [
+                'numero' => [Rule::unique(Lote::class, 'numero')->where('producto_id', $producto->id)->ignore($record?->getKey())],
+            ])->validate();
+
+            $lote = $record ?? new Lote;
+            abort_unless($lote instanceof Lote, 404);
+            $lote->fill([
+                'producto_id' => $producto->id,
+                'nombre' => $producto->nombre,
+                'numero' => $valid['numero'],
+                'caduca_el' => $valid['caduca_el'],
+            ])->save();
+
+            return $lote;
+        });
     }
 
     private function authorizeMaintenance(): void

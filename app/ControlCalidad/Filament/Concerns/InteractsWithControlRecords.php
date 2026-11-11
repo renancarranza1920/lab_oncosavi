@@ -6,7 +6,6 @@ use App\ControlCalidad\Models\Area;
 use App\ControlCalidad\Models\Nivel;
 use App\ControlCalidad\Models\Registro as ControlRegistro;
 use App\ControlCalidad\Services\ControlCalidadService;
-use App\Models\User;
 use App\Support\ControlCalidadPermissions as Permission;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
@@ -27,7 +26,6 @@ use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
@@ -40,7 +38,7 @@ trait InteractsWithControlRecords
     {
         return [
             Section::make('Datos del control')->schema([
-                Select::make('area_id')->label('Área y equipo')->required()->searchable()->native(false)
+                Select::make('area_id')->label('Área')->required()->searchable()->native(false)
                     ->options(fn (): array => Area::query()->orderBy('nombre')->get()
                         ->mapWithKeys(fn (Area $area): array => [$area->id => $area->nombre.' · '.$area->equipo])->all())
                     ->disabled($registro !== null)->dehydrated()
@@ -49,12 +47,7 @@ trait InteractsWithControlRecords
                             $set('resultados', $this->filasDelArea($state));
                         }
                     }),
-                Placeholder::make('fecha_automatica')->label('Fecha y hora')
-                    ->content(fn (): string => ($registro?->fecha_hora ?? now())
-                        ->copy()->timezone('America/El_Salvador')->format('d/m/Y H:i')),
-                Select::make('laboratorista_id')->label('Usuario laboratorista')->required()->searchable()->native(false)
-                    ->options(fn (): array => $this->usuariosLaboratoristas($registro)),
-            ])->columns(['default' => 1, 'md' => 3]),
+            ]),
             Section::make('Registro de las pruebas')->schema([
                 Repeater::make('resultados')->label('Lecturas')->required()->minItems(1)
                     ->addable(false)->deletable(false)->reorderable(false)
@@ -94,21 +87,12 @@ trait InteractsWithControlRecords
 
         return [
             'area_id' => $registro->area_id,
-            'laboratorista_id' => $registro->laboratorista_id,
             'observaciones' => $registro->observaciones,
             'resultados' => $registro->resultados->map(fn ($resultado): array => [
                 'nivel_id' => $resultado->nivel_id,
                 'valor' => $resultado->valor_original,
             ])->all(),
         ];
-    }
-
-    protected function usuariosLaboratoristas(?ControlRegistro $registro): array
-    {
-        return User::query()->orderBy('name')->get()
-            ->filter(fn (User $user): bool => (int) $user->id === (int) $registro?->laboratorista_id
-                || ($user->can('access_admin_panel') && $user->can(Permission::VIEW) && $user->can(Permission::REGISTER)))
-            ->pluck('name', 'id')->all();
     }
 
     protected function descripcionNivel(int $nivelId, ?ControlRegistro $registro): array
@@ -170,12 +154,12 @@ trait InteractsWithControlRecords
                 TextColumn::make('fecha_hora')->label('Fecha y hora')->dateTime('d/m/Y H:i', 'America/El_Salvador')->sortable(),
                 TextColumn::make('area.nombre')->label('Área')->searchable(),
                 TextColumn::make('area.equipo')->label('Equipo')->searchable()->wrap(),
-                TextColumn::make('laboratorista.name')->label('Laboratorista')->searchable()->wrap(),
+                TextColumn::make('laboratorista.name')->label('Laboratorista')->searchable()->wrap()->visible($historial),
                 TextColumn::make('estado')->label('Estado')->badge()
                     ->getStateUsing(fn (ControlRegistro $record): string => $record->trashed() ? 'Eliminado' : 'Registrado')
                     ->color(fn (ControlRegistro $record): string => $record->trashed() ? 'danger' : 'success'),
             ])->filters($historial ? [
-                SelectFilter::make('area_id')->label('Área y equipo')
+                SelectFilter::make('area_id')->label('Área')
                     ->options(fn (): array => Area::query()->orderBy('nombre')->get()
                         ->mapWithKeys(fn (Area $area): array => [$area->id => $area->nombre.' · '.$area->equipo])->all()),
                 SelectFilter::make('laboratorista_id')->label('Laboratorista')->relationship('laboratorista', 'name')->searchable(),
@@ -189,7 +173,6 @@ trait InteractsWithControlRecords
                         ->when($data['hasta'] ?? null, fn (Builder $query, $date): Builder =>
                             $query->where('fecha_hora', '<=', \Carbon\Carbon::parse($date, 'America/El_Salvador')->endOfDay()));
                 }),
-                TrashedFilter::make()->label('Registros eliminados')->default(true),
             ] : [])
             ->actions([
                 ViewAction::make('ver')->label('Ver registro')->modalHeading(fn (ControlRegistro $record): string => 'Registro #'.$record->id)
@@ -200,9 +183,8 @@ trait InteractsWithControlRecords
                             TextEntry::make('area.nombre')->label('Área'),
                             TextEntry::make('area.equipo')->label('Equipo'),
                             TextEntry::make('fecha_hora')->label('Fecha y hora')->dateTime('d/m/Y H:i', 'America/El_Salvador'),
-                            TextEntry::make('laboratorista.name')->label('Laboratorista'),
-                            TextEntry::make('registradoPor.name')->label('Registrado por'),
-                            TextEntry::make('deleted_at')->label('Eliminado el')->dateTime('d/m/Y H:i', 'America/El_Salvador')->placeholder('—'),
+                            TextEntry::make('laboratorista.name')->label('Laboratorista')->visible($historial),
+                            TextEntry::make('registradoPor.name')->label('Registrado por')->visible($historial),
                         ]),
                         RepeatableEntry::make('resultados')->label('Resultados')->schema([
                             TextEntry::make('prueba_nombre')->label('Prueba'),
@@ -237,7 +219,7 @@ trait InteractsWithControlRecords
                     ->visible(fn (ControlRegistro $record): bool => ! $record->trashed() && static::allowed(Permission::DELETE))
                     ->authorize(fn (): bool => static::allowed(Permission::DELETE))
                     ->requiresConfirmation()->modalHeading('Eliminar registro')
-                    ->modalDescription('El registro dejará de aparecer en los gráficos y se conservará en el historial.')
+                    ->modalDescription('El registro dejará de aparecer en el historial y en los gráficos.')
                     ->modalSubmitActionLabel('Eliminar registro')->action(function (ControlRegistro $record): void {
                         abort_unless(static::allowed(Permission::DELETE), 403);
                         app(ControlCalidadService::class)->eliminar($record, auth()->user());

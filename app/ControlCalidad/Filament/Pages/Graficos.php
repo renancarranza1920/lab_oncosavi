@@ -7,7 +7,8 @@ use App\ControlCalidad\Models\Area;
 use App\ControlCalidad\Models\Nivel;
 use App\ControlCalidad\Models\Prueba;
 use App\Support\ControlCalidadPermissions;
-use Filament\Forms\Components\DatePicker;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -43,8 +44,7 @@ class Graficos extends PaginaControlCalidad
         $this->form->fill([
             'area_id' => $area?->id,
             'prueba_id' => $prueba?->id,
-            'desde' => now('America/El_Salvador')->subDays(30)->toDateString(),
-            'hasta' => now('America/El_Salvador')->toDateString(),
+            'periodo' => 'mensual',
         ]);
         if ($prueba !== null) {
             $this->aplicarFiltros();
@@ -55,7 +55,7 @@ class Graficos extends PaginaControlCalidad
     {
         return $form->schema([
             Section::make('Seleccionar controles')->schema([
-                Grid::make(['default' => 1, 'md' => 2, 'xl' => 4])->schema([
+                Grid::make(['default' => 1, 'md' => 2, 'xl' => 3])->schema([
                     Select::make('area_id')->label('Área y equipo')->required()
                         ->options(fn (): array => Area::query()->orderBy('nombre')->get()->mapWithKeys(fn (Area $area): array => [$area->id => $area->nombre.' · '.$area->equipo])->all())
                         ->searchable()->live()->afterStateUpdated(fn (Set $set) => $set('prueba_id', null))
@@ -64,8 +64,9 @@ class Graficos extends PaginaControlCalidad
                         ->options(fn (Get $get): array => Prueba::query()->where('area_id', $get('area_id'))->orderBy('nombre')->pluck('nombre', 'id')->all())
                         ->searchable()->disabled(fn (Get $get): bool => ! $get('area_id'))
                         ->rules(fn (Get $get): array => [Rule::exists('cci_pruebas', 'id')->where('area_id', $get('area_id'))]),
-                    DatePicker::make('desde')->label('Desde')->required()->displayFormat('d/m/Y'),
-                    DatePicker::make('hasta')->label('Hasta')->required()->displayFormat('d/m/Y')->afterOrEqual('desde'),
+                    Select::make('periodo')->label('Período')->required()->native(false)
+                        ->options(['diario' => 'Diario', 'semanal' => 'Semanal', 'mensual' => 'Mensual'])
+                        ->rules([Rule::in(['diario', 'semanal', 'mensual'])]),
                 ]),
             ]),
         ])->statePath('data');
@@ -74,7 +75,20 @@ class Graficos extends PaginaControlCalidad
     public function aplicarFiltros(): void
     {
         abort_unless(static::canAccess(), 403);
-        $this->filtros = $this->form->getState();
+        $data = $this->form->getState();
+        $hoy = CarbonImmutable::now('America/El_Salvador');
+        [$desde, $hasta] = match ($data['periodo']) {
+            'diario' => [$hoy->startOfDay(), $hoy->endOfDay()],
+            'semanal' => [$hoy->startOfWeek(CarbonInterface::MONDAY), $hoy->endOfWeek(CarbonInterface::SUNDAY)],
+            'mensual' => [$hoy->startOfMonth(), $hoy->endOfMonth()],
+        };
+        $this->filtros = [
+            'area_id' => (int) $data['area_id'],
+            'prueba_id' => (int) $data['prueba_id'],
+            'periodo' => $data['periodo'],
+            'desde' => $desde->toDateString(),
+            'hasta' => $hasta->toDateString(),
+        ];
     }
 
     public function getNiveles(): Collection

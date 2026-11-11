@@ -11,6 +11,7 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Locked;
 
 class Registro extends PaginaControlCalidad implements HasTable
 {
@@ -26,6 +27,9 @@ class Registro extends PaginaControlCalidad implements HasTable
 
     public ?array $data = [];
 
+    #[Locked]
+    public ?string $fechaGuardada = null;
+
     public static function permission(): string
     {
         return Permission::REGISTER;
@@ -34,7 +38,7 @@ class Registro extends PaginaControlCalidad implements HasTable
     public function mount(): void
     {
         abort_unless(static::canAccess(), 403);
-        $this->form->fill(['laboratorista_id' => auth()->id(), 'resultados' => []]);
+        $this->form->fill(['resultados' => []]);
     }
 
     public function form(Form $form): Form
@@ -55,11 +59,11 @@ class Registro extends PaginaControlCalidad implements HasTable
         }
         $this->form->fill([
             'area_id' => $registro->area_id,
-            'laboratorista_id' => auth()->id(),
             'resultados' => $this->filasDelArea($registro->area_id),
         ]);
+        $this->fechaGuardada = $registro->fecha_hora->timezone('America/El_Salvador')->format('d/m/Y H:i');
         $this->resetTable();
-        Notification::make()->title('Registro guardado')->success()->send();
+        Notification::make()->title('Registro guardado')->body('Fecha y hora: '.$this->fechaGuardada)->success()->send();
     }
 
     public function mostrarRegistros(): bool

@@ -6,13 +6,15 @@ El módulo es un panel independiente de Filament. Utiliza el inicio de sesión d
 Oncosavi y no añade accesos al menú principal. Tiene estas cinco pantallas:
 
 1. **Resumen:** últimos registros y gráficos.
-2. **Mantenimiento:** áreas y equipos, productos de control, lotes y pruebas con
-   sus niveles y valores de control.
-3. **Registro de Control de Calidad Interno:** selección del área, fecha y hora
-   automáticas, laboratorista, resultados y observaciones opcionales. Incluye
+2. **Mantenimiento:** tres apartados: Áreas, Productos y Pruebas. Los productos
+   reúnen el nombre del control, el número de lote y su caducidad.
+3. **Registro de Control de Calidad Interno:** selección del área, resultados y
+   observaciones opcionales. La fecha se muestra después de guardar. Incluye
    edición y eliminación de registros según el permiso asignado.
-4. **Gráficos:** consulta por área, prueba y periodo, con una gráfica por nivel.
-5. **Historial:** búsqueda y consulta de registros, incluidos los eliminados.
+4. **Gráficos:** consulta por área y prueba con períodos Diario, Semanal o Mensual,
+   con una gráfica por nivel.
+5. **Historial:** consulta de registros con filtros Área, Laboratorista, Desde y
+   Hasta. Los registros eliminados no se muestran.
 
 Los formularios, tablas, filtros, modales y gráficos son componentes nativos de
 Filament. Los niveles se agregan manualmente en cada prueba; una prueba de tres
@@ -80,19 +82,22 @@ habilitan desde esta pestaña. Las acciones se verifican también en el servidor
 
 ## Empezar a utilizarlo
 
-1. En **Mantenimiento**, registra el área (Química o Hematología) y el nombre del
-   equipo.
-2. Agrega el producto de control y sus lotes, con nombre, número y caducidad.
+1. En **Mantenimiento → Áreas**, escribe el nombre del área y su equipo. Puedes
+   crear las áreas que necesites, por ejemplo Química, Hematología o Inmunología.
+2. En **Productos**, registra el nombre del control, número de lote y caducidad
+   en el mismo formulario. Puedes agregar más lotes con el mismo producto.
 3. Crea la prueba, indica su unidad y agrega los niveles. Para cada nivel,
    selecciona el lote y escribe el valor esperado, mínimo y máximo.
 4. En **Registro**, selecciona el área y equipo. Aparecerán las pruebas y niveles
-   configurados. La fecha y la hora se asignan al guardar; el usuario actual
-   aparece como laboratorista por defecto.
+   configurados. La fecha y la hora se asignan y muestran al guardar; el usuario
+   de la sesión se registra automáticamente sin aparecer en el formulario.
 5. Completa los resultados y, si corresponde, las observaciones. Se admiten
    decimales con coma o punto; el cero es un resultado válido.
-6. Consulta los gráficos y el historial. Cambiar los valores de control en
+6. En **Gráficos**, elige Diario para el día actual, Semanal para la semana actual
+   de lunes a domingo, o Mensual para el mes actual. Se usa la hora de El Salvador.
+   Cambiar los valores de control en
    Mantenimiento no altera los límites que ya quedaron guardados con un resultado.
 
-La edición conserva la fecha original y los valores de control de la medición.
-La eliminación retira el registro de las consultas activas y de los gráficos;
-permanece identificado como eliminado en el historial.
+La edición conserva la fecha original, el laboratorista y los valores de control
+de la medición. La eliminación retira el registro de las consultas, del historial
+y de los gráficos.

@@ -6,6 +6,12 @@
         </x-filament::button>
     </form>
 
+    @if($fechaGuardada !== null)
+        <x-filament::section heading="Fecha y hora del registro guardado">
+            {{ $fechaGuardada }}
+        </x-filament::section>
+    @endif
+
     @if($this->mostrarRegistros())
         {{ $this->table }}
     @endif

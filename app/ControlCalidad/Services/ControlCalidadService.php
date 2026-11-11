@@ -103,7 +103,6 @@ class ControlCalidadService
         $this->autorizar($actor, $registro === null ? Permission::REGISTER : Permission::EDIT);
         $valid = Validator::make($data, [
             'area_id' => ['required', 'integer', 'exists:cci_areas,id'],
-            'laboratorista_id' => ['nullable', 'integer', 'exists:users,id'],
             'observaciones' => ['nullable', 'string', 'max:4000'],
             'resultados' => ['required', 'array', 'min:1', 'max:10000'],
             'resultados.*' => ['required', 'array'],
@@ -123,14 +122,7 @@ class ControlCalidadService
             if ($current->exists && $current->area_id !== (int) $valid['area_id']) {
                 $this->invalid('area_id', 'La edición conserva el área de la medición original.');
             }
-            $operatorId = isset($valid['laboratorista_id']) ? (int) $valid['laboratorista_id'] : ($current->exists ? $current->laboratorista_id : $actor->id);
-            $sameHistoricalOperator = $current->exists && $current->laboratorista_id === $operatorId;
-            if (! $sameHistoricalOperator) {
-                $operator = User::query()->find($operatorId);
-                if (! $operator || ! $operator->can('access_admin_panel') || ! $operator->can(Permission::VIEW) || ! $operator->can(Permission::REGISTER)) {
-                    $this->invalid('laboratorista_id', 'Selecciona un laboratorista autorizado para registrar controles.');
-                }
-            }
+            $operatorId = $current->exists ? $current->laboratorista_id : $actor->id;
             if ($current->exists) {
                 $results = $current->resultados()->get()->keyBy('nivel_id');
                 $this->validarNiveles(array_keys($inputs), $results->keys()->all());

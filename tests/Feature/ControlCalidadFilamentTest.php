@@ -101,7 +101,7 @@ class ControlCalidadFilamentTest extends TestCase
         $this->assertCount($count, $prueba->fresh()->niveles);
         $this->assertCount($count, $record->resultados);
         $component = Livewire::test(Graficos::class)
-            ->fillForm(['area_id' => $area->id, 'prueba_id' => $prueba->id, 'desde' => '2026-11-01', 'hasta' => '2026-11-30'])
+            ->fillForm(['area_id' => $area->id, 'prueba_id' => $prueba->id, 'periodo' => 'mensual'])
             ->call('aplicarFiltros')->assertHasNoFormErrors();
         $this->assertCount($count, $component->instance()->getNiveles());
         foreach ($niveles as $nivel) {
@@ -118,6 +118,49 @@ class ControlCalidadFilamentTest extends TestCase
         return ['uno' => [1], 'tres' => [3], 'cuatro' => [4]];
     }
 
+    #[DataProvider('periodosGraficos')]
+    public function test_los_periodos_de_graficos_se_calculan_en_el_servidor_sin_fechas_libres(string $periodo, string $desde, string $hasta, int $lecturas): void
+    {
+        [$area, $prueba, $niveles, $data] = $this->controles(1);
+        foreach (['2026-10-31 23:59:59', '2026-11-08 23:59:59', '2026-11-09 00:00:00', '2026-11-10 00:00:00',
+            '2026-11-10 23:59:59', '2026-11-15 23:59:59', '2026-11-16 00:00:00', '2026-12-01 00:00:00'] as $fecha) {
+            $registro = app(ControlCalidadService::class)->guardar($data, $this->actor);
+            $registro->update(['fecha_hora' => Carbon::parse($fecha, 'America/El_Salvador')]);
+        }
+
+        $component = Livewire::test(Graficos::class)
+            ->assertFormFieldDoesNotExist('desde')->assertFormFieldDoesNotExist('hasta')
+            ->fillForm(['area_id' => $area->id, 'prueba_id' => $prueba->id, 'periodo' => $periodo])
+            ->set('data.desde', '2000-01-01')->set('data.hasta', '2040-01-01')
+            ->call('aplicarFiltros')->assertHasNoFormErrors();
+        $filtros = $component->instance()->filtros;
+        $this->assertSame($desde, $filtros['desde']);
+        $this->assertSame($hasta, $filtros['hasta']);
+        $this->assertSame($periodo, $filtros['periodo']);
+        $widget = Livewire::test(GraficoNivel::class, ['nivelId' => $niveles[0]->id, 'desde' => $filtros['desde'], 'hasta' => $filtros['hasta']]);
+        $chart = (new \ReflectionMethod($widget->instance(), 'getData'))->invoke($widget->instance());
+        $this->assertCount($lecturas, $chart['labels']);
+    }
+
+    public static function periodosGraficos(): array
+    {
+        return [
+            'diario' => ['diario', '2026-11-10', '2026-11-10', 2],
+            'semanal' => ['semanal', '2026-11-09', '2026-11-15', 4],
+            'mensual' => ['mensual', '2026-11-01', '2026-11-30', 6],
+        ];
+    }
+
+    public function test_graficos_solo_acepta_diario_semanal_y_mensual(): void
+    {
+        [$area, $prueba] = $this->controles(1);
+        Livewire::test(Graficos::class)->assertSet('data.periodo', 'mensual')
+            ->assertFormFieldExists('periodo', fn ($field): bool => $field->getOptions() === [
+                'diario' => 'Diario', 'semanal' => 'Semanal', 'mensual' => 'Mensual',
+            ])->fillForm(['area_id' => $area->id, 'prueba_id' => $prueba->id, 'periodo' => 'anual'])
+            ->call('aplicarFiltros')->assertHasFormErrors(['periodo']);
+    }
+
     public function test_el_formulario_filament_guarda_coma_y_cero_con_fecha_y_actor_del_servidor(): void
     {
         [$area, $prueba, $niveles, $data] = $this->controles(3);
@@ -125,7 +168,12 @@ class ControlCalidadFilamentTest extends TestCase
         $data['resultados'][1]['valor'] = '0';
         $data['resultados'][2]['valor'] = '18.9';
 
-        Livewire::test(RegistroPagina::class)->fillForm($data)->call('guardar')->assertHasNoFormErrors();
+        Livewire::test(RegistroPagina::class)
+            ->assertFormFieldDoesNotExist('laboratorista_id')
+            ->assertFormComponentDoesNotExist('fecha_automatica')
+            ->assertDontSee('Fecha y hora del registro')
+            ->fillForm($data)->call('guardar')->assertHasNoFormErrors()
+            ->assertSee('Fecha y hora del registro')->assertSee('10/11/2026 10:00');
 
         $record = Registro::query()->sole();
         $this->assertSame($area->id, (int) $record->area_id);
@@ -152,17 +200,16 @@ class ControlCalidadFilamentTest extends TestCase
     public function test_mantenimiento_crea_area_producto_lote_y_prueba_con_niveles_desde_las_acciones_filament(): void
     {
         $page = Livewire::test(Mantenimiento::class)
-            ->callTableAction('crear', data: ['nombre' => 'Hematología', 'equipo' => 'Hematología 02'])
+            ->callTableAction('crear', data: ['nombre' => 'Inmunología', 'equipo' => 'Inmunología 02'])
             ->assertHasNoTableActionErrors();
         $area = Area::query()->sole();
+        $this->assertSame('Inmunología', $area->nombre);
+        $this->assertSame(['areas' => 'Áreas', 'productos' => 'Productos', 'pruebas' => 'Pruebas'], $page->instance()->secciones());
         $page->call('cambiarSeccion', 'productos')
-            ->callTableAction('crear', data: ['nombre' => 'BC-3D Hematology Control'])
-            ->assertHasNoTableActionErrors();
-        $product = Producto::query()->sole();
-        $page->call('cambiarSeccion', 'lotes')
             ->callTableAction('crear', data: [
-                'producto_id' => $product->id, 'nombre' => 'Control de noviembre', 'numero' => 'BC-2611', 'caduca_el' => '2027-01-31',
+                'producto_nombre' => 'BC-3D Hematology Control', 'numero' => 'BC-2611', 'caduca_el' => '2027-01-31',
             ])->assertHasNoTableActionErrors();
+        $this->assertSame('BC-3D Hematology Control', Producto::query()->sole()->nombre);
         $lot = Lote::query()->sole();
         $levels = [];
         foreach ([[6.2, 5.7, 6.7], [13.8, 13.1, 14.5], [18.9, 17.9, 19.9], [24, 23, 25]] as $i => [$target, $min, $max]) {
@@ -177,14 +224,54 @@ class ControlCalidadFilamentTest extends TestCase
         $this->assertSame(6.2, (float) $prueba->niveles->first()->valorControlActual->esperado);
     }
 
+    public function test_productos_reutiliza_el_nombre_y_editar_un_lote_conserva_los_otros_y_las_lecturas(): void
+    {
+        [$area, $prueba, $niveles, $data] = $this->controles(1);
+        $registro = app(ControlCalidadService::class)->guardar($data, $this->actor);
+        $original = $registro->resultados()->sole()->getAttributes();
+        $page = Livewire::test(Mantenimiento::class)->call('cambiarSeccion', 'productos');
+        foreach (['C-2611-A', 'C-2611-B'] as $numero) {
+            $page->callTableAction('crear', data: [
+                'producto_nombre' => 'Control multianalito', 'numero' => $numero, 'caduca_el' => '2027-02-28',
+            ])->assertHasNoTableActionErrors();
+        }
+        $producto = Producto::where('nombre', 'Control multianalito')->sole();
+        $this->assertSame(2, $producto->lotes()->count());
+        $loteA = $producto->lotes()->where('numero', 'C-2611-A')->sole();
+        $loteB = $producto->lotes()->where('numero', 'C-2611-B')->sole();
+        $otroOriginal = $loteB->getAttributes();
+        $page->callTableAction('editar', $loteA, [
+            'producto_nombre' => 'Control multianalito alternativo', 'numero' => 'C-2611-A', 'caduca_el' => '2027-03-31',
+        ])->assertHasNoTableActionErrors();
+
+        $this->assertSame('Control multianalito alternativo', $loteA->fresh()->producto->nombre);
+        $this->assertSame($otroOriginal, $loteB->fresh()->getAttributes());
+        $this->assertSame($original, $registro->resultados()->sole()->getAttributes());
+        $this->assertSame($producto->id, $loteB->fresh()->producto_id);
+    }
+
+    public function test_productos_rechaza_el_numero_de_lote_duplicado_dentro_del_mismo_producto(): void
+    {
+        $page = Livewire::test(Mantenimiento::class)->call('cambiarSeccion', 'productos');
+        $data = ['producto_nombre' => 'Control multianalito', 'numero' => 'C-2611', 'caduca_el' => '2027-02-28'];
+        $page->callTableAction('crear', data: $data)->assertHasNoTableActionErrors();
+        $page->callTableAction('crear', data: $data)->assertHasTableActionErrors(['numero']);
+
+        $this->assertSame(1, Producto::count());
+        $this->assertSame(1, Lote::count());
+    }
+
     public function test_las_referencias_y_la_autoria_no_se_reemplazan_por_campos_enviados_por_el_navegador(): void
     {
         [$area, $prueba, $niveles, $data] = $this->controles(1);
+        $otraPersona = $this->usuario([Cci::VIEW, Cci::REGISTER], 'Ana López');
         $data += ['fecha_hora' => '2040-01-01 01:00:00', 'registrado_por_id' => 99999, 'actualizado_por_id' => 99999];
+        $data['laboratorista_id'] = $otraPersona->id;
         $data['resultados'][0] += ['esperado' => '9999', 'minimo' => '-9999', 'maximo' => '99999', 'prueba_nombre' => 'Prueba suplantada'];
         $record = app(ControlCalidadService::class)->guardar($data, $this->actor);
         $result = $record->resultados->sole();
         $this->assertSame($this->actor->id, (int) $record->registrado_por_id);
+        $this->assertSame($this->actor->id, (int) $record->laboratorista_id);
         $this->assertSame('2026-11-10 16:00:00', $record->fecha_hora->utc()->format('Y-m-d H:i:s'));
         $this->assertSame($prueba->nombre, $result->prueba_nombre);
         $this->assertSame(6.2, (float) $result->esperado);
@@ -225,11 +312,13 @@ class ControlCalidadFilamentTest extends TestCase
         $editData = $data;
         $editData['observaciones'] = 'Lectura corregida de la hoja de control.';
         $editData['resultados'][0]['valor'] = '6,4';
+        $editData['laboratorista_id'] = 999999;
         Livewire::test(Historial::class)->callTableAction('editar', $record, $editData)->assertHasNoTableActionErrors();
         $record->refresh();
         $this->assertEquals($original, $record->only(['fecha_hora', 'area_id', 'registrado_por_id']));
         $this->assertSame('Lectura corregida de la hoja de control.', $record->observaciones);
         $this->assertSame($editor->id, (int) $record->actualizado_por_id);
+        $this->assertSame($this->actor->id, (int) $record->laboratorista_id);
         $this->assertSame(6.4, (float) $record->resultados()->sole()->valor);
         Livewire::test(Historial::class)->callTableAction('eliminar', $record)->assertHasNoTableActionErrors();
         $this->assertSoftDeleted($record);
@@ -244,6 +333,20 @@ class ControlCalidadFilamentTest extends TestCase
         $this->actor->unsetRelation('permissions');
         $component->call('guardar')->assertForbidden();
         $this->assertSame(0, Registro::count());
+    }
+
+    public function test_historial_solo_filtra_area_laboratorista_y_fechas_y_no_incluye_eliminados(): void
+    {
+        [$area, $prueba, $niveles, $data] = $this->controles(1);
+        $visible = app(ControlCalidadService::class)->guardar($data, $this->actor);
+        $eliminado = app(ControlCalidadService::class)->guardar($data, $this->actor);
+        app(ControlCalidadService::class)->eliminar($eliminado, $this->actor);
+
+        $page = Livewire::test(Historial::class)->assertCanSeeTableRecords([$visible])
+            ->assertCanNotSeeTableRecords([$eliminado]);
+        $filters = $page->instance()->getTable()->getFilters();
+        $this->assertSame(['area_id', 'laboratorista_id', 'fecha_hora'], array_keys($filters));
+        $this->assertSame(['desde', 'hasta'], array_map(fn ($field): string => $field->getName(), $filters['fecha_hora']->getFormSchema()));
     }
 
     public function test_el_modulo_no_escribe_en_los_catalogos_o_resultados_clinicos(): void
