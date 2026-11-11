@@ -16,9 +16,6 @@ final class ControlCalidadPermissions
     public const DELETE = 'eliminar_control_calidad_interno';
     public const CHARTS = 'ver_graficos_control_calidad_interno';
     public const HISTORY = 'ver_historial_control_calidad_interno';
-    public const EXPORT = 'exportar_control_calidad_interno';
-    public const REVIEW = 'revisar_control_calidad_interno';
-    public const ASSIGN_OPERATOR = 'asignar_laboratorista_control_calidad_interno';
 
     public static function options(): array
     {
@@ -28,11 +25,8 @@ final class ControlCalidadPermissions
             self::REGISTER => 'Registrar controles',
             self::EDIT => 'Editar registros',
             self::DELETE => 'Eliminar registros',
-            self::ASSIGN_OPERATOR => 'Asignar un laboratorista distinto al usuario actual',
             self::CHARTS => 'Consultar gráficos',
             self::HISTORY => 'Consultar el historial',
-            self::EXPORT => 'Descargar PDF y CSV',
-            self::REVIEW => 'Revisar controles',
         ];
     }
 
@@ -46,9 +40,9 @@ final class ControlCalidadPermissions
         $options = self::options();
 
         return [
-            'Acceso y consultas' => array_intersect_key($options, array_flip([self::VIEW, self::CHARTS, self::HISTORY, self::EXPORT])),
+            'Acceso y consultas' => array_intersect_key($options, array_flip([self::VIEW, self::CHARTS, self::HISTORY])),
             'Mantenimiento' => array_intersect_key($options, array_flip([self::MAINTAIN])),
-            'Registros y revisión' => array_intersect_key($options, array_flip([self::REGISTER, self::EDIT, self::DELETE, self::ASSIGN_OPERATOR, self::REVIEW])),
+            'Registros' => array_intersect_key($options, array_flip([self::REGISTER, self::EDIT, self::DELETE])),
         ];
     }
 

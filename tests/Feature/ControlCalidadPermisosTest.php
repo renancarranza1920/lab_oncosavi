@@ -43,6 +43,7 @@ class ControlCalidadPermisosTest extends TestCase
         Cci::register();
 
         $this->assertSame(count(Cci::all()), Permission::where('guard_name', 'web')->whereIn('name', Cci::all())->count());
+        $this->assertCount(7, Cci::all());
         $this->assertTrue($admin->fresh()->hasAllPermissions(Cci::all()));
         $this->assertTrue($admin->fresh()->hasPermissionTo($unrelated));
         $this->assertSame($before, $laboratorista->fresh()->permissions->pluck('name')->sort()->values()->all());
@@ -89,11 +90,11 @@ class ControlCalidadPermisosTest extends TestCase
             'guard_name' => 'web',
             'cci_permissions_0' => [Cci::VIEW],
             'cci_permissions_1' => [],
-            'cci_permissions_2' => [Cci::REGISTER, Cci::ASSIGN_OPERATOR],
+            'cci_permissions_2' => [Cci::REGISTER],
         ])->call('create')->assertHasNoFormErrors();
 
         $role = Role::findByName('Registro CCI restringido', 'web');
-        $this->assertTrue($role->hasAllPermissions([Cci::VIEW, Cci::REGISTER, Cci::ASSIGN_OPERATOR]));
+        $this->assertTrue($role->hasAllPermissions([Cci::VIEW, Cci::REGISTER]));
         $this->assertFalse($role->hasPermissionTo(Cci::EDIT));
         $this->assertFalse($role->hasPermissionTo(Cci::DELETE));
 
