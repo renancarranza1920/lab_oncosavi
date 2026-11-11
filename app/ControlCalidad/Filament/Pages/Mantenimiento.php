@@ -15,6 +15,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions\CreateAction;
 use Filament\Tables\Actions\EditAction;
@@ -128,7 +129,7 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
                                     'id' => $nivel->id,
                                     'nombre' => $nivel->nombre,
                                     'lote_id' => $nivel->valorControlActual?->lote_id,
-                                    'esperado' => $nivel->valorControlActual?->esperado,
+                                    'esperado' => ControlCalidadService::puntoMedio($nivel->valorControlActual?->minimo, $nivel->valorControlActual?->maximo),
                                     'minimo' => $nivel->valorControlActual?->minimo,
                                     'maximo' => $nivel->valorControlActual?->maximo,
                                 ])->all();
@@ -225,9 +226,13 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
                                 ->mapWithKeys(fn (Lote $lote): array => [$lote->id => $lote->producto->nombre.' · '.$lote->numero])->all())
                             ->exists(Lote::class, 'id'),
                         Grid::make(3)->schema([
-                            $this->campoValor('esperado', 'Valor esperado'),
-                            $this->campoValor('minimo', 'Mínimo'),
-                            $this->campoValor('maximo', 'Máximo'),
+                            TextInput::make('esperado')->label('Valor esperado')->readOnly()->dehydrated(false)
+                                ->afterStateHydrated(fn (Get $get, Set $set) => $set('esperado', $this->puntoMedioVisible($get)))
+                                ->formatStateUsing(fn (Get $get): ?string => $this->puntoMedioVisible($get)),
+                            $this->campoValor('minimo', 'Mínimo')->live(onBlur: true)
+                                ->afterStateUpdated(fn (Get $get, Set $set) => $set('esperado', $this->puntoMedioVisible($get))),
+                            $this->campoValor('maximo', 'Máximo')->live(onBlur: true)
+                                ->afterStateUpdated(fn (Get $get, Set $set) => $set('esperado', $this->puntoMedioVisible($get))),
                         ]),
                     ])->columns(2)->minItems(1)->defaultItems(1)->reorderable()->collapsible()
                     ->itemLabel(fn (array $state): string => $state['nombre'] ?? 'Nuevo nivel')
@@ -247,6 +252,13 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
     {
         return TextInput::make($nombre)->label($etiqueta)->required()->inputMode('decimal')->maxLength(40)
             ->regex('/^[+-]?\d+(?:[.,]\d+)?$/D');
+    }
+
+    private function puntoMedioVisible(Get $get): ?string
+    {
+        $value = ControlCalidadService::puntoMedio($get('minimo'), $get('maximo'));
+
+        return $value === null ? null : str_replace('.', ',', rtrim(rtrim($value, '0'), '.'));
     }
 
     private function guardarCatalogo(array $data, ?Model $record = null): Model

@@ -2,8 +2,6 @@
 
 namespace App\ControlCalidad\Services;
 
-use App\ControlCalidad\Models\Area;
-use App\ControlCalidad\Models\Lote;
 use App\ControlCalidad\Models\Nivel;
 use App\ControlCalidad\Models\Prueba;
 use App\ControlCalidad\Models\Registro;
@@ -34,7 +32,6 @@ class ControlCalidadService
             'niveles.*.id' => ['nullable', 'integer', 'min:1', 'distinct'],
             'niveles.*.nombre' => ['required', 'string', 'max:80'],
             'niveles.*.lote_id' => ['required', 'integer', 'exists:cci_lotes,id'],
-            'niveles.*.esperado' => ['required'],
             'niveles.*.minimo' => ['required'],
             'niveles.*.maximo' => ['required'],
         ])->validate();
@@ -47,13 +44,15 @@ class ControlCalidadService
                 $this->invalid("niveles.$index.nombre", 'Cada nivel debe tener un nombre diferente.');
             }
             $names[$name] = true;
-            foreach (['esperado', 'minimo', 'maximo'] as $field) {
+            foreach (['minimo', 'maximo'] as $field) {
                 $level[$field] = $this->numero($level[$field], "niveles.$index.$field");
             }
-            if ((float) $level['minimo'] > (float) $level['maximo']
-                || (float) $level['esperado'] < (float) $level['minimo']
-                || (float) $level['esperado'] > (float) $level['maximo']) {
-                $this->invalid("niveles.$index.esperado", 'El valor esperado debe estar entre el mínimo y el máximo.');
+            if (bccomp($level['minimo'], $level['maximo'], 6) > 0) {
+                $this->invalid("niveles.$index.maximo", 'El máximo debe ser mayor o igual que el mínimo.');
+            }
+            $level['esperado'] = self::puntoMedio($level['minimo'], $level['maximo']);
+            if ($level['esperado'] === null) {
+                $this->invalid("niveles.$index.minimo", 'El número supera el valor permitido.');
             }
         }
         unset($level);
@@ -96,6 +95,31 @@ class ControlCalidadService
 
             return $current->fresh()->load('area', 'niveles.valorControlActual.lote.producto');
         });
+    }
+
+    public static function puntoMedio(mixed $minimo, mixed $maximo): ?string
+    {
+        $bounds = [];
+        foreach ([$minimo, $maximo] as $raw) {
+            if ((! is_string($raw) && ! is_int($raw) && ! is_float($raw))
+                || strlen(trim((string) $raw)) > 40
+                || ! preg_match('/^[+-]?\d+(?:[.,]\d{1,6})?$/D', trim((string) $raw))) {
+                return null;
+            }
+            $value = str_replace(',', '.', trim((string) $raw));
+            if (bccomp($value, '1000000000000', 6) > 0 || bccomp($value, '-1000000000000', 6) < 0) {
+                return null;
+            }
+            $bounds[] = $value;
+        }
+        if (bccomp($bounds[0], $bounds[1], 6) > 0) {
+            return null;
+        }
+
+        $middle = bcdiv(bcadd($bounds[0], $bounds[1], 6), '2', 7);
+        $rounding = bccomp($middle, '0', 7) < 0 ? '-0.0000005' : '0.0000005';
+
+        return bcadd(bcadd($middle, $rounding, 7), '0', 6);
     }
 
     public function guardar(array $data, User $actor, ?Registro $registro = null): Registro
@@ -201,6 +225,7 @@ class ControlCalidadService
         if (! is_finite((float) $value) || abs((float) $value) > 1000000000000) {
             $this->invalid($field, 'El número supera el valor permitido.');
         }
+
         return $value;
     }
 

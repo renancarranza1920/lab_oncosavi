@@ -87,7 +87,8 @@ habilitan desde esta pestaña. Las acciones se verifican también en el servidor
 2. En **Productos**, registra el nombre del control, número de lote y caducidad
    en el mismo formulario. Puedes agregar más lotes con el mismo producto.
 3. Crea la prueba, indica su unidad y agrega los niveles. Para cada nivel,
-   selecciona el lote y escribe el valor esperado, mínimo y máximo.
+   selecciona el lote y escribe el mínimo y el máximo. El valor esperado se
+   calcula automáticamente como `(mínimo + máximo) / 2` y no se edita manualmente.
 4. En **Registro**, selecciona el área y equipo. Aparecerán las pruebas y niveles
    configurados. La fecha y la hora se asignan y muestran al guardar; el usuario
    de la sesión se registra automáticamente sin aparecer en el formulario.
@@ -101,3 +102,35 @@ habilitan desde esta pestaña. Las acciones se verifican también en el servidor
 La edición conserva la fecha original, el laboratorista y los valores de control
 de la medición. La eliminación retira el registro de las consultas, del historial
 y de los gráficos.
+
+## Datos ficticios para probar el módulo
+
+Después de actualizar, ejecuta por SSH:
+
+```bash
+cd ~/lab_oncosavi
+docker compose exec -T --user www-data app php artisan oncosavi:cci-demo-crear
+```
+
+El comando utiliza un usuario administrador existente autorizado para CCI y
+añade áreas y productos identificados con **[DEMO]**, pruebas de química y
+hematología, tres niveles y lecturas de los últimos quince días, incluido hoy.
+No crea pacientes, órdenes ni usuarios. Repetir el comando conserva los cambios
+que hayas realizado en la demostración y no duplica los datos.
+
+Si necesitas indicar el usuario, añade `--usuario=ID`, donde `ID` es el número de
+un usuario existente con permisos de mantenimiento y registro de CCI.
+
+Al terminar las pruebas, este único comando retira los datos creados para la
+demostración:
+
+```bash
+cd ~/lab_oncosavi && docker compose exec -T --user www-data app php artisan oncosavi:cci-demo-limpiar
+```
+
+La limpieza identifica los elementos creados mediante un registro privado en el
+volumen persistente de la aplicación (`storage/app/private/cci-demo.json`).
+Conserva ese archivo junto con la base de datos si haces un respaldo o traslado
+durante las pruebas. Conserva los catálogos, controles y datos reales. Si un área
+real está usando un lote de demostración, el comando informa de esa relación
+antes de borrar nada.
