@@ -51,18 +51,17 @@ trait InteractsWithControlRecords
             Section::make('Registro de las pruebas')->schema([
                 Repeater::make('resultados')->label('Lecturas')->required()->minItems(1)
                     ->addable(false)->deletable(false)->reorderable(false)
+                    ->grid(['default' => 1, 'md' => 2, 'lg' => 3])
                     ->itemLabel(fn (array $state): string => $this->descripcionNivel((int) ($state['nivel_id'] ?? 0), $registro)['titulo'])
                     ->schema([
                         Hidden::make('nivel_id')->required()->rules(['integer']),
-                        Placeholder::make('unidad')->label('Unidad')->content(fn (Get $get): string =>
-                            $this->descripcionNivel((int) $get('nivel_id'), $registro)['unidad']),
-                        Placeholder::make('rango')->label('Valores de control')->content(fn (Get $get): string =>
-                            $this->descripcionNivel((int) $get('nivel_id'), $registro)['rango']),
+                        Placeholder::make('unidad')->label('Unidad')->content(fn (Get $get): string => $this->descripcionNivel((int) $get('nivel_id'), $registro)['unidad']),
+                        Placeholder::make('rango')->label('Valores de control')->content(fn (Get $get): string => $this->descripcionNivel((int) $get('nivel_id'), $registro)['rango']),
                         TextInput::make('valor')->label('Resultado')->required()->inputMode('decimal')
                             ->maxLength(40)->autocomplete(false)
                             ->regex('/^[+-]?\d+(?:[.,]\d{1,6})?$/D')
                             ->validationMessages(['regex' => 'Escribe un número con coma o punto decimal.']),
-                    ])->columns(['default' => 1, 'md' => 3]),
+                    ])->columns(1),
             ]),
             Section::make('Observaciones')->schema([
                 Textarea::make('observaciones')->label('Observaciones (opcional)')->rows(3)->maxLength(4000),
@@ -168,10 +167,8 @@ trait InteractsWithControlRecords
                     DatePicker::make('hasta')->label('Hasta')->afterOrEqual('desde'),
                 ])->query(function (Builder $query, array $data): Builder {
                     return $query
-                        ->when($data['desde'] ?? null, fn (Builder $query, $date): Builder =>
-                            $query->where('fecha_hora', '>=', \Carbon\Carbon::parse($date, 'America/El_Salvador')->startOfDay()))
-                        ->when($data['hasta'] ?? null, fn (Builder $query, $date): Builder =>
-                            $query->where('fecha_hora', '<=', \Carbon\Carbon::parse($date, 'America/El_Salvador')->endOfDay()));
+                        ->when($data['desde'] ?? null, fn (Builder $query, $date): Builder => $query->where('fecha_hora', '>=', \Carbon\Carbon::parse($date, 'America/El_Salvador')->startOfDay()))
+                        ->when($data['hasta'] ?? null, fn (Builder $query, $date): Builder => $query->where('fecha_hora', '<=', \Carbon\Carbon::parse($date, 'America/El_Salvador')->endOfDay()));
                 }),
             ] : [])
             ->actions([

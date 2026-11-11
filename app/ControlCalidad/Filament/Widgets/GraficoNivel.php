@@ -23,8 +23,12 @@ class GraficoNivel extends ChartWidget
     public ?string $hasta = null;
 
     protected static bool $isLazy = false;
+
     protected static ?string $pollingInterval = null;
+
     protected static ?string $maxHeight = '300px';
+
+    protected static string $view = 'filament.control-calidad.widgets.grafico-nivel';
 
     public static function canView(): bool
     {
@@ -49,6 +53,7 @@ class GraficoNivel extends ChartWidget
     public function getHeading(): string
     {
         abort_unless(static::canView(), 403);
+
         return Nivel::findOrFail($this->nivelId)->nombre;
     }
 
@@ -92,6 +97,7 @@ class GraficoNivel extends ChartWidget
         foreach ($groups as $group) {
             $label = 'Lote '.$group['lote'].' · '.$group['unidad'];
             $axes[$group['unidad']] ??= $axes === [] ? 'y' : 'unidad-'.substr(hash('sha256', $group['unidad']), 0, 8);
+            $maximoIndex = count($datasets) + 3;
             foreach (['valor' => ['Medido', '#2563eb'], 'esperado' => ['Esperado', '#0f766e'], 'minimo' => ['Mínimo', '#64748b'], 'maximo' => ['Máximo', '#64748b']] as $field => [$name, $color]) {
                 $values = array_fill(0, $lecturas->count(), null);
                 $pointColors = [];
@@ -107,12 +113,15 @@ class GraficoNivel extends ChartWidget
                     'label' => $name.' · '.$label,
                     'data' => $values,
                     'borderColor' => $color,
-                    'backgroundColor' => $color,
+                    'backgroundColor' => $field === 'minimo' ? 'rgba(20, 184, 166, 0.16)' : $color,
+                    'fill' => $field === 'minimo' ? ['target' => $maximoIndex] : false,
                     'borderWidth' => $field === 'valor' ? 2 : 1,
                     'borderDash' => $field === 'valor' ? [] : [5, 4],
                     'pointRadius' => $field === 'valor' ? 4 : 0,
                     'pointHoverRadius' => $field === 'valor' ? 6 : 0,
                     'pointBackgroundColor' => $field === 'valor' ? array_replace(array_fill(0, $lecturas->count(), $color), $pointColors) : $color,
+                    'pointBorderColor' => $field === 'valor' ? array_replace(array_fill(0, $lecturas->count(), $color), $pointColors) : $color,
+                    'pointBorderWidth' => $field === 'valor' ? 2 : 1,
                     'pointStyle' => $field === 'valor' ? array_replace(array_fill(0, $lecturas->count(), 'circle'), $pointStyles) : 'circle',
                     'spanGaps' => false,
                     'tension' => 0,

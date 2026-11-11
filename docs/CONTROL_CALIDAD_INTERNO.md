@@ -89,13 +89,21 @@ habilitan desde esta pestaña. Las acciones se verifican también en el servidor
 3. Crea la prueba, indica su unidad y agrega los niveles. Para cada nivel,
    selecciona el lote y escribe el mínimo y el máximo. El valor esperado se
    calcula automáticamente como `(mínimo + máximo) / 2` y no se edita manualmente.
+   El nombre del nivel ofrece Bajo, Medio y Alto; también puedes escribir otro
+   nombre o conservar los nombres personalizados que ya utilizas.
 4. En **Registro**, selecciona el área y equipo. Aparecerán las pruebas y niveles
    configurados. La fecha y la hora se asignan y muestran al guardar; el usuario
    de la sesión se registra automáticamente sin aparecer en el formulario.
+   Las lecturas se distribuyen en tres columnas en computadora, dos en pantallas
+   medianas y una en móvil, conservando la unidad y los valores de cada nivel.
 5. Completa los resultados y, si corresponde, las observaciones. Se admiten
    decimales con coma o punto; el cero es un resultado válido.
 6. En **Gráficos**, elige Diario para el día actual, Semanal para la semana actual
    de lunes a domingo, o Mensual para el mes actual. Se usa la hora de El Salvador.
+   La franja sombreada muestra el rango entre el mínimo y el máximo. Las
+   mediciones fuera del rango aparecen como una X roja. El botón **Ampliar**
+   abre cualquier gráfico a pantalla completa; **Cerrar** o Escape devuelve
+   la vista normal.
    Cambiar los valores de control en
    Mantenimiento no altera los límites que ya quedaron guardados con un resultado.
 
@@ -115,8 +123,16 @@ docker compose exec -T --user www-data app php artisan oncosavi:cci-demo-crear
 El comando utiliza un usuario administrador existente autorizado para CCI y
 añade áreas y productos identificados con **[DEMO]**, pruebas de química y
 hematología, tres niveles y lecturas de los últimos quince días, incluido hoy.
+Incluye 32 registros con 384 lecturas: cada nivel tiene mediciones fuera de
+rango seguidas de una medición dentro del rango después de un ajuste simulado.
+Hoy se incluyen ambas mediciones para ver la secuencia también en Diario.
 No crea pacientes, órdenes ni usuarios. Repetir el comando conserva los cambios
 que hayas realizado en la demostración y no duplica los datos.
+
+Si ya cargaste la demostración anterior, ejecuta primero
+`php artisan oncosavi:cci-demo-limpiar` y después
+`php artisan oncosavi:cci-demo-crear` dentro del contenedor. Así se reemplazan
+solo los datos de la demostración por los casos actualizados.
 
 Si necesitas indicar el usuario, añade `--usuario=ID`, donde `ID` es el número de
 un usuario existente con permisos de mantenimiento y registro de CCI.

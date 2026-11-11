@@ -15,7 +15,6 @@ use App\ControlCalidad\Models\Producto;
 use App\ControlCalidad\Models\Prueba;
 use App\ControlCalidad\Models\Registro;
 use App\ControlCalidad\Models\Resultado;
-use App\ControlCalidad\Models\ValorControl;
 use App\ControlCalidad\Services\ControlCalidadService;
 use App\Models\User;
 use App\Support\ControlCalidadPermissions as Cci;
@@ -35,6 +34,7 @@ class ControlCalidadFilamentTest extends TestCase
     use RefreshDatabase;
 
     private User $actor;
+
     private ?\Closure $restoreRepeaters = null;
 
     protected function setUp(): void
@@ -159,6 +159,34 @@ class ControlCalidadFilamentTest extends TestCase
                 'diario' => 'Diario', 'semanal' => 'Semanal', 'mensual' => 'Mensual',
             ])->fillForm(['area_id' => $area->id, 'prueba_id' => $prueba->id, 'periodo' => 'anual'])
             ->call('aplicarFiltros')->assertHasFormErrors(['periodo']);
+    }
+
+    public function test_graficos_marca_solo_los_puntos_fuera_y_sombrea_los_limites_guardados_en_cada_medicion(): void
+    {
+        [$area, $prueba, $niveles, $data] = $this->controles(1);
+        $service = app(ControlCalidadService::class);
+        foreach (['5,6', '5,7', '6,7', '6,8'] as $value) {
+            $data['resultados'][0]['valor'] = $value;
+            $service->guardar($data, $this->actor);
+        }
+        $niveles[0]->valorControlActual->update(['minimo' => 7, 'maximo' => 9, 'esperado' => 8]);
+        $data['resultados'][0]['valor'] = '8';
+        $service->guardar($data, $this->actor);
+
+        $widget = Livewire::test(GraficoNivel::class, ['nivelId' => $niveles[0]->id, 'desde' => '2026-11-01', 'hasta' => '2026-11-30']);
+        $chart = (new \ReflectionMethod($widget->instance(), 'getData'))->invoke($widget->instance());
+        $this->assertCount(5, $chart['labels']);
+        $series = $chart['datasets'];
+        $this->assertSame(['crossRot', 'circle', 'circle', 'crossRot', 'circle'], $series[0]['pointStyle']);
+        $this->assertSame(['#dc2626', '#2563eb', '#2563eb', '#dc2626', '#2563eb'], $series[0]['pointBorderColor']);
+        $this->assertSame([5.6, 5.7, 6.7, 6.8, null], $series[0]['data']);
+        $this->assertSame(['target' => 3], $series[2]['fill']);
+        $this->assertSame([5.7, 5.7, 5.7, 5.7, null], $series[2]['data']);
+        $this->assertSame([6.7, 6.7, 6.7, 6.7, null], $series[3]['data']);
+        $this->assertSame(['target' => 7], $series[6]['fill']);
+        $this->assertSame([null, null, null, null, 7.0], $series[6]['data']);
+        $this->assertSame([null, null, null, null, 9.0], $series[7]['data']);
+        $this->assertFalse($series[2]['spanGaps']);
     }
 
     public function test_el_formulario_filament_guarda_coma_y_cero_con_fecha_y_actor_del_servidor(): void

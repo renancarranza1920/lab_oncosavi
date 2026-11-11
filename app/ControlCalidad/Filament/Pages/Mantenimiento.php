@@ -220,7 +220,8 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
                 Repeater::make('niveles')->label('Niveles y valores de control')
                     ->schema([
                         Hidden::make('id'),
-                        TextInput::make('nombre')->label('Nombre del nivel')->required()->maxLength(80),
+                        TextInput::make('nombre')->label('Nombre del nivel')->required()->maxLength(80)
+                            ->datalist(['Bajo', 'Medio', 'Alto']),
                         Select::make('lote_id')->label('Producto y lote')->required()->searchable()->native(false)
                             ->options(fn (): array => Lote::query()->with('producto')->orderBy('nombre')->get()
                                 ->mapWithKeys(fn (Lote $lote): array => [$lote->id => $lote->producto->nombre.' · '.$lote->numero])->all())

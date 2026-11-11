@@ -57,9 +57,9 @@ class ControlCalidadDemoTest extends TestCase
         $this->assertSame(8, Prueba::count());
         $this->assertSame(24, Nivel::count());
         $this->assertSame(24, ValorControl::count());
-        $this->assertSame(30, Registro::count());
-        $this->assertSame(360, Resultado::count());
-        $this->assertSame(2, Registro::whereDate('fecha_hora', now()->toDateString())->count());
+        $this->assertSame(32, Registro::count());
+        $this->assertSame(384, Resultado::count());
+        $this->assertSame(4, Registro::whereDate('fecha_hora', now()->toDateString())->count());
         $this->assertSame(15, Registro::query()->selectRaw('DATE(fecha_hora) as dia')->distinct()->get()->count());
         $this->assertSame('2026-10-28', Registro::oldest('fecha_hora')->first()->fecha_hora->toDateString());
         $this->assertSame(0, Registro::where('registrado_por_id', '!=', $this->actor->id)->count());
@@ -73,6 +73,25 @@ class ControlCalidadDemoTest extends TestCase
         $this->assertEquals($before, $this->clinicalSnapshot());
         Storage::disk('local')->assertExists('cci-demo.json');
         $this->assertSame(0600, fileperms(Storage::disk('local')->path('cci-demo.json')) & 0777);
+    }
+
+    public function test_cada_nivel_muestra_una_medicion_fuera_de_rango_y_la_siguiente_corregida_hoy(): void
+    {
+        app(DemoControlCalidadService::class)->crear();
+        $this->assertTrue(Resultado::whereColumn('valor', '>', 'maximo')->exists());
+        $this->assertTrue(Resultado::whereColumn('valor', '<', 'minimo')->exists());
+        foreach (Nivel::all() as $nivel) {
+            $lecturas = Resultado::query()->where('nivel_id', $nivel->id)
+                ->whereHas('registro', fn ($query) => $query->whereDate('fecha_hora', now()->toDateString()))
+                ->orderBy('id')->with('registro')->get();
+            $this->assertCount(2, $lecturas);
+            [$antes, $despues] = $lecturas->all();
+            $this->assertTrue((float) $antes->valor < (float) $antes->minimo || (float) $antes->valor > (float) $antes->maximo);
+            $this->assertGreaterThanOrEqual((float) $despues->minimo, (float) $despues->valor);
+            $this->assertLessThanOrEqual((float) $despues->maximo, (float) $despues->valor);
+            $this->assertTrue($despues->registro->fecha_hora->greaterThanOrEqualTo($antes->registro->fecha_hora));
+            $this->assertStringContainsString('después del ajuste simulado', $despues->registro->observaciones);
+        }
     }
 
     public function test_repetir_crear_no_duplica_ni_reemplaza_las_pruebas_que_el_usuario_edito(): void

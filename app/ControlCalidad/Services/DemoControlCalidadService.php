@@ -60,7 +60,7 @@ class DemoControlCalidadService
                     $producto = Producto::create(['nombre' => self::PRODUCTOS[$index]]);
                     $productoIds[] = $producto->id;
                     $lotes = [];
-                    foreach (['Bajo', 'Normal', 'Alto'] as $level => $nombre) {
+                    foreach (['Bajo', 'Medio', 'Alto'] as $level => $nombre) {
                         $lotes[] = Lote::create([
                             'producto_id' => $producto->id, 'nombre' => '[DEMO] Nivel '.$nombre,
                             'numero' => 'CCI-DEMO-'.($index === 0 ? 'Q' : 'H').'-'.($level + 1),
@@ -72,7 +72,7 @@ class DemoControlCalidadService
                         $niveles = [];
                         foreach ($rangos as $level => [$minimo, $maximo]) {
                             $niveles[] = [
-                                'nombre' => ['Bajo', 'Normal', 'Alto'][$level], 'lote_id' => $lotes[$level]->id,
+                                'nombre' => ['Bajo', 'Medio', 'Alto'][$level], 'lote_id' => $lotes[$level]->id,
                                 'minimo' => (string) $minimo, 'maximo' => (string) $maximo,
                             ];
                         }
@@ -82,26 +82,33 @@ class DemoControlCalidadService
                     }
                     $niveles = Nivel::whereHas('prueba', fn ($query) => $query->where('area_id', $area->id))
                         ->with(['prueba', 'valorControlActual'])->orderBy('id')->get();
-                    for ($dia = 14; $dia >= 0; $dia--) {
+                    // La última medición de hoy repite el control después del ajuste simulado.
+                    foreach ([...range(14, 0), -1] as $dia) {
+                        $fueraDeRango = in_array($dia, [3, 0], true);
+                        $corregido = in_array($dia, [2, -1], true);
                         $resultados = [];
                         foreach ($niveles as $position => $nivel) {
                             $control = $nivel->valorControlActual;
                             $center = (float) $control->esperado;
                             $halfRange = ((float) $control->maximo - (float) $control->minimo) / 2;
-                            $factor = [-0.22, 0.18, 0.05, 0.33, -0.10][($dia + $position) % 5];
-                            // Un resultado fuera de límites permite comprobar su representación en la gráfica.
-                            if ($dia === 3 && $position === 2) {
-                                $factor = 1.25;
-                            }
+                            $factor = $fueraDeRango ? ($position % 2 === 0 ? 1.5 : -1.5)
+                                : ($corregido ? 0 : [-0.22, 0.18, 0.05, 0.33, -0.10][($dia + $position) % 5]);
                             $value = round($center + $halfRange * $factor, 6);
                             $raw = rtrim(rtrim(number_format($value, 6, '.', ''), '0'), '.');
                             $resultados[] = ['nivel_id' => $nivel->id, 'valor' => str_replace('.', ',', $raw)];
                         }
                         $registro = $service->guardar([
                             'area_id' => $area->id, 'resultados' => $resultados,
-                            'observaciones' => '[DEMO] Datos ficticios para pruebas de funcionalidad.',
+                            'observaciones' => match (true) {
+                                $fueraDeRango => '[DEMO] Medición fuera de rango antes del ajuste simulado del equipo.',
+                                $corregido => '[DEMO] Nueva medición dentro de rango después del ajuste simulado del equipo.',
+                                default => '[DEMO] Datos ficticios para pruebas de funcionalidad.',
+                            },
                         ], $actor);
-                        $fecha = $dia === 0 ? now()->startOfMinute() : now()->subDays($dia)->setTime(7, 45);
+                        $fecha = $dia > 0 ? now()->subDays($dia)->setTime(7, 45) : now()->startOfMinute();
+                        if ($dia === 0) {
+                            $fecha = $fecha->subMinutes(15)->max(now()->startOfDay());
+                        }
                         $registro->update(['fecha_hora' => $fecha]);
                     }
                 }
