@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\ControlCalidadPermissions;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Permission;
@@ -14,6 +15,7 @@ class RolesPermisosSeeder extends Seeder
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         $this->generatePermissions();
+        ControlCalidadPermissions::register();
         foreach (['ver_reporte_orden', 'descargar_reporte_orden', 'enviar_reporte_orden', 'enviar_cotizacion_whatsapp', 'gestionar_firma_sello_propio', 'ver_bitacora_completa', 'view_dashboard', 'dashboard_ordenes', 'dashboard_clientes', 'dashboard_estados', 'dashboard_examenes', 'dashboard_ultimas_ordenes', 'sincronizar_catalogo_orden', 'ver_catalogo_pdf'] as $nombre) {
             Permission::findOrCreate($nombre, 'web');
         }

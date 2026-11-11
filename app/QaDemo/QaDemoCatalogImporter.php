@@ -18,7 +18,10 @@ final class QaDemoCatalogImporter
             ->where(function ($query): void { $query->where('e.es_externo', false)->orWhereNull('e.es_externo'); })
             ->orderBy('p.nombre')->limit(3000)
             ->get(['p.id as source_id', 'p.nombre as name', 'e.nombre as exam_name', 't.nombre as area'])
-            ->filter(fn ($row) => str_contains(Str::lower(Str::ascii((string) $row->area)), 'quim'));
+            ->filter(function ($row): bool {
+                $area = Str::lower(Str::ascii((string) $row->area));
+                return str_contains($area, 'quim') || str_contains($area, 'hemato');
+            });
         $units = $db->table('valor_referencias')->whereIn('prueba_id', $rows->pluck('source_id'))
             ->whereNotNull('unidades')->where('unidades', '!=', '')->orderBy('id')
             ->get(['prueba_id', 'unidades'])->groupBy('prueba_id');
@@ -40,6 +43,9 @@ final class QaDemoCatalogImporter
             ['source_id' => 190, 'name' => 'COLESTEROL TOTAL', 'exam_name' => 'COLESTEROL TOTAL', 'unit' => 'mg/dL', 'area' => 'QUIMICA SANGUINEA'],
             ['source_id' => 229, 'name' => 'TRIGLICERIDOS', 'exam_name' => 'TRIGLICÉRIDOS', 'unit' => 'mg/dL', 'area' => 'QUIMICA SANGUINEA'],
             ['source_id' => 198, 'name' => 'GAMMA GLUTAMIL TRANSPEPTIDASA (GGT)', 'exam_name' => 'GAMMA GLUTAMIL (GCT)', 'unit' => 'U/L', 'area' => 'QUIMICA SANGUINEA'],
+            ['source_id' => 100001, 'name' => 'HEMOGLOBINA', 'exam_name' => 'HEMOGRAMA', 'unit' => 'g/dL', 'area' => 'HEMATOLOGIA'],
+            ['source_id' => 100002, 'name' => 'LEUCOCITOS', 'exam_name' => 'HEMOGRAMA', 'unit' => '10^3/µL', 'area' => 'HEMATOLOGIA'],
+            ['source_id' => 100003, 'name' => 'PLAQUETAS', 'exam_name' => 'HEMOGRAMA', 'unit' => '10^3/µL', 'area' => 'HEMATOLOGIA'],
         ];
     }
 }

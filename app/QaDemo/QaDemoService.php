@@ -103,7 +103,7 @@ final class QaDemoService
         }
         $db = $this->connection();
         $db->transaction(function () use ($rows, $source, $db): void {
-            $db->table('qa_catalog')->update(['active' => false]);
+            $db->table('qa_catalog')->where('is_local', false)->update(['active' => false]);
             foreach ($rows as $row) {
                 $db->table('qa_catalog')->updateOrInsert(['source_id' => (int) $row['source_id']], [
                     'name' => mb_substr((string) $row['name'], 0, 255),
@@ -111,6 +111,7 @@ final class QaDemoService
                     'unit' => mb_substr((string) ($row['unit'] ?? ''), 0, 40),
                     'area' => mb_substr((string) ($row['area'] ?? 'Química sanguínea'), 0, 255),
                     'active' => true,
+                    'is_local' => false,
                 ]);
             }
             foreach (['catalog_imported_at' => $this->stamp(), 'catalog_source' => $source] as $key => $value) {
@@ -120,11 +121,90 @@ final class QaDemoService
         return count($rows);
     }
 
-    public function catalog(): array
+    public function catalog(bool $includeInactive = false): array
     {
-        return $this->connection()->table('qa_catalog')->where('active', true)->orderBy('name')->get()
+        return $this->connection()->table('qa_catalog')->when(! $includeInactive, fn ($q) => $q->where('active', true))->orderBy('name')->get()
             ->map(fn ($r) => ['id' => (int) $r->id, 'source_id' => (int) $r->source_id, 'name' => $r->name,
-                'exam_name' => $r->exam_name, 'unit' => $r->unit, 'area' => $r->area])->all();
+                'exam_name' => $r->exam_name, 'unit' => $r->unit, 'area' => $r->area,
+                'is_local' => (bool) $r->is_local, 'active' => (bool) $r->active])->all();
+    }
+
+    public function tests(): array
+    {
+        return $this->catalog(true);
+    }
+
+    public function createTest(array $data): int
+    {
+        $valid = $this->testInput($data);
+        $db = $this->connection();
+        return $db->transaction(function () use ($db, $valid): int {
+            $sourceId = min(0, (int) $db->table('qa_catalog')->min('source_id')) - 1;
+            return (int) $db->table('qa_catalog')->insertGetId($valid + ['source_id' => $sourceId, 'is_local' => true]);
+        }, 3);
+    }
+
+    public function updateTest(int $id, array $data): void
+    {
+        $existing = $this->find('qa_catalog', $id);
+        if (! $existing->is_local) {
+            $this->invalid('test', 'Las pruebas importadas conservan los datos de su catálogo de origen. Cree una prueba propia para otro método.');
+        }
+        $this->connection()->table('qa_catalog')->where('id', $id)->update($this->testInput($data));
+    }
+
+    private function testInput(array $data): array
+    {
+        $valid = Validator::make($data, [
+            'name' => 'required|string|max:255', 'exam_name' => 'nullable|string|max:255',
+            'unit' => 'required|string|max:40', 'area' => 'required|in:Química,Hematología', 'active' => 'sometimes|boolean',
+        ])->validate();
+        return ['name' => mb_strtoupper(trim($valid['name'])), 'exam_name' => trim($valid['exam_name'] ?? $valid['name']),
+            'unit' => trim($valid['unit']), 'area' => $valid['area'], 'active' => (bool) ($valid['active'] ?? true)];
+    }
+
+    public function products(): array
+    {
+        return $this->connection()->table('qa_products')->orderBy('name')->get()->map(fn ($row) => (array) $row)->all();
+    }
+
+    public function createProduct(array $data): int
+    {
+        $valid = Validator::make($data, ['name' => 'required|string|max:160'])->validate();
+        $name = trim($valid['name']);
+        if ($this->connection()->table('qa_products')->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->exists()) {
+            $this->invalid('name', 'Ya existe un producto de control con ese nombre.');
+        }
+        return (int) $this->connection()->table('qa_products')->insertGetId(['name' => $name, 'created_at' => $this->stamp(), 'updated_at' => $this->stamp()]);
+    }
+
+    public function lots(?int $productId = null): array
+    {
+        return $this->connection()->table('qa_lots as l')->join('qa_products as p', 'p.id', '=', 'l.product_id')
+            ->when($productId !== null, fn ($q) => $q->where('l.product_id', $productId))
+            ->orderByDesc('l.id')->get(['l.*', 'p.name as product_name'])->map(function ($row): array {
+                $data = (array) $row;
+                $data['id'] = (int) $row->id; $data['product_id'] = (int) $row->product_id; $data['number'] = $row->lot;
+                return $data;
+            })->all();
+    }
+
+    public function createLot(array $data): int
+    {
+        $data['lot'] = $data['lot'] ?? $data['number'] ?? null;
+        $valid = Validator::make($data, [
+            'product_id' => 'required|integer|min:1', 'name' => 'required|string|max:160',
+            'lot' => 'required|string|max:100', 'expires_on' => 'required|date_format:Y-m-d',
+        ])->validate();
+        $this->find('qa_products', (int) $valid['product_id']);
+        $this->date($valid['expires_on'], 'expires_on');
+        if ($this->connection()->table('qa_lots')->where('product_id', $valid['product_id'])->where('lot', trim($valid['lot']))->exists()) {
+            $this->invalid('lot', 'Ya existe ese número de lote para el producto seleccionado.');
+        }
+        return (int) $this->connection()->table('qa_lots')->insertGetId([
+            'product_id' => (int) $valid['product_id'], 'name' => trim($valid['name']), 'lot' => trim($valid['lot']),
+            'expires_on' => $valid['expires_on'], 'created_at' => $this->stamp(), 'updated_at' => $this->stamp(),
+        ]);
     }
 
     public function catalogInfo(): array
@@ -148,7 +228,8 @@ final class QaDemoService
 
     public function updateEquipment(int $id, array $data): void
     {
-        $this->equipmentById($id);
+        $existing = $this->equipmentById($id);
+        $data['area'] ??= $existing['area'];
         $valid = $this->equipmentInput($data, $id);
         $this->connection()->table('qa_equipment')->where('id', $id)->update($valid + ['updated_at' => $this->stamp()]);
     }
@@ -159,6 +240,7 @@ final class QaDemoService
             'code' => ['required', 'string', 'max:40', 'regex:/^[A-Za-z0-9_-]+$/D'],
             'name' => 'required|string|max:120', 'model' => 'nullable|string|max:160',
             'notes' => 'nullable|string|max:2000', 'active' => 'sometimes|boolean',
+            'area' => 'sometimes|in:Química,Hematología',
         ], [], ['code' => 'código', 'name' => 'nombre del equipo'])->validate();
         $exists = $this->connection()->table('qa_equipment')->where('code', $valid['code']);
         if ($id) {
@@ -168,6 +250,7 @@ final class QaDemoService
             $this->invalid('code', 'Ya existe un equipo con ese código.');
         }
         return ['code' => trim($valid['code']), 'name' => trim($valid['name']),
+            'area' => $valid['area'] ?? 'Química',
             'model' => trim($valid['model'] ?? ''), 'notes' => trim($valid['notes'] ?? ''),
             'active' => (bool) ($valid['active'] ?? true)];
     }
@@ -178,8 +261,9 @@ final class QaDemoService
         if ($equipmentId !== null) {
             $q->where('c.equipment_id', $equipmentId);
         }
-        return $q->orderByDesc('c.active')->orderByDesc('c.id')->get(['c.*', 'e.name as equipment_name'])->map(fn ($r) => [
+        return $q->orderByDesc('c.active')->orderByDesc('c.id')->get(['c.*', 'e.name as equipment_name', 'e.area as equipment_area'])->map(fn ($r) => [
             'id' => (int) $r->id, 'equipment_id' => (int) $r->equipment_id, 'equipment_name' => $r->equipment_name,
+            'equipment_area' => $r->equipment_area,
             'version' => (int) $r->version, 'label' => $r->label, 'active' => (bool) $r->active,
             'configured_by' => $r->configured_by, 'created_at' => $r->created_at,
         ])->all();
@@ -189,6 +273,14 @@ final class QaDemoService
     {
         $row = $this->find('qa_configurations', $id);
         $body = $this->decode($row->data_json);
+        $body['equipment']['area'] ??= 'Química';
+        foreach ($body['levels'] as &$level) {
+            if (empty($level['lot_id'])) {
+                $level['lot_id'] = $this->connection()->table('qa_lots as l')->join('qa_products as p', 'p.id', '=', 'l.product_id')
+                    ->where('p.name', $level['product'])->where('l.lot', $level['lot'])->value('l.id');
+            }
+        }
+        unset($level);
         return array_merge($body, [
             'id' => (int) $row->id, 'equipment_id' => (int) $row->equipment_id, 'version' => (int) $row->version,
             'label' => $row->label, 'active' => (bool) $row->active, 'configured_by' => $row->configured_by,
@@ -200,7 +292,7 @@ final class QaDemoService
     {
         Validator::make($data, [
             'equipment_id' => 'required|integer|min:1', 'configured_by' => 'required|string|max:120',
-            'label' => 'required|string|max:150', 'levels' => 'required|array',
+            'label' => 'required|string|max:150', 'levels' => 'required|array|min:1|max:'.(int) config('qa_demo.max_levels', 50),
             'analytes' => 'required|array|min:1|max:'.(int) config('qa_demo.max_analytes', 50),
         ])->validate();
         $equipment = $this->equipmentById((int) $data['equipment_id']);
@@ -208,8 +300,26 @@ final class QaDemoService
             $this->invalid('equipment_id', 'El equipo está inactivo. Actívelo antes de configurar nuevos controles.');
         }
         $levels = [];
-        foreach (self::LEVELS as $key => $label) {
-            $level = $data['levels'][$key] ?? [];
+        $levelNames = [];
+        foreach ($data['levels'] as $key => $level) {
+            if (! is_string($key) || ! preg_match('/^[A-Za-z0-9_-]{1,60}$/D', $key) || ! is_array($level)) {
+                $this->invalid('levels', 'Cada nivel necesita un identificador válido y sus datos de control.');
+            }
+            Validator::make(['levels' => [$key => $level]], [
+                "levels.$key.label" => 'sometimes|required|string|max:80',
+                "levels.$key.lot_id" => 'nullable|integer|min:1',
+            ])->validate();
+            $label = trim($level['label'] ?? self::LEVELS[$key] ?? '');
+            if ($label === '' || mb_strlen($label) > 80 || isset($levelNames[mb_strtolower($label)])) {
+                $this->invalid("levels.$key.label", 'Escriba un nombre diferente para cada nivel, de hasta 80 caracteres.');
+            }
+            $levelNames[mb_strtolower($label)] = true;
+            $lotId = ! empty($level['lot_id']) ? (int) $level['lot_id'] : null;
+            if ($lotId) {
+                $lot = $this->find('qa_lots', $lotId);
+                $product = $this->find('qa_products', (int) $lot->product_id);
+                $level = array_replace($level, ['lot' => $lot->lot, 'product' => $product->name, 'expires_on' => $lot->expires_on]);
+            }
             Validator::make(['levels' => [$key => $level]], [
                 "levels.$key.lot" => 'required|string|max:100', "levels.$key.product" => 'required|string|max:160',
                 "levels.$key.expires_on" => 'required|date_format:Y-m-d',
@@ -224,6 +334,7 @@ final class QaDemoService
             $openLimit = $opened->addDays((int) $level['stability_days']);
             $useUntil = $openLimit->lt($expires) ? $openLimit : $expires;
             $levels[$key] = ['label' => $label, 'lot' => trim($level['lot']), 'product' => trim($level['product']),
+                'lot_id' => $lotId,
                 'expires_on' => $expires->toDateString(), 'opened_on' => $opened->toDateString(),
                 'stability_days' => (int) $level['stability_days'], 'use_until' => $useUntil->toDateString()];
         }
@@ -241,7 +352,7 @@ final class QaDemoService
             }
             $seen[$catalogId] = true;
             $targets = [];
-            foreach (self::LEVELS as $key => $label) {
+            foreach ($levels as $key => $level) {
                 $target = $input['targets'][$key] ?? [];
                 $min = $this->number($target['min'] ?? null, "analytes.$i.targets.$key.min");
                 $max = $this->number($target['max'] ?? null, "analytes.$i.targets.$key.max");
@@ -277,8 +388,8 @@ final class QaDemoService
         }
         return ['equipment_count' => $db->table('qa_equipment')->count(),
             'configuration_count' => $db->table('qa_configurations')->where('active', true)->count(),
-            'run_count' => $db->table('qa_runs')->where('status', 'submitted')->count(),
-            'pending_count' => $db->table('qa_runs')->where('status', 'submitted')->where('review_status', '!=', 'reviewed')->count(),
+            'run_count' => $db->table('qa_runs')->whereNull('deleted_at')->where('status', 'submitted')->count(),
+            'pending_count' => $db->table('qa_runs')->whereNull('deleted_at')->where('status', 'submitted')->where('review_status', '!=', 'reviewed')->count(),
             'recent_runs' => array_slice($this->runs(), 0, 8), 'next_scheduled_date' => $next->toDateString(),
             'today' => $this->now()->toDateString(), 'catalog_info' => $this->catalogInfo()];
     }
@@ -297,6 +408,9 @@ final class QaDemoService
     private function runQuery(array $filters)
     {
         $q = $this->connection()->table('qa_runs');
+        if (empty($filters['include_deleted'])) {
+            $q->whereNull('deleted_at');
+        }
         foreach (['equipment_id', 'configuration_id', 'parent_run_id', 'event_id'] as $field) {
             if (isset($filters[$field]) && $filters[$field] !== '') {
                 $q->where($field, (int) $filters[$field]);
@@ -321,6 +435,13 @@ final class QaDemoService
         $run = $this->runRow($this->find('qa_runs', $id));
         $run['reviews'] = $this->connection()->table('qa_reviews')->where('run_id', $id)->orderBy('id')->get()->map(fn ($row) => (array) $row)->all();
         $run['related_runs'] = $this->runs(['parent_run_id' => $id]);
+        $run['audit'] = $this->connection()->table('qa_run_audits')->where('run_id', $id)->orderByDesc('id')->get()->map(function ($row): array {
+            $audit = (array) $row;
+            $audit['before'] = $this->decode($row->before_json);
+            $audit['measurements'] = $this->decode($audit['before']['measurements_json']);
+            unset($audit['before_json']);
+            return $audit;
+        })->all();
         return $run;
     }
 
@@ -328,7 +449,7 @@ final class QaDemoService
     {
         $snapshot = $this->decode($row->configuration_snapshot);
         $result = (array) $row;
-        foreach (['id', 'equipment_id', 'configuration_id'] as $field) {
+        foreach (['id', 'equipment_id', 'configuration_id', 'revision'] as $field) {
             $result[$field] = (int) $result[$field];
         }
         foreach (['parent_run_id', 'event_id'] as $field) {
@@ -344,11 +465,61 @@ final class QaDemoService
 
     public function recordRun(array $data, bool $draft = false, ?int $id = null): int
     {
+        return $this->persistRun($data, $draft, $id);
+    }
+
+    public function updateRun(int $id, array $data, bool $draft = false): int
+    {
+        $existing = $this->run($id);
+        if ($existing['deleted_at'] !== null) {
+            $this->invalid('run', 'Este registro fue eliminado y sólo puede consultarse en el historial.');
+        }
+        $data = array_replace([
+            'operator' => $existing['operator'], 'operator_user_id' => $existing['operator_user_id'],
+            'kind' => $existing['kind'], 'parent_run_id' => $existing['parent_run_id'], 'event_id' => $existing['event_id'],
+            'notes' => $existing['notes'], 'missing_reason' => $existing['missing_reason'],
+        ], $data, [
+            'configuration_id' => $existing['configuration_id'], 'measured_at' => $existing['measured_at'],
+            'kind' => $existing['kind'], 'parent_run_id' => $existing['parent_run_id'], 'event_id' => $existing['event_id'],
+        ]);
+
+        return $this->persistRun($data, $draft, $id, true);
+    }
+
+    public function deleteRun(int $id, array $data): void
+    {
+        Validator::make($data, [
+            'actor_id' => 'required|integer|min:1', 'actor_name' => 'required|string|max:120',
+            'reason' => 'required|string|max:2000', 'expected_revision' => 'sometimes|integer|min:1',
+        ])->validate();
+        $db = $this->connection();
+        $db->transaction(function () use ($db, $id, $data): void {
+            $existing = $this->find('qa_runs', $id);
+            if ($existing->deleted_at !== null) {
+                $this->invalid('run', 'El registro ya fue eliminado.');
+            }
+            $this->checkRevision($existing, $data);
+            $this->auditRun($existing, 'delete', $data, trim($data['reason']));
+            $changed = $db->table('qa_runs')->where('id', $id)->where('revision', $existing->revision)->update([
+                'deleted_at' => $this->stamp(), 'deleted_by' => (int) $data['actor_id'], 'deleted_reason' => trim($data['reason']),
+                'updated_at' => $this->stamp(), 'updated_by' => (int) $data['actor_id'], 'revision' => (int) $existing->revision + 1,
+            ]);
+            if (! $changed) {
+                $this->invalid('run', 'Otra persona modificó este registro. Recargue la página antes de eliminar.');
+            }
+        }, 3);
+    }
+
+    private function persistRun(array $data, bool $draft = false, ?int $id = null, bool $allowEdit = false): int
+    {
         Validator::make($data, [
             'configuration_id' => 'required|integer|min:1', 'measured_at' => 'required|string|max:25',
             'operator' => 'required|string|max:120', 'kind' => 'required|in:'.implode(',', self::KINDS),
             'parent_run_id' => 'nullable|integer|min:1', 'event_id' => 'nullable|integer|min:1',
             'notes' => 'nullable|string|max:4000', 'missing_reason' => 'nullable|string|max:2000', 'values' => 'required|array',
+            'edit_reason' => 'nullable|string|max:2000',
+            'actor_id' => 'nullable|integer|min:1', 'actor_name' => 'nullable|string|max:120',
+            'operator_user_id' => 'nullable|integer|min:1', 'expected_revision' => 'sometimes|integer|min:1',
         ])->validate();
         $configuration = $this->configuration((int) $data['configuration_id']);
         $measured = $this->dateTime($data['measured_at'], 'measured_at');
@@ -356,14 +527,20 @@ final class QaDemoService
             $this->invalid('measured_at', 'La medición no puede tener una fecha u hora futura.');
         }
         $equipment = $this->equipmentById($configuration['equipment_id']);
-        if (! $equipment['active']) {
+        if (! $equipment['active'] && ! $allowEdit) {
             $this->invalid('configuration_id', 'El equipo está inactivo.');
         }
         $linked = in_array($data['kind'], ['repeat', 'correction'], true);
         $parentId = ! empty($data['parent_run_id']) ? (int) $data['parent_run_id'] : null;
+        if ($id !== null && $parentId === $id) {
+            $this->invalid('parent_run_id', 'Un registro no puede ser su propio antecedente.');
+        }
         $parent = null;
         if ($parentId) {
             $parent = $this->run($parentId);
+            if ($parent['deleted_at'] !== null && ! $id) {
+                $this->invalid('parent_run_id', 'No se puede repetir ni corregir un registro eliminado.');
+            }
             if ($parent['status'] !== 'submitted' || $parent['configuration_id'] !== $configuration['id']) {
                 $this->invalid('parent_run_id', 'La repetición o corrección debe corresponder al mismo equipo y configuración de un registro presentado.');
             }
@@ -408,12 +585,13 @@ final class QaDemoService
             if (! in_array((int) $catalogId, $known, true) || ! is_array($values)) {
                 $this->invalid('values', 'Las lecturas deben pertenecer a las pruebas de esta configuración.');
             }
-            if (array_diff(array_keys($values), array_keys(self::LEVELS))) {
+            if (array_diff(array_keys($values), array_keys($configuration['levels']))) {
                 $this->invalid('values', 'Se recibió un nivel de control desconocido.');
             }
         }
         foreach ($configuration['analytes'] as $analyte) {
-            foreach (self::LEVELS as $level => $label) {
+            foreach ($configuration['levels'] as $level => $levelData) {
+                $label = $levelData['label'];
                 $raw = $data['values'][$analyte['catalog_id']][$level] ?? '';
                 if (is_array($raw) || is_object($raw)) {
                     $this->invalid('values', 'Cada lectura debe ser un número.');
@@ -449,12 +627,21 @@ final class QaDemoService
             $this->invalid('missing_reason', 'Indique el motivo de las lecturas no realizadas; no se rellenan con cero.');
         }
         $db = $this->connection();
-        return $db->transaction(function () use ($data, $draft, $id, $configuration, $measured, $parentId, $eventId, $measurements, $outside, $missing, $db): int {
+        return $db->transaction(function () use ($data, $draft, $id, $allowEdit, $configuration, $measured, $parentId, $eventId, $measurements, $outside, $missing, $db): int {
+            $existing = null;
+            if ($parentId && ! $id && $this->find('qa_runs', $parentId)->deleted_at !== null) {
+                $this->invalid('parent_run_id', 'No se puede repetir ni corregir un registro eliminado.');
+            }
             if ($id) {
                 $existing = $this->find('qa_runs', $id);
-                if ($existing->status !== 'draft') {
+                if ($existing->deleted_at !== null) {
+                    $this->invalid('run', 'Este registro fue eliminado.');
+                }
+                if (! $allowEdit && $existing->status !== 'draft') {
                     $this->invalid('run', 'Las mediciones presentadas se conservan. Registre una repetición o corrección vinculada.');
                 }
+                $this->checkRevision($existing, $data);
+                $this->auditRun($existing, 'update', $data, trim($data['edit_reason'] ?? '') ?: 'Edición de registro');
             }
             $values = [
                 'equipment_id' => $configuration['equipment_id'], 'configuration_id' => $configuration['id'],
@@ -464,9 +651,12 @@ final class QaDemoService
                 'review_status' => 'pending', 'notes' => trim($data['notes'] ?? ''), 'missing_reason' => trim($data['missing_reason'] ?? ''),
                 'configuration_snapshot' => $this->encode($configuration), 'measurements_json' => $this->encode($measurements),
                 'updated_at' => $this->stamp(),
+                'operator_user_id' => isset($data['operator_user_id']) ? (int) $data['operator_user_id'] : null,
+                'updated_by' => isset($data['actor_id']) ? (int) $data['actor_id'] : null,
             ];
             if ($id) {
-                $changed = $db->table('qa_runs')->where('id', $id)->where('status', 'draft')->update($values);
+                $values['revision'] = (int) $existing->revision + 1;
+                $changed = $db->table('qa_runs')->where('id', $id)->where('revision', $existing->revision)->update($values);
                 if (! $changed) {
                     $this->invalid('run', 'Este borrador ya fue presentado. Recargue la página.');
                 }
@@ -474,27 +664,55 @@ final class QaDemoService
                 if ($db->table('qa_runs')->count() >= 20000) {
                     $this->invalid('values', 'Se alcanzó el límite de registros de la demostración.');
                 }
-                $id = (int) $db->table('qa_runs')->insertGetId($values + ['captured_at' => $this->stamp(), 'created_at' => $this->stamp()]);
+                $id = (int) $db->table('qa_runs')->insertGetId($values + ['captured_at' => $this->stamp(), 'created_at' => $this->stamp(),
+                    'created_by' => isset($data['actor_id']) ? (int) $data['actor_id'] : null]);
                 $db->table('qa_runs')->where('id', $id)->update(['number' => 'QC-'.$measured->format('ymd').'-'.str_pad((string) $id, 4, '0', STR_PAD_LEFT)]);
             }
             return $id;
-        });
+        }, 3);
+    }
+
+    private function checkRevision(object $existing, array $data): void
+    {
+        if (isset($data['expected_revision']) && (int) $data['expected_revision'] !== (int) $existing->revision) {
+            $this->invalid('run', 'Otra persona modificó este registro. Recargue la página antes de guardar.');
+        }
+    }
+
+    private function auditRun(object $existing, string $action, array $data, string $reason): void
+    {
+        $this->connection()->table('qa_run_audits')->insert([
+            'run_id' => $existing->id, 'action' => $action,
+            'actor_id' => isset($data['actor_id']) ? (int) $data['actor_id'] : null,
+            'actor_name' => trim($data['actor_name'] ?? $data['operator'] ?? 'Registro anterior'),
+            'reason' => $reason, 'before_json' => $this->encode((array) $existing), 'created_at' => $this->stamp(),
+        ]);
     }
 
     public function reviewRun(int $id, array $data): int
     {
-        Validator::make($data, ['reviewer' => 'required|string|max:120', 'decision' => 'required|in:reviewed,followup', 'notes' => 'required|string|max:4000'])->validate();
+        Validator::make($data, ['reviewer' => 'required|string|max:120', 'decision' => 'required|in:reviewed,followup',
+            'notes' => 'required|string|max:4000', 'expected_revision' => 'sometimes|integer|min:1'])->validate();
         $db = $this->connection();
         return $db->transaction(function () use ($db, $id, $data): int {
             $run = $this->find('qa_runs', $id);
+            if ($run->deleted_at !== null) {
+                $this->invalid('run', 'No se puede revisar un registro eliminado.');
+            }
             if ($run->status !== 'submitted') {
                 $this->invalid('decision', 'Presente primero las mediciones del borrador antes de revisarlas.');
             }
+            $this->checkRevision($run, $data);
             $review = (int) $db->table('qa_reviews')->insertGetId(['run_id' => $id, 'reviewer' => trim($data['reviewer']),
                 'decision' => $data['decision'], 'notes' => trim($data['notes']), 'reviewed_at' => $this->stamp()]);
-            $db->table('qa_runs')->where('id', $id)->update(['review_status' => $data['decision'], 'updated_at' => $this->stamp()]);
+            $changed = $db->table('qa_runs')->where('id', $id)->where('revision', $run->revision)->update([
+                'review_status' => $data['decision'], 'updated_at' => $this->stamp(), 'revision' => (int) $run->revision + 1,
+            ]);
+            if (! $changed) {
+                $this->invalid('run', 'Las lecturas cambiaron mientras revisaba. Recargue el registro.');
+            }
             return $review;
-        });
+        }, 3);
     }
 
     public function recordEvent(array $data): int
@@ -555,8 +773,8 @@ final class QaDemoService
             $this->invalid('catalog_id', 'Seleccione una prueba de esta configuración.');
         }
         $levels = [];
-        foreach (self::LEVELS as $level => $label) {
-            $levels[$level] = ['label' => $label, 'lot' => $configuration['levels'][$level]['lot'], 'unit' => $analyte['unit']]
+        foreach ($configuration['levels'] as $level => $levelData) {
+            $levels[$level] = ['label' => $levelData['label'], 'lot' => $levelData['lot'], 'unit' => $analyte['unit']]
                 + $analyte['targets'][$level] + ['points' => []];
         }
         $chartFilters = array_merge($filters, ['configuration_id' => $configurationId, 'status' => 'submitted']);
@@ -587,7 +805,7 @@ final class QaDemoService
                     'Configuración' => $run['configuration_snapshot']['label'], 'Versión' => $run['configuration_snapshot']['version'],
                     'Fecha de medición' => $run['measured_at'], 'Fecha de captura' => $run['captured_at'],
                     'Registrado por (declarado)' => $run['operator'], 'Tipo' => $run['kind'], 'Prueba' => $m['analyte_name'],
-                    'Nivel' => self::LEVELS[$m['level']], 'Lote' => $lot['lot'], 'Valor medido' => $m['raw_value'],
+                    'Nivel' => $lot['label'], 'Lote' => $lot['lot'], 'Valor medido' => $m['raw_value'],
                     'Unidad' => $m['unit'], 'Valor esperado' => $m['target'], 'Mínimo' => $m['min'], 'Máximo' => $m['max'],
                     'Comparación' => $m['status'], 'Estado' => $run['status'], 'Revisión' => $run['review_status'],
                     'Registro relacionado' => $run['parent_run_id'] ?? '', 'Evento' => $run['event_id'] ?? '',
@@ -615,6 +833,7 @@ final class QaDemoService
     private function equipmentRow(object $r): array
     {
         return ['id' => (int) $r->id, 'code' => $r->code, 'name' => $r->name, 'model' => $r->model,
+            'area' => $r->area ?? 'Química',
             'notes' => $r->notes, 'active' => (bool) $r->active];
     }
 

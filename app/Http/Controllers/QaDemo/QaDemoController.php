@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\QaDemo;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Support\ControlCalidadPermissions as Permission;
 use App\QaDemo\QaDemoPresentation;
 use App\QaDemo\QaDemoService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -10,6 +12,7 @@ use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -20,7 +23,17 @@ class QaDemoController extends Controller
 
     public function index(): View
     {
-        return $this->page('qa-demo.index', $this->common() + ['overview' => $this->qa->overview()]);
+        $summaryChart = null;
+        if (request()->user()->can(Permission::CHARTS)) {
+            $configuration = $this->selectedConfiguration(request());
+            if ($configuration !== null) {
+                $summaryChart = $this->qa->chartData(['configuration_id' => $configuration['id']]);
+            }
+        }
+
+        return $this->page('qa-demo.index', $this->common() + [
+            'overview' => $this->qa->overview(), 'summaryChart' => $summaryChart,
+        ]);
     }
 
     public function configuration(Request $request): View
@@ -35,6 +48,11 @@ class QaDemoController extends Controller
 
         return $this->page('qa-demo.configuration', $this->common() + [
             'catalog' => $this->qa->catalog(),
+            'tests' => $this->qa->tests(),
+            'products' => $this->qa->products(),
+            'lots' => $this->qa->lots(),
+            'events' => $this->qa->events($equipmentId !== null ? ['equipment_id' => $equipmentId] : []),
+            'selectedEvent' => $this->optionalId($request, 'event_id') !== null ? $this->qa->event($this->optionalId($request, 'event_id')) : null,
             'selectedConfiguration' => $selected,
             'selectedEquipmentId' => $equipmentId ?? ($selected['equipment_id'] ?? null),
         ]);
@@ -63,17 +81,55 @@ class QaDemoController extends Controller
             ->with('success', 'Datos del equipo actualizados. El historial de mediciones se conserva.');
     }
 
+    public function storeProduct(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['name' => ['required', 'string', 'max:160']]);
+        $this->qa->createProduct($data);
+        return redirect()->route('qa-demo.configuration.index', ['tab' => 'productos'])
+            ->with('success', 'Producto de control registrado.');
+    }
+
+    public function storeLot(Request $request): RedirectResponse
+    {
+        if (! $request->filled('lot') && $request->filled('number')) {
+            $request->merge(['lot' => $request->input('number')]);
+        }
+        $data = $request->validate([
+            'product_id' => ['required', 'integer', 'min:1'], 'name' => ['required', 'string', 'max:160'],
+            'lot' => ['required', 'string', 'max:100'], 'expires_on' => ['required', 'date_format:Y-m-d'],
+        ]);
+        $this->qa->createLot($data);
+        return redirect()->route('qa-demo.configuration.index', ['tab' => 'productos'])
+            ->with('success', 'Lote de control registrado.');
+    }
+
+    public function storeTest(Request $request): RedirectResponse
+    {
+        $this->qa->createTest($this->testData($request));
+        return redirect()->route('qa-demo.configuration.index', ['tab' => 'pruebas'])
+            ->with('success', 'Prueba de Control de Calidad Interno creada.');
+    }
+
+    public function updateTest(Request $request, int $test): RedirectResponse
+    {
+        $this->qa->updateTest($test, $this->testData($request));
+        return redirect()->route('qa-demo.configuration.index', ['tab' => 'pruebas'])
+            ->with('success', 'Prueba de Control de Calidad Interno actualizada.');
+    }
+
     public function storeConfiguration(Request $request): RedirectResponse
     {
+        $this->decodePayload($request, 'config_payload', ['levels', 'analytes']);
         $data = $request->validate([
             'equipment_id' => ['required', 'integer', 'min:1'],
-            'configured_by' => ['required', 'string', 'min:2', 'max:120'],
             'label' => ['required', 'string', 'max:150'],
-            'levels' => ['required', 'array:low,medium,high'],
-            'levels.*' => ['required', 'array:lot,product,expires_on,opened_on,stability_days'],
-            'levels.*.lot' => ['required', 'string', 'max:100'],
-            'levels.*.product' => ['required', 'string', 'max:160'],
-            'levels.*.expires_on' => ['required', 'date_format:Y-m-d'],
+            'levels' => ['required', 'array', 'min:1', 'max:50'],
+            'levels.*' => ['required', 'array:label,lot_id,lot,product,expires_on,opened_on,stability_days,use_until'],
+            'levels.*.label' => ['sometimes', 'string', 'max:80'],
+            'levels.*.lot_id' => ['nullable', 'integer', 'min:1'],
+            'levels.*.lot' => ['sometimes', 'string', 'max:100'],
+            'levels.*.product' => ['sometimes', 'string', 'max:160'],
+            'levels.*.expires_on' => ['sometimes', 'date_format:Y-m-d'],
             'levels.*.opened_on' => ['required', 'date_format:Y-m-d'],
             'levels.*.stability_days' => ['required', 'integer', 'min:1', 'max:730'],
             'analytes' => ['required', 'array', 'min:1', 'max:50'],
@@ -81,16 +137,16 @@ class QaDemoController extends Controller
             'analytes.*.catalog_id' => ['required', 'integer', 'min:1', 'distinct'],
             'analytes.*.method' => ['required', 'string', 'max:120'],
             'analytes.*.unit' => ['required', 'string', 'max:40'],
-            'analytes.*.targets' => ['required', 'array:low,medium,high'],
+            'analytes.*.targets' => ['required', 'array', 'min:1', 'max:50'],
             'analytes.*.targets.*' => ['required', 'array:target,min,max'],
             'analytes.*.targets.*.target' => ['required', $this->scalarNumberRule()],
             'analytes.*.targets.*.min' => ['required', $this->scalarNumberRule()],
             'analytes.*.targets.*.max' => ['required', $this->scalarNumberRule()],
         ]);
+        $data['configured_by'] = $request->user()->name;
         $id = $this->qa->saveConfiguration($data);
-
-        return redirect()->route('qa-demo.configuration.index', ['configuration_id' => $id])
-            ->with('success', 'Configuración guardada en una nueva versión. Las mediciones anteriores conservan sus valores y límites.');
+        return redirect()->route('qa-demo.configuration.index', ['configuration_id' => $id, 'tab' => 'controles'])
+            ->with('success', 'Configuración guardada. Las mediciones anteriores conservan su versión.');
     }
 
     public function runs(Request $request): View
@@ -107,6 +163,7 @@ class QaDemoController extends Controller
     {
         $parentId = $this->optionalId($request, 'parent_run_id');
         $parent = $parentId !== null ? $this->qa->run($parentId) : null;
+        abort_if($parent !== null && ! empty($parent['deleted_at']), 409, 'Este registro está eliminado y no admite nuevas mediciones relacionadas.');
         $configuration = $parent !== null
             ? $this->qa->configuration((int) $parent['configuration_id'])
             : $this->selectedConfiguration($request);
@@ -129,10 +186,12 @@ class QaDemoController extends Controller
     {
         $data = $this->runData($request);
         $draft = $request->input('action', 'submit') === 'draft';
+        if ($draft) {
+            abort_unless($request->user()->can(Permission::EDIT), 403);
+        }
         $id = $this->qa->recordRun($data, $draft);
-
-        return redirect()->route($draft ? 'qa-demo.runs.edit' : 'qa-demo.runs.show', ['run' => $id])
-            ->with('success', $draft ? 'Borrador guardado. Puede completar las lecturas antes de presentarlo.' : 'Mediciones guardadas. El responsable puede revisar el registro.');
+        return $this->afterRun($request, $id, $draft)
+            ->with('success', $draft ? 'Borrador guardado.' : 'Control de Calidad Interno registrado.');
     }
 
     public function showRun(int $run): View
@@ -150,7 +209,7 @@ class QaDemoController extends Controller
     public function editRun(int $run): View
     {
         $record = $this->qa->run($run);
-        abort_unless($record['status'] === 'draft', 409, 'Un registro presentado conserva sus lecturas. Use una corrección o repetición vinculada.');
+        abort_if(! empty($record['deleted_at']), 409, 'Este registro está eliminado y se conserva en el historial.');
 
         return $this->page('qa-demo.runs.form', $this->common() + [
             'configuration' => $this->qa->configuration((int) $record['configuration_id']),
@@ -163,21 +222,33 @@ class QaDemoController extends Controller
 
     public function updateRun(Request $request, int $run): RedirectResponse
     {
-        $draft = $request->input('action', 'submit') === 'draft';
-        $this->qa->recordRun($this->runData($request), $draft, $run);
+        $record = $this->qa->run($run);
+        $draft = $record['status'] === 'draft' && $request->input('action', 'draft') === 'draft';
+        $this->qa->updateRun($run, $this->runData($request, $record), $draft);
+        return $this->afterRun($request, $run, $draft)
+            ->with('success', 'Registro actualizado. La versión anterior se conserva en el historial.');
+    }
 
-        return redirect()->route($draft ? 'qa-demo.runs.edit' : 'qa-demo.runs.show', ['run' => $run])
-            ->with('success', $draft ? 'Borrador actualizado.' : 'Mediciones presentadas para revisión.');
+    public function destroyRun(Request $request, int $run): RedirectResponse
+    {
+        $request->merge(['reason' => $request->input('reason', $request->input('deletion_reason'))]);
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'max:2000'],
+            'expected_revision' => ['required', 'integer', 'min:1'],
+        ]);
+        $this->qa->deleteRun($run, $data + $this->actor($request));
+        return redirect()->route($request->user()->can(Permission::HISTORY) ? 'qa-demo.runs.index' : 'qa-demo.index')
+            ->with('success', 'Registro eliminado. Su antecedente se conserva en el historial.');
     }
 
     public function reviewRun(Request $request, int $run): RedirectResponse
     {
         $data = $request->validate([
-            'reviewer' => ['required', 'string', 'min:2', 'max:120'],
             'decision' => ['required', 'in:reviewed,followup'],
             'notes' => ['required', 'string', 'max:4000'],
+            'expected_revision' => ['required', 'integer', 'min:1'],
         ]);
-        $this->qa->reviewRun($run, $data);
+        $this->qa->reviewRun($run, $data + ['reviewer' => $request->user()->name] + $this->actor($request));
 
         return redirect()->route('qa-demo.runs.show', ['run' => $run])
             ->with('success', 'Revisión registrada. Las lecturas originales se conservan.');
@@ -203,15 +274,9 @@ class QaDemoController extends Controller
         ]);
     }
 
-    public function events(Request $request): View
+    public function events(Request $request): RedirectResponse
     {
-        $filters = $this->filters($request);
-        $selectedId = $this->optionalId($request, 'event_id');
-
-        return $this->page('qa-demo.events', $this->common($filters) + [
-            'events' => $this->qa->events($filters),
-            'selectedEvent' => $selectedId !== null ? $this->qa->event($selectedId) : null,
-        ]);
+        return redirect()->route('qa-demo.configuration.index', array_merge($request->query(), ['tab' => 'eventos']))->withFragment('eventos');
     }
 
     public function storeEvent(Request $request): RedirectResponse
@@ -220,12 +285,11 @@ class QaDemoController extends Controller
             'equipment_id' => ['required', 'integer', 'min:1'],
             'type' => ['required', 'in:calibration,maintenance'],
             'occurred_at' => ['required', 'date'],
-            'operator' => ['required', 'string', 'min:2', 'max:120'],
             'notes' => ['required', 'string', 'max:4000'],
         ]);
-        $id = $this->qa->recordEvent($data);
+        $id = $this->qa->recordEvent($data + ['operator' => $request->user()->name] + $this->actor($request));
 
-        return redirect()->route('qa-demo.events.index', ['equipment_id' => $data['equipment_id'], 'event_id' => $id])
+        return redirect()->route('qa-demo.configuration.index', ['equipment_id' => $data['equipment_id'], 'event_id' => $id, 'tab' => 'eventos'])->withFragment('eventos')
             ->with('success', 'Evento del equipo registrado. Puede relacionar controles anteriores y posteriores.');
     }
 
@@ -292,12 +356,28 @@ class QaDemoController extends Controller
 
     private function common(array $filters = []): array
     {
-        return [
-            'equipment' => $this->qa->equipment(),
-            'configurations' => $this->qa->configurations(),
-            'filters' => $filters,
-            'qa' => $this->qa,
+        $user = request()->user();
+        $abilities = [
+            'view' => Permission::VIEW, 'maintain' => Permission::MAINTAIN, 'register' => Permission::REGISTER,
+            'edit' => Permission::EDIT, 'delete' => Permission::DELETE, 'charts' => Permission::CHARTS,
+            'history' => Permission::HISTORY, 'export' => Permission::EXPORT, 'review' => Permission::REVIEW,
+            'assignOperator' => Permission::ASSIGN_OPERATOR,
         ];
+        $permissions = array_map(fn (string $ability): bool => $user->can($ability), $abilities);
+        $data = [
+            'equipment' => $this->qa->equipment(), 'configurations' => $this->qa->configurations(),
+            'filters' => $filters, 'qa' => $this->qa, 'permissions' => $permissions,
+            'currentUser' => $user, 'currentOperator' => $user->name,
+            'currentMeasuredAt' => now('America/El_Salvador')->format('Y-m-d\TH:i:s'),
+            'operatorOptions' => $permissions['assignOperator'] ? User::query()->orderBy('name')->get()
+                ->filter(fn (User $candidate): bool => $candidate->can('access_admin_panel') && $candidate->can(Permission::VIEW) && $candidate->can(Permission::REGISTER))
+                ->map(fn (User $candidate): array => ['id' => $candidate->id, 'name' => $candidate->name])->values()->all() : [],
+        ];
+        foreach ($permissions as $name => $allowed) {
+            $data['can'.ucfirst($name)] = $allowed;
+        }
+        $data['canViewRecord'] = $permissions['history'] || $permissions['edit'] || $permissions['review'];
+        return $data;
     }
 
     private function selectedConfiguration(Request $request): ?array
@@ -332,12 +412,19 @@ class QaDemoController extends Controller
             'to' => array_filter(['nullable', 'date_format:Y-m-d', $request->filled('from') ? 'after_or_equal:from' : null]),
             'comparison' => ['nullable', 'in:within,outside,incomplete'],
             'review_status' => ['nullable', 'in:pending,followup,reviewed'],
+            'include_deleted' => ['nullable', 'boolean'],
         ]);
         if ($validator->fails()) {
             abort(422, $validator->errors()->first());
         }
 
-        return array_filter($validator->validated(), fn ($value): bool => $value !== null && $value !== '');
+        $filters = array_filter($validator->validated(), fn ($value): bool => $value !== null && $value !== '');
+        if (! $request->routeIs('qa-demo.runs.index', 'qa-demo.export.*')) {
+            unset($filters['include_deleted']);
+        } elseif (! empty($filters['include_deleted'])) {
+            abort_unless($request->user()->can(Permission::HISTORY), 403);
+        }
+        return $filters;
     }
 
     private function equipmentData(Request $request): array
@@ -347,28 +434,122 @@ class QaDemoController extends Controller
             'model' => ['required', 'string', 'max:160'],
             'code' => ['required', 'string', 'max:40', 'regex:/^[A-Za-z0-9_-]+$/D'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'area' => ['required', 'in:Química,Hematología'],
             'active' => ['sometimes', 'boolean'],
         ]);
 
         return $data + ['active' => true];
     }
 
-    private function runData(Request $request): array
+    private function testData(Request $request): array
     {
         return $request->validate([
-            'configuration_id' => ['required', 'integer', 'min:1'],
-            'measured_at' => ['required', 'date'],
-            'operator' => ['required', 'string', 'min:2', 'max:120'],
-            'kind' => ['required', 'in:routine,additional,repeat,correction,before_event,after_event'],
-            'parent_run_id' => ['nullable', 'integer', 'min:1'],
-            'event_id' => ['nullable', 'integer', 'min:1'],
-            'notes' => ['nullable', 'string', 'max:4000'],
-            'missing_reason' => ['nullable', 'string', 'max:2000'],
-            'values' => ['required', 'array', 'max:50'],
-            'values.*' => ['required', 'array:low,medium,high'],
-            'values.*.*' => ['nullable', 'string', 'max:80'],
-            'action' => ['sometimes', 'in:draft,submit'],
+            'name' => ['required', 'string', 'max:255'], 'exam_name' => ['nullable', 'string', 'max:255'],
+            'unit' => ['required', 'string', 'max:40'], 'area' => ['required', 'in:Química,Hematología'],
+            'active' => ['sometimes', 'boolean'],
         ]);
+    }
+
+    private function decodePayload(Request $request, string $field, array $keys): void
+    {
+        if (! $request->has($field)) {
+            return;
+        }
+        $value = $request->input($field);
+        if (! is_string($value) || strlen($value) > 500000) {
+            throw ValidationException::withMessages([$field => 'El formulario supera el tamaño permitido.']);
+        }
+        try {
+            $decoded = json_decode($value, true, 32, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            throw ValidationException::withMessages([$field => 'El formulario está incompleto. Recarga la página e inténtalo de nuevo.']);
+        }
+        if (! is_array($decoded) || array_diff(array_keys($decoded), $keys) !== []) {
+            throw ValidationException::withMessages([$field => 'La estructura del formulario no es válida.']);
+        }
+        foreach ($keys as $key) {
+            if (! array_key_exists($key, $decoded) || ! is_array($decoded[$key])) {
+                throw ValidationException::withMessages([$field => 'El formulario está incompleto.']);
+            }
+        }
+        $request->merge($decoded);
+    }
+
+    private function runData(Request $request, ?array $existing = null): array
+    {
+        if (! $request->has('run_payload') && $request->has('readings_payload')) {
+            $value = $request->input('readings_payload');
+            if (! is_string($value) || strlen($value) > 500000) {
+                throw ValidationException::withMessages(['readings_payload' => 'El formulario supera el tamaño permitido.']);
+            }
+            try {
+                $decoded = json_decode($value, true, 32, JSON_THROW_ON_ERROR);
+            } catch (\JsonException) {
+                throw ValidationException::withMessages(['readings_payload' => 'Las lecturas están incompletas. Recarga la página e inténtalo de nuevo.']);
+            }
+            if (! is_array($decoded)) {
+                throw ValidationException::withMessages(['readings_payload' => 'La estructura de las lecturas no es válida.']);
+            }
+            $request->merge(['run_payload' => json_encode(array_key_exists('values', $decoded) ? $decoded : ['values' => $decoded], JSON_THROW_ON_ERROR)]);
+        }
+        $this->decodePayload($request, 'run_payload', ['values']);
+        $data = $request->validate([
+            'configuration_id' => [$existing === null ? 'required' : 'sometimes', 'integer', 'min:1'],
+            'kind' => [$existing === null ? 'required' : 'sometimes', 'in:routine,additional,repeat,correction,before_event,after_event'],
+            'parent_run_id' => ['nullable', 'integer', 'min:1'], 'event_id' => ['nullable', 'integer', 'min:1'],
+            'notes' => ['nullable', 'string', 'max:4000'], 'missing_reason' => ['nullable', 'string', 'max:2000'],
+            'values' => ['required', 'array', 'min:1', 'max:50'],
+            'values.*' => ['required', 'array', 'max:50'], 'values.*.*' => ['nullable', 'string', 'max:80'],
+            'action' => ['sometimes', 'in:draft,submit'], 'expected_revision' => [$existing === null ? 'sometimes' : 'required', 'integer', 'min:1'],
+            'edit_reason' => ['nullable', 'string', 'max:2000'],
+            'operator_user_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $selectedOperator = $request->filled('operator_user_id') ? (int) $request->input('operator_user_id') : null;
+        if ($existing !== null && $selectedOperator !== null && $selectedOperator === (int) ($existing['operator_user_id'] ?? 0)) {
+            // Conservar el autor histórico no es una nueva asignación, aunque
+            // sus permisos o su cuenta hayan cambiado después de registrar.
+            $data['operator'] = $existing['operator'];
+            $data['operator_user_id'] = $existing['operator_user_id'];
+        } elseif ($selectedOperator !== null) {
+            abort_unless($request->user()->can(Permission::ASSIGN_OPERATOR) || $selectedOperator === (int) $request->user()->id, 403);
+            // Cambiar el autor de un registro existente también requiere permiso de asignación.
+            if ($existing !== null && $selectedOperator !== (int) ($existing['operator_user_id'] ?? 0)) {
+                abort_unless($request->user()->can(Permission::ASSIGN_OPERATOR), 403);
+            }
+            $operator = User::query()->find($selectedOperator);
+            if ($operator === null || ! $operator->can('access_admin_panel') || ! $operator->can(Permission::VIEW) || ! $operator->can(Permission::REGISTER)) {
+                throw ValidationException::withMessages(['operator_user_id' => 'Selecciona un usuario autorizado para registrar controles.']);
+            }
+            $data['operator'] = $operator->name;
+            $data['operator_user_id'] = $operator->id;
+        } elseif ($existing !== null) {
+            $data['operator'] = $existing['operator'];
+            $data['operator_user_id'] = $existing['operator_user_id'];
+        } else {
+            $data['operator'] = $request->user()->name;
+            $data['operator_user_id'] = $request->user()->id;
+        }
+        $data['measured_at'] = $existing['measured_at'] ?? now('America/El_Salvador')->format('Y-m-d\TH:i:s');
+        if ($existing === null && ($data['kind'] ?? '') === 'correction' && ! empty($data['parent_run_id'])) {
+            $data['measured_at'] = $this->qa->run((int) $data['parent_run_id'])['measured_at'];
+        }
+        return $data + $this->actor($request);
+    }
+
+    private function actor(Request $request): array
+    {
+        return ['actor_id' => $request->user()->id, 'actor_name' => $request->user()->name];
+    }
+
+    private function afterRun(Request $request, int $id, bool $draft): RedirectResponse
+    {
+        if ($draft && $request->user()->can(Permission::EDIT)) {
+            return redirect()->route('qa-demo.runs.edit', ['run' => $id]);
+        }
+        if ($request->user()->canAny([Permission::HISTORY, Permission::EDIT, Permission::REVIEW])) {
+            return redirect()->route('qa-demo.runs.show', ['run' => $id]);
+        }
+        return redirect()->route('qa-demo.runs.create');
     }
 
     private function scalarNumberRule(): Closure
@@ -389,7 +570,7 @@ class QaDemoController extends Controller
             'Registro', 'Equipo', 'Configuración', 'Medido el', 'Guardado el', 'Registrado por', 'Tipo',
             'Prueba', 'Nivel', 'Lote', 'Unidad', 'Lectura original', 'Valor numérico', 'Valor esperado',
             'Mínimo', 'Máximo', 'Comparación', 'Revisión', 'Motivo de faltantes', 'Notas',
-            'Último revisor', 'Fecha de revisión', 'Comentario de revisión',
+            'Último revisor', 'Fecha de revisión', 'Comentario de revisión', 'Estado del registro', 'Eliminado el', 'Motivo de eliminación',
         ]];
         foreach ($this->qa->runs($filters) as $summary) {
             $run = $this->qa->run((int) $summary['id']);
@@ -408,6 +589,7 @@ class QaDemoController extends Controller
                     $this->spanishNumber($measurement['min'] ?? null), $this->spanishNumber($measurement['max'] ?? null), $comparisonLabels[$measurement['status']] ?? $measurement['status'],
                     $reviewLabels[$run['review_status']] ?? $run['review_status'], $run['missing_reason'] ?? '', $run['notes'] ?? '',
                     $latestReview['reviewer'] ?? '', $latestReview['reviewed_at'] ?? '', $latestReview['notes'] ?? '',
+                    ! empty($run['deleted_at']) ? 'Eliminado' : 'Vigente', $run['deleted_at'] ?? '', $run['deleted_reason'] ?? '',
                 ];
                 if (count($rows) > 10001) {
                     abort(422, 'El archivo supera 10.000 lecturas. Seleccione un periodo, equipo o prueba más específico.');

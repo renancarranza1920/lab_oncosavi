@@ -61,8 +61,12 @@ final class QaDemoSeeder
             $selected[] = [$entry, [[60, 54, 66, 59.4], [110, 99, 121, 109.2], [300, 270, 330, 298]]];
         }
         $levels = [];
+        $productId = $qa->createProduct(['name' => 'Suero de control multianalito']);
         foreach (QaDemoService::LEVELS as $key => $level) {
-            $levels[$key] = ['lot' => $label.match ($key) {'low' => 'L', 'medium' => 'M', default => 'H'},
+            $lotNumber = $label.match ($key) {'low' => 'L', 'medium' => 'M', default => 'H'};
+            $lotId = $qa->createLot(['product_id' => $productId, 'name' => $level, 'lot' => $lotNumber,
+                'expires_on' => $today->addMonths(3)->toDateString()]);
+            $levels[$key] = ['label' => $level, 'lot_id' => $lotId, 'lot' => $lotNumber,
                 'product' => 'Suero de control multianalito', 'expires_on' => $today->addMonths(3)->toDateString(),
                 'opened_on' => $opening->toDateString(), 'stability_days' => 60];
         }

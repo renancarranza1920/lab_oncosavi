@@ -3,19 +3,26 @@
 namespace Tests\Feature;
 
 use App\QaDemo\QaDemoService;
+use App\Models\User;
+use App\Support\ControlCalidadPermissions;
 use Carbon\Carbon;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class QaDemoTest extends TestCase
 {
+    use RefreshDatabase;
+
     private string $qaRoot;
+    private User $laboratorista;
 
     protected function setUp(): void
     {
@@ -24,6 +31,12 @@ class QaDemoTest extends TestCase
         config(['qa_demo.path' => $this->qaRoot, 'app.url' => 'https://applab.oncosavi.com']);
         DB::purge('qa_demo');
         $this->travelTo(Carbon::parse('2026-11-10 10:00:00', 'America/El_Salvador'));
+        foreach (['access_admin_panel', ...ControlCalidadPermissions::all()] as $permission) {
+            Permission::findOrCreate($permission, 'web');
+        }
+        $this->laboratorista = User::factory()->create(['name' => 'Daniela Martínez', 'nickname' => 'daniela.cci']);
+        $this->laboratorista->givePermissionTo(['access_admin_panel', ...ControlCalidadPermissions::all()]);
+        $this->actingAs($this->laboratorista);
     }
 
     protected function tearDown(): void
@@ -73,6 +86,7 @@ class QaDemoTest extends TestCase
         });
         DB::table('qa_clinical_sentinel')->insert(['value' => 'Órdenes y pacientes intactos']);
         $clinicalTables = DB::select("select name from sqlite_master where type = 'table' order by name");
+        $qa = $this->prepare();
         $watch = true;
         $clinicalQueries = [];
         DB::listen(function (QueryExecuted $event) use (&$watch, &$clinicalQueries): void {
@@ -81,7 +95,6 @@ class QaDemoTest extends TestCase
             }
         });
 
-        $qa = $this->prepare();
         [$config, $catalog] = $this->configuration($qa);
         $run = $qa->recordRun($this->runData($config, $catalog));
         $qa->reviewRun($run, ['reviewer' => 'Rafael Hernández', 'decision' => 'reviewed', 'notes' => 'Lecturas verificadas.']);
@@ -120,7 +133,7 @@ class QaDemoTest extends TestCase
         ]);
         $before = $db->table('qa_runs')->where('id', $run->id)->first();
 
-        foreach (['/qa-quimica/configuracion', '/qa-quimica/mediciones/nueva'] as $url) {
+        foreach (['/qa-quimica/mantenimiento', '/qa-quimica/mediciones/nueva'] as $url) {
             $this->get($url)->assertOk()->assertSee('Método del equipo')
                 ->assertDontSee('confirmar con el laboratorio')->assertDontSee('PRUEBA ABIERTA');
         }
@@ -460,16 +473,15 @@ class QaDemoTest extends TestCase
         $this->assertCount(500, $chart['levels']['high']['points']);
     }
 
-    public function test_el_publico_puede_abrir_configuracion_y_captura_sin_sesion_del_sistema_principal(): void
+    public function test_el_personal_autorizado_usa_las_cinco_pantallas_con_su_sesion_principal(): void
     {
         $qa = $this->prepare();
         [$config, $catalog] = $this->configuration($qa);
         $before = [config('session.driver'), config('session.cookie'), config('session.files'), config('cache.default')];
         $urls = [
-            '/qa-quimica', '/qa-quimica/configuracion', '/qa-quimica/mediciones',
+            '/qa-quimica', '/qa-quimica/mantenimiento', '/qa-quimica/mediciones',
             '/qa-quimica/mediciones/nueva?configuration_id='.$config,
             '/qa-quimica/graficas?configuration_id='.$config.'&catalog_id='.$catalog,
-            '/qa-quimica/eventos',
         ];
         foreach ($urls as $url) {
             $response = $this->get($url)->assertOk();
@@ -477,36 +489,24 @@ class QaDemoTest extends TestCase
             $this->assertStringContainsString('nofollow', $response->headers->get('X-Robots-Tag'));
             $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
             $response->assertDontSee('action="https://applab.oncosavi.com/admin/login"', false);
-            $response->assertDontSee('href="https://applab.oncosavi.com/admin"', false);
             $this->assertSame($before, [config('session.driver'), config('session.cookie'), config('session.files'), config('cache.default')]);
         }
         $this->get('/qa-quimica/mediciones/999999999')->assertNotFound();
-        $this->assertGuest();
+        $this->assertAuthenticatedAs($this->laboratorista);
     }
 
-    public function test_las_peticiones_qa_funcionan_con_la_conexion_clinica_inaccesible_y_sesiones_database(): void
+    public function test_la_captura_autenticada_guarda_solo_datos_cci_y_no_cambia_el_catalogo_clinico(): void
     {
         $qa = $this->prepare();
         [$config, $catalog] = $this->configuration($qa);
-        config([
-            'database.default' => 'clinical_blocked',
-            'database.connections.clinical_blocked' => [
-                'driver' => 'mysql', 'host' => '127.0.0.1', 'port' => 1,
-                'database' => 'must_not_connect', 'username' => 'no_access', 'password' => '',
-                'charset' => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci', 'prefix' => '',
-            ],
-            'session.driver' => 'database', 'session.connection' => 'clinical_blocked',
-            'cache.default' => 'database', 'cache.stores.database.connection' => 'clinical_blocked',
-        ]);
-        DB::purge('clinical_blocked');
-        $this->app['session']->forgetDrivers();
+        $clinical = [DB::table('pruebas')->count(), DB::table('ordens')->count(), DB::table('clientes')->count()];
+        $before = [config('database.default'), config('session.driver'), config('session.cookie'), config('cache.default')];
         $this->get('/qa-quimica')->assertOk();
-        $this->get('/qa-quimica/configuracion')->assertOk();
+        $this->get('/qa-quimica/mantenimiento')->assertOk();
         $this->post('/qa-quimica/mediciones', $this->runData($config, $catalog)+['action' => 'submit'])->assertRedirect();
         $this->assertCount(1, $qa->runs());
-        $this->assertSame('clinical_blocked', config('database.default'));
-        $this->assertSame('database', config('session.driver'));
-        $this->assertSame('database', config('cache.default'));
+        $this->assertSame($clinical, [DB::table('pruebas')->count(), DB::table('ordens')->count(), DB::table('clientes')->count()]);
+        $this->assertSame($before, [config('database.default'), config('session.driver'), config('session.cookie'), config('cache.default')]);
     }
 
     public function test_el_detalle_escapa_notas_y_la_exportacion_solo_contiene_datos_qa(): void

@@ -1,47 +1,54 @@
-# Control de calidad de química: prueba independiente
+# Control de Calidad Interno
 
-El módulo de prueba se abre directamente en estas direcciones:
+El módulo conserva su dirección independiente:
+<https://applab.oncosavi.com/qa-quimica>. No aparece en el menú principal.
+Ahora requiere iniciar sesión con un usuario de Oncosavi y tener los permisos
+correspondientes. El antiguo acceso sin contraseña queda cerrado.
 
-- Resumen: <https://applab.oncosavi.com/qa-quimica>
-- Configuración: <https://applab.oncosavi.com/qa-quimica/configuracion>
-- Captura del laboratorista: <https://applab.oncosavi.com/qa-quimica/mediciones/nueva>
-- Gráficas: <https://applab.oncosavi.com/qa-quimica/graficas>
-- Historial: <https://applab.oncosavi.com/qa-quimica/mediciones>
-- Eventos del equipo: <https://applab.oncosavi.com/qa-quimica/eventos>
+## Las cinco pantallas
 
-Son direcciones de revisión sin contraseña. El acceso no aparece en el menú
-principal de Oncosavi. Quien abra la dirección puede usar la configuración y
-registrar datos de demostración. Los nombres de quien registra o revisa se
-escriben manualmente y no representan identidades verificadas por una sesión de
-usuario.
+1. **Resumen:** últimos controles registrados y gráficos de las pruebas.
+2. **Mantenimiento:** áreas y equipos de química o hematología, productos de
+   control, lotes, pruebas propias del módulo y configuraciones de niveles con
+   sus valores esperados, mínimos y máximos.
+3. **Registro de Control de Calidad Interno:** selección del área y equipo,
+   fecha y hora automáticas, laboratorista, lecturas y observaciones opcionales.
+   La sesión identifica a quien guarda el registro. Un permiso adicional permite
+   asignar otro laboratorista.
+4. **Gráficos:** consulta por equipo, configuración y prueba. Se dibuja cada nivel
+   configurado; una configuración de tres niveles muestra tres gráficos.
+5. **Historial:** búsqueda de controles, revisiones, repeticiones, correcciones,
+   ediciones y registros eliminados, con descarga PDF y CSV según los permisos.
 
-## Separación del laboratorio en producción
+La cantidad de niveles es configurable: no está limitada a bajo, medio y alto.
+Los nombres se escriben en Mantenimiento y cada prueba guarda los valores de
+control de cada nivel. Los campos numéricos aceptan coma o punto decimal.
 
-Las configuraciones y mediciones de esta prueba se guardan en
-`storage/app/private/qa-quimica/demo.sqlite`, dentro del volumen persistente
-`laravel_storage`. Su sesión y caché también son propias de la prueba. El archivo
-no se publica en `public` ni en el enlace `public/storage`.
+## Roles y permisos
 
-La preparación importa una copia del catálogo de pruebas: identificación,
-nombre, examen, área y unidad. Esa lectura no importa pacientes, órdenes,
-resultados, usuarios ni las referencias clínicas para utilizarlas como límites
-de control. Las peticiones web del módulo consultan su base separada.
+En **Roles**, abre o crea un rol y selecciona la pestaña **Control de Calidad
+Interno**, situada junto a **Permisos personalizados**.
 
-La preparación crea las tablas de la prueba en SQLite. No se ejecutan
-migraciones, seeders ni cambios en la base clínica. Tampoco se cambian `DB_*`,
-`APP_KEY`, el contenedor `db`, sus volúmenes ni la configuración de Caddy.
+- **Acceso y consultas:** acceder al módulo y ver el resumen, consultar gráficos,
+  consultar historial y descargar PDF/CSV.
+- **Mantenimiento:** administrar áreas, equipos, productos, lotes, pruebas y
+  niveles.
+- **Registros y revisión:** registrar, editar, eliminar, asignar otro
+  laboratorista y revisar controles.
 
-La imagen incorpora las extensiones SQLite. Al actualizar es necesario
-reconstruir y recrear **solo `app`**, como en las actualizaciones anteriores.
-Ese paso supone el reinicio habitual de la aplicación; la prueba no necesita
-otro dominio, puerto público o contenedor de MySQL.
+El permiso de acceso al módulo es necesario junto con cada permiso de acción.
+Los controles se aplican a las direcciones y a las operaciones del servidor,
+además de los botones visibles. El usuario necesita también su acceso habitual
+al panel de Oncosavi.
 
-## Publicar la versión en Oracle
+La actualización registra estos permisos de forma aditiva. Los administradores
+existentes reciben el acceso inicial; los demás roles se habilitan desde la nueva
+pestaña. No se reemplazan los permisos existentes de los roles.
 
-Ejecuta este bloque por SSH en Oracle, cuando los cambios ya estén disponibles
-en `main`. El bloque rechaza una instalación que ya estaba en mantenimiento;
-solo retira el mantenimiento que él mismo activa. Construye la imagen antes de
-poner la aplicación en mantenimiento y conserva el servicio `db` en ejecución.
+## Actualización en Oracle
+
+Ejecuta el bloque completo por SSH. Construye la imagen antes de activar el
+mantenimiento y recrea únicamente el contenedor de la aplicación.
 
 ```bash
 (
@@ -62,132 +69,98 @@ poner la aplicación en mantenimiento y conserva el servicio `db` en ejecución.
   docker compose up -d --no-deps --force-recreate app
   docker compose exec -T --user www-data app php artisan optimize:clear
   docker compose exec -T --user www-data app php artisan filament:clear-cached-components
-  docker compose exec -T --user www-data app php artisan oncosavi:qa-demo-preparar
+  docker compose exec -T --user www-data app php artisan migrate --path=database/migrations/2026_11_10_000001_add_control_calidad_interno_permissions.php --force
+  docker compose exec -T --user www-data app php artisan oncosavi:control-calidad-preparar
+  docker compose exec -T --user www-data app php artisan permission:cache-reset
 )
 ```
 
-La preparación consulta el catálogo real del laboratorio en modo de lectura,
-crea la base privada si falta, añade los ejemplos iniciales y activa la ruta.
-Al terminar imprime las direcciones de configuración y de captura. Repetir la
-preparación conserva las mediciones que ya hayan registrado: no es un reinicio
-de la prueba.
+La migración indicada registra únicamente los permisos del nuevo módulo. No
+regenera catálogos clínicos, usuarios, pacientes ni órdenes. La preparación
+actualiza la estructura privada de Control de Calidad Interno y conserva los
+controles, lecturas, lotes y límites anteriores. No ejecutes `db:seed`,
+`migrate:fresh` ni `docker compose down -v` para esta actualización.
 
-Si Git informa de archivos locales modificados o de una rama divergente,
-revisa `git status` y conserva ese mensaje. No uses `git reset --hard` para
-resolverlo sin revisar esos cambios.
+Si un paso falla, el bloque intenta sacar de mantenimiento la aplicación que él
+mismo puso en ese estado. Conserva el error para resolverlo. Si Git indica cambios
+locales o una rama divergente, revisa `git status`; no descartes esos archivos.
 
-Si un paso falla, el bloque intenta sacar de mantenimiento la aplicación que
-acababa de poner en ese estado. Conserva el error para corregir la causa.
-No ejecutes `docker compose down -v`, `migrate:fresh` ni `db:seed` para instalar
-este módulo.
+Después entra con el administrador a:
+<https://applab.oncosavi.com/admin/shield/roles> para conceder los permisos al rol
+que utilizará Control de Calidad Interno. Luego abre la URL independiente del
+módulo.
 
-## Qué probar con el dueño y el laboratorista
+## Preparar los controles
 
-1. En **Configuración**, revisa el equipo, selecciona las pruebas del catálogo y
-   prepara los lotes bajo, medio y alto. Los objetivos, mínimos y máximos de los
-   ejemplos son ficticios: los operativos deben confirmarse con el responsable
-   y la hoja vigente del control.
-2. En **Registrar mediciones**, elige la configuración y copia las lecturas de
-   la máquina. El nombre, fecha y hora de medición se registran expresamente.
-   Se admiten decimales con coma o punto y el cero es un resultado válido.
-3. Guarda un borrador o presenta las mediciones. Una lectura no realizada debe
-   quedar identificada como tal; no se rellena con cero ni con el objetivo.
-4. Abre las **Gráficas** de una prueba: aparecen sus tres niveles por separado,
-   con el lote y los límites de esa versión. No se inventan desviaciones
-   estándar ni reglas estadísticas a partir de un intervalo del fabricante.
-5. Prueba una lectura fuera de límites, su revisión y una repetición. La
-   repetición queda relacionada con el registro original y conserva el valor
-   inicial. Una corrección documenta qué se corrigió sin borrar el antecedente.
-6. Registra un evento de calibración o mantenimiento si corresponde y relaciona
-   sus controles anteriores o posteriores. El módulo documenta el evento: la
-   acción física sigue realizándose en la máquina.
-7. Consulta el historial y descarga el informe PDF o la tabla CSV compatible con
-   Excel. Los archivos se generan con los registros de esta prueba.
+1. En **Mantenimiento**, identifica el área y el equipo.
+2. Registra el producto de control y sus lotes: nombre, número y caducidad.
+3. Selecciona las pruebas del catálogo o crea las pruebas propias que necesites.
+   Estas pruebas nuevas pertenecen al módulo; no modifican las pruebas de
+   resultados de pacientes.
+4. Crea los niveles y escribe sus nombres. Identifica el lote utilizado en cada
+   nivel, la apertura del frasco y su estabilidad después de abierto.
+5. Para cada prueba, ingresa el método, la unidad y el valor esperado, mínimo y
+   máximo de cada nivel, tomados de la hoja del control correspondiente.
+6. Guarda la configuración. Cada cambio crea una versión; los controles ya
+   registrados conservan los límites que se utilizaron al medirlos.
 
-El calendario de lunes, miércoles y viernes corresponde al control de calidad.
-Se pueden documentar mediciones adicionales cuando el procedimiento lo
-requiera. Guardar un resultado dentro de límites y revisar un registro son
-acciones distintas; ninguna de ellas ejecuta una calibración del equipo ni
-autoriza automáticamente resultados de pacientes.
+Los ejemplos se identifican con el rótulo **Datos de demostración**. No son
+mediciones reales del laboratorio ni sustituyen la hoja del lote utilizado.
 
-Al cambiar configuración se conserva una versión anterior para reconstruir los
-controles históricos con sus objetivos y límites originales. La apertura y la
-estabilidad de cada frasco se consideran junto con la caducidad del lote; se
-aplica la fecha límite más próxima.
+## Registrar y consultar
 
-Las pantallas y el PDF utilizan textos de uso diario para el laboratorista. Los
-datos simulados se identifican con el rótulo «Datos de demostración». Las
-configuraciones de ejemplo instaladas con la primera versión también muestran
-los textos actualizados, sin reescribir sus mediciones ni los límites históricos.
-No es necesario borrar registros ni volver a preparar los ejemplos.
+Selecciona el área y equipo en **Registro de Control de Calidad Interno**. El
+sistema coloca la fecha, la hora y el usuario de la sesión. Copia las lecturas de
+la máquina y añade una observación si corresponde. Un cero es una lectura real;
+una lectura no realizada se deja vacía y se documenta su motivo.
 
-## Actualizar el catálogo o reactivar la prueba
+Se mantiene la rutina de lunes, miércoles y viernes, junto con la posibilidad de
+registrar controles adicionales. Las calibraciones y mantenimientos físicos
+pueden documentarse en la sección de eventos dentro de Mantenimiento.
 
-Después de añadir pruebas al catálogo principal, vuelve a ejecutar:
+La edición conserva una versión anterior y registra al usuario que realizó el
+cambio. La eliminación retira el control de las consultas activas y conserva su
+antecedente en el historial con el usuario, la fecha y el motivo. No borra los
+datos originales de forma definitiva.
 
-```bash
-cd ~/lab_oncosavi
-docker compose exec -T --user www-data app php artisan oncosavi:qa-demo-preparar
-```
+Los gráficos separan las configuraciones y sus lotes. Presentan los valores
+esperados y límites guardados; las revisiones del responsable se registran por
+separado de la comparación numérica.
 
-La copia de catálogo se actualiza sin borrar las mediciones anteriores. El
-comando activa también el acceso si estaba desactivado. Las configuraciones y
-registros anteriores conservan sus datos históricos.
+## Almacenamiento y mantenimiento técnico
 
-## Cerrar temporalmente el acceso público
+Los datos del módulo permanecen en
+`storage/app/private/qa-quimica/demo.sqlite`, dentro del volumen persistente
+`laravel_storage`. Se conservó esa ubicación para actualizar las instalaciones
+anteriores sin mover ni perder su información.
+
+La sesión es ahora la de Oncosavi: se consulta el usuario y sus permisos en la
+base principal. Las mediciones y configuraciones de calidad se guardan en la
+base privada. No se publican en `public/storage`.
+
+Para actualizar la copia del catálogo o reactivar el módulo:
 
 ```bash
 cd ~/lab_oncosavi
-docker compose exec -T --user www-data app php artisan oncosavi:qa-demo-desactivar
+docker compose exec -T --user www-data app php artisan oncosavi:control-calidad-preparar
 ```
 
-Las rutas dejan de estar disponibles y los datos se conservan. El acceso
-principal `/admin` y las operaciones clínicas continúan por sus rutas habituales.
-
-## Datos persistentes y copia de respaldo
-
-Conserva todo `storage/app/private/qa-quimica`, incluido su archivo de activación
-cuando deba mantenerse disponible. Los directorios privados se mantienen con
-permisos `0700` y los archivos con `0600`, pertenecientes a `www-data` dentro del
-contenedor. No copies la base ni los respaldos a `public/storage`.
-
-Para guardar una copia consistente de SQLite, utiliza `VACUUM INTO` a través
-de PHP. La copia considera una base que pueda tener un diario WAL activo; no se
-hace una copia aislada del archivo mientras se está escribiendo.
+Para desactivarlo sin borrar registros:
 
 ```bash
 cd ~/lab_oncosavi
-docker compose exec -T --user www-data app php <<'PHP'
-<?php
-$qaBackupRoot = '/var/www/html/storage/app/private/qa-quimica';
-$qaDatabase = $qaBackupRoot . '/demo.sqlite';
-if (!is_file($qaDatabase)) {
-    fwrite(STDERR, "Todavía no existe la base de la prueba.\n");
-    exit(1);
-}
-$qaBackupDirectory = $qaBackupRoot . '/backups';
-if (!is_dir($qaBackupDirectory) && !mkdir($qaBackupDirectory, 0700, true)) {
-    throw new RuntimeException('No se pudo crear la carpeta de respaldo.');
-}
-chmod($qaBackupDirectory, 0700);
-$qaDestination = $qaBackupDirectory . '/qa-' . gmdate('Ymd-His') . '-' . bin2hex(random_bytes(3)) . '.sqlite';
-$qaConnection = new PDO('sqlite:' . $qaDatabase);
-$qaConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$qaConnection->exec('PRAGMA busy_timeout = 5000');
-$qaConnection->exec('VACUUM INTO ' . $qaConnection->quote($qaDestination));
-chmod($qaDestination, 0600);
-echo "Respaldo privado creado: $qaDestination\n";
-PHP
+docker compose exec -T --user www-data app php artisan oncosavi:control-calidad-desactivar
 ```
 
-## Preparación local sin la base clínica
+Los nombres antiguos `oncosavi:qa-demo-preparar` y
+`oncosavi:qa-demo-desactivar` siguen funcionando.
 
-En desarrollo o pruebas automatizadas se puede preparar el catálogo ilustrativo:
+Para desarrollo local sin consultar el catálogo clínico:
 
 ```bash
-php artisan oncosavi:qa-demo-preparar --catalogo-ejemplo
+php artisan oncosavi:control-calidad-preparar --catalogo-ejemplo
 ```
 
-Esta opción no necesita importar el catálogo clínico. En Oracle utiliza la
-preparación normal para que las pruebas seleccionables procedan del catálogo
-del laboratorio.
+En Oracle utiliza el comando sin esa opción para importar las pruebas de química
+y hematología del laboratorio. La preparación conserva las pruebas creadas
+manualmente dentro de Control de Calidad Interno.
