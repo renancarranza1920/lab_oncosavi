@@ -69,7 +69,7 @@ class ControlCalidadFilamentTest extends TestCase
             $this->assertNotContains($page, Filament::getPanel('admin')->getPages());
             $this->get($page::getUrl(panel: 'control-calidad'))->assertOk();
         }
-        $this->assertCount(7, Cci::all());
+        $this->assertCount(8, Cci::all());
         foreach (['/qa-quimica/exportar.csv', '/qa-quimica/informe.pdf', '/qa-quimica/eventos'] as $url) {
             $this->get($url)->assertNotFound();
         }

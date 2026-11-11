@@ -35,6 +35,12 @@
     >
         <x-filament::section :heading="$heading" :description="$this->getDescription()">
             <x-slot name="headerEnd">
+                @if(\App\ControlCalidad\Filament\Pages\PaginaControlCalidad::allowed(\App\Support\ControlCalidadPermissions::EXPORT))
+                    <x-filament::button tag="a" color="gray" outlined size="sm" target="_blank" rel="noopener"
+                        :href="route('cci.exportar', ['tipo' => 'nivel', 'nivel_id' => $nivelId, 'desde' => $desde, 'hasta' => $hasta, 'incluir_graficos' => 1])"
+                        aria-label="Exportar PDF del gráfico de {{ $heading }}" style="min-height: 44px"
+                    >PDF</x-filament::button>
+                @endif
                 <x-filament::button
                     type="button" color="gray" outlined size="sm"
                     icon="heroicon-o-arrows-pointing-out"

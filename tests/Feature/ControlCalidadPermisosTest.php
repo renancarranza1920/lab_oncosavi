@@ -43,7 +43,7 @@ class ControlCalidadPermisosTest extends TestCase
         Cci::register();
 
         $this->assertSame(count(Cci::all()), Permission::where('guard_name', 'web')->whereIn('name', Cci::all())->count());
-        $this->assertCount(7, Cci::all());
+        $this->assertCount(8, Cci::all());
         $this->assertTrue($admin->fresh()->hasAllPermissions(Cci::all()));
         $this->assertTrue($admin->fresh()->hasPermissionTo($unrelated));
         $this->assertSame($before, $laboratorista->fresh()->permissions->pluck('name')->sort()->values()->all());
@@ -81,6 +81,19 @@ class ControlCalidadPermisosTest extends TestCase
             ->fillForm(['cci_permissions_0' => [], 'cci_permissions_1' => [], 'cci_permissions_2' => []])
             ->call('save')->assertHasNoFormErrors();
         $this->assertSame(['access_admin_panel', 'view_any_orden'], $role->fresh()->permissions->pluck('name')->sort()->values()->all());
+    }
+
+    public function test_el_permiso_de_exportacion_se_guarda_desde_su_grupo_y_se_puede_retirar(): void
+    {
+        $role = Role::findOrCreate('Informes CCI', 'web');
+        $role->givePermissionTo(['access_admin_panel', 'view_any_orden', Cci::VIEW, Cci::HISTORY]);
+        Livewire::test(EditRole::class, ['record' => $role->id])->fillForm(['cci_permissions_3' => [Cci::EXPORT]])
+            ->call('save')->assertHasNoFormErrors();
+        $this->assertTrue($role->fresh()->hasAllPermissions([Cci::VIEW, Cci::HISTORY, Cci::EXPORT, 'view_any_orden']));
+        Livewire::test(EditRole::class, ['record' => $role->id])->fillForm(['cci_permissions_3' => []])
+            ->call('save')->assertHasNoFormErrors();
+        $this->assertFalse($role->fresh()->hasPermissionTo(Cci::EXPORT));
+        $this->assertTrue($role->fresh()->hasPermissionTo('view_any_orden'));
     }
 
     public function test_se_puede_crear_un_rol_con_permisos_del_modulo_y_editar_no_se_habilita_por_registrar(): void

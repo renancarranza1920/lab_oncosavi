@@ -45,6 +45,7 @@ Ejecuta el bloque completo por SSH:
   docker compose exec -T --user www-data app php artisan filament:clear-cached-components
   docker compose exec -T --user www-data app php artisan migrate --path=database/migrations/2026_11_11_000001_create_internal_quality_control_tables.php --force
   docker compose exec -T --user www-data app php artisan migrate --path=database/migrations/2026_11_11_000002_remove_unrequested_control_calidad_permissions.php --force
+  docker compose exec -T --user www-data app php artisan migrate --path=database/migrations/2026_11_11_000003_add_control_calidad_export_permission.php --force
   docker compose exec -T --user www-data app php artisan permission:cache-reset
 )
 ```
@@ -52,7 +53,8 @@ Ejecuta el bloque completo por SSH:
 La primera migración crea las tablas `cci_*` del módulo en la base de datos de
 Oncosavi. La segunda registra los siete permisos y retira los permisos de las
 funciones descartadas de la implementación anterior. Los permisos de los demás
-módulos se conservan.
+módulos se conservan. La tercera agrega el permiso de exportación PDF, que se
+concede inicialmente a los administradores existentes.
 
 La instalación comienza sin registros ni catálogos de demostración. Los datos se
 configuran desde **Mantenimiento**. No se ejecutan seeders ni se modifican las
@@ -61,7 +63,7 @@ configuran desde **Mantenimiento**. No se ejecutan seeders ni se modifican las
 La implementación anterior y sus rutas `/qa-quimica` se retiraron. Sus archivos
 de almacenamiento no se consultan ni se importan en este panel nuevo. Los
 comandos antiguos `oncosavi:qa-demo-preparar` y sus alias también se retiraron;
-esta versión se instala con las dos migraciones indicadas.
+esta versión se instala con las tres migraciones indicadas.
 
 ## Configurar los permisos
 
@@ -75,6 +77,7 @@ junto a **Permisos personalizados**:
 - Eliminar registros.
 - Consultar gráficos.
 - Consultar historial.
+- Exportar PDF de datos y gráficos.
 
 El permiso de acceso es necesario junto con cada permiso de acción. Los
 administradores existentes reciben los permisos iniciales; los demás roles se
@@ -150,3 +153,44 @@ Conserva ese archivo junto con la base de datos si haces un respaldo o traslado
 durante las pruebas. Conserva los catálogos, controles y datos reales. Si un área
 real está usando un lote de demostración, el comando informa de esa relación
 antes de borrar nada.
+
+## Exportaciones PDF
+
+El permiso **Exportar PDF de datos y gráficos** se asigna desde Roles, en la
+pestaña Control de Calidad Interno. El usuario necesita también el permiso de
+la pantalla que consulta; incluir gráficos requiere el permiso de gráficos.
+
+Hay botones en Resumen, Mantenimiento, Registro, Gráficos e Historial. En las
+consultas de registros se puede elegir **Solo datos** o **Datos y gráficos**.
+Mantenimiento exporta el apartado seleccionado, y Gráficos exporta la prueba y
+el período aplicados. Cada registro y cada gráfico también tienen acceso PDF.
+El historial conserva sus filtros de área, laboratorista, fechas y búsqueda.
+Los archivos con gráficos incluyen sus límites históricos, la franja de control
+y las X rojas. Para consultas de más de 300 registros se solicita acortar el
+período, sin recortar datos silenciosamente.
+
+## Consulta privada para supervisión
+
+La consulta independiente usa un enlace privado sin contraseña, compartido con
+el propietario en la entrega y dentro del PDF de presentación. Permite ver
+mediciones del historial, filtrar Desde y Hasta y buscar por área, equipo,
+prueba, nivel o lote. Excluye registros eliminados. No inicia una sesión del
+sistema y no tiene rutas de escritura ni botones de exportación o edición.
+
+El repositorio contiene únicamente la huella de verificación del enlace en
+`config/control_calidad.php`. La variable opcional `CCI_SUPERVISION_TOKEN_HASH`
+permite sustituir o revocar el acceso. El enlace completo y el PDF que lo incluye
+se entregan en privado; no se publican en GitHub.
+
+## Presentación para supervisores
+
+Las capturas reales se conservan en `docs/control-calidad/capturas/`. La
+presentación reúne las cinco pantallas, la configuración de niveles, los
+gráficos ampliados, la exportación y la consulta de supervisión con párrafos
+breves. Todas las capturas muestran datos ficticios.
+
+La dirección privada de descarga se entrega al propietario. Para descargar el
+PDF desde el sistema se requiere sesión, acceso al módulo, mantenimiento y
+exportación. El documento incluye el enlace de consulta sin contraseña.
+Esta actualización conserva los datos de demostración existentes; se pueden
+mantener durante la revisión de los supervisores y limpiar al finalizar.

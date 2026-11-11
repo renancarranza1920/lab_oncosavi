@@ -195,6 +195,10 @@ trait InteractsWithControlRecords
                         ])->columns(['default' => 1, 'md' => 4]),
                         TextEntry::make('observaciones')->label('Observaciones')->placeholder('Sin observaciones')->columnSpanFull(),
                     ]),
+                Action::make('exportar_pdf')->label('PDF')->icon('heroicon-o-arrow-down-tray')
+                    ->visible(fn (): bool => static::allowed(Permission::EXPORT))
+                    ->url(fn (ControlRegistro $record): string => route('cci.exportar', ['tipo' => 'registro', 'registro_id' => $record->id]))
+                    ->openUrlInNewTab(),
                 Action::make('editar')->label('Editar')->icon('heroicon-o-pencil-square')->color('primary')
                     ->visible(fn (ControlRegistro $record): bool => ! $record->trashed() && static::allowed(Permission::EDIT))
                     ->authorize(fn (): bool => static::allowed(Permission::EDIT))
