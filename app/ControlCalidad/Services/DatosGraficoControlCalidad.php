@@ -76,4 +76,28 @@ class DatosGraficoControlCalidad
 
         return ['datasets' => $datasets, 'labels' => $labels];
     }
+
+    public function opciones(array $chart): array
+    {
+        $scales = ['x' => ['ticks' => ['maxTicksLimit' => 6]]];
+        foreach ($chart['datasets'] as $dataset) {
+            if (isset($scales[$dataset['yAxisID']])) {
+                continue;
+            }
+            $scales[$dataset['yAxisID']] = [
+                'type' => 'linear',
+                'position' => count($scales) % 2 ? 'left' : 'right',
+                'beginAtZero' => false,
+                'title' => ['display' => true, 'text' => $dataset['unidad']],
+                'grid' => ['drawOnChartArea' => count($scales) === 1],
+            ];
+        }
+
+        return [
+            'maintainAspectRatio' => false,
+            'interaction' => ['mode' => 'index', 'intersect' => false],
+            'plugins' => ['legend' => ['position' => 'bottom', 'labels' => ['boxWidth' => 12]]],
+            'scales' => $scales,
+        ];
+    }
 }

@@ -30,11 +30,10 @@ class ConsultaControlCalidad
             $text = '%'.trim($filtros['q']).'%';
             $query->where(function (Builder $q) use ($text, $supervision): void {
                 $q->whereHas('area', fn ($area) => $area->where('nombre', 'like', $text)->orWhere('equipo', 'like', $text));
+                $q->orWhereHas('laboratorista', fn ($person) => $person->where('name', 'like', $text));
                 if ($supervision) {
                     $q->orWhereHas('resultados', fn ($r) => $r->where('prueba_nombre', 'like', $text)
                         ->orWhere('nivel_nombre', 'like', $text)->orWhere('lote_numero', 'like', $text));
-                } else {
-                    $q->orWhereHas('laboratorista', fn ($person) => $person->where('name', 'like', $text));
                 }
             });
         }

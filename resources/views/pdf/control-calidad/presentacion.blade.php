@@ -8,8 +8,8 @@
     <p>Guía visual para la revisión de la implementación</p>
     <p>Este documento presenta las cinco pantallas del módulo y el ciclo de trabajo: configurar áreas, productos y pruebas; registrar las mediciones del equipo; consultar gráficos y revisar el historial.</p>
     <p>Las imágenes son capturas reales del módulo en funcionamiento con datos ficticios. El personal realiza los ajustes del equipo conforme a sus procedimientos y registra una nueva medición para seguir sus resultados.</p>
-    <div class="access"><strong>Consulta del historial para supervisores</strong><p>Abra este enlace para revisar las mediciones, seleccionar fechas y realizar búsquedas. No necesita contraseña.</p><a href="{{ $consultaUrl }}">{{ $consultaUrl }}</a></div>
-    <p class="note">El enlace se comparte con las personas encargadas de la revisión. La consulta de supervisión no muestra acciones de modificación ni de exportación.</p>
+    <div class="access"><strong>Consulta del historial para supervisores</strong><p>Abra este enlace para consultar el historial, ver los gráficos y guardar los registros seleccionados en PDF. No necesita contraseña.</p><a href="{{ $consultaUrl }}">{{ $consultaUrl }}</a></div>
+    <p class="note">El enlace se comparte con las personas encargadas de la revisión. Ofrece consulta y exportación de datos; los registros se mantienen sin modificaciones.</p>
 </section>
 @foreach($paginas as [$imagen, $titulo, $texto])
     @php([$ancho, $alto] = getimagesize($imagen))

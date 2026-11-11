@@ -62,8 +62,8 @@ class ControlCalidadSupervisionExportTest extends TestCase
         $before = $this->snapshot();
         $url = route('cci.supervision', ['token' => $this->token], false);
         $this->get($url)->assertOk()->assertSee('HEMOGLOBINA')->assertSee('6,95')->assertSee('Fuera de rango')
-            ->assertSee('6,2')->assertDontSee('Editar')->assertDontSee('Eliminar')->assertDontSee('Exportar')
-            ->assertDontSee('Guardar')->assertDontSee('livewire.js')->assertDontSee($this->actor->email)
+            ->assertSee('6,2')->assertSee('Daniela Martínez')->assertSee('Ver registro')->assertSee('Exportar PDF')
+            ->assertSee('Gráficos de control')->assertSee('data-chart')->assertDontSee('Editar')->assertDontSee('Eliminar')->assertDontSee('livewire.js')->assertDontSee($this->actor->email)
             ->assertHeader('Referrer-Policy', 'no-referrer')->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
         $this->assertGuest();
         $this->post($url, ['valor' => '999'])->assertStatus(405);
@@ -79,6 +79,42 @@ class ControlCalidadSupervisionExportTest extends TestCase
             ->assertOk()->assertSee('6,2')->assertDontSee('6,95');
         Registro::oldest('fecha_hora')->first()->delete();
         $this->get(route('cci.supervision', ['token' => $this->token]))->assertOk()->assertDontSee('6,95');
+    }
+
+    public function test_supervision_exporta_solo_los_registros_seleccionados_con_sus_graficos_y_sin_iniciar_sesion(): void
+    {
+        $before = $this->snapshot();
+        $primero = Registro::oldest('fecha_hora')->first();
+        $segundo = Registro::latest('fecha_hora')->first();
+        $pdf = app(ExportadorControlCalidad::class)->generarSupervision(['ids' => [$primero->id], 'incluir_graficos' => 1], $this->token);
+        $texto = $pdf->getDomPDF()->getDom()->textContent;
+        $this->assertStringContainsString('#'.$primero->id.' ·', $texto);
+        $this->assertStringNotContainsString('#'.$segundo->id.' ·', $texto);
+        $pdf->render();
+        $this->assertSame(2, $pdf->getDomPDF()->getCanvas()->get_page_count());
+        $url = route('cci.supervision.pdf', ['token' => $this->token, 'ids' => [$primero->id], 'incluir_graficos' => 1]);
+        $this->get($url)->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->post($url)->assertStatus(405);
+        $this->assertGuest();
+        $this->assertEquals($before, $this->snapshot());
+    }
+
+    public function test_la_exportacion_publica_valida_enlace_seleccion_y_filtros_y_no_incluye_eliminados(): void
+    {
+        $registro = Registro::oldest('fecha_hora')->first();
+        $this->get(route('cci.supervision.pdf', ['token' => str_repeat('x', 43)]))->assertNotFound();
+        foreach ([['ids' => [$registro->id], 'desde' => '2026-11-11'], ['ids' => [99999]], ['ids' => [$registro->id, $registro->id]], ['ids' => 'todos'], ['desde' => '2026-12-01', 'hasta' => '2026-01-01']] as $params) {
+            $this->getJson(route('cci.supervision.pdf', ['token' => $this->token, ...$params]))->assertUnprocessable();
+        }
+        $registro->delete();
+        $this->getJson(route('cci.supervision.pdf', ['token' => $this->token, 'ids' => [$registro->id]]))->assertUnprocessable();
+        $this->assertGuest();
+    }
+
+    public function test_supervision_busca_al_laboratorista_y_conserva_los_filtros_del_historial(): void
+    {
+        $this->get(route('cci.supervision', ['token' => $this->token, 'q' => 'Daniela', 'area_id' => $this->prueba->area_id, 'laboratorista_id' => $this->actor->id]))
+            ->assertOk()->assertSee('6,95')->assertSee('6,2')->assertSee('Daniela Martínez');
     }
 
     public function test_exportar_exige_sesion_permiso_y_permiso_de_graficos(): void
@@ -138,7 +174,7 @@ class ControlCalidadSupervisionExportTest extends TestCase
         $this->get($url)->assertOk()->assertHeader('content-type', 'application/pdf');
         $pdf = app(\App\ControlCalidad\Services\PresentacionControlCalidad::class)->generar(route('cci.supervision', ['token' => $this->token]));
         $pdf->render();
-        $this->assertSame(12, $pdf->getDomPDF()->getCanvas()->get_page_count());
+        $this->assertSame(13, $pdf->getDomPDF()->getCanvas()->get_page_count());
     }
 
     public function test_el_boton_del_historial_conserva_los_filtros_y_la_busqueda_de_la_tabla(): void

@@ -25,16 +25,31 @@ class ExportadorControlCalidad
         };
         abort_unless($permission === null ? ($user->can(Cci::HISTORY) || $user->can(Cci::EDIT) || $user->can(Cci::DELETE)) : $user->can($permission), 403);
         abort_if($tipo === 'registros' && ! ($user->can(Cci::HISTORY) || $user->can(Cci::EDIT) || $user->can(Cci::DELETE)), 403);
+        abort_if((bool) ($params['incluir_graficos'] ?? false) && ! $user->can(Cci::CHARTS), 403);
+
+        return $this->documento($tipo, $params, $user->name);
+    }
+
+    public function generarSupervision(array $params, string $token)
+    {
+        abort_unless(app(ConsultaControlCalidad::class)->tokenValido($token), 404);
+        $tipo = ! empty($params['prueba_id']) ? 'graficos' : 'historial';
+
+        return $this->documento($tipo, $params, 'Consulta de supervisión', true);
+    }
+
+    private function documento(string $tipo, array $params, string $usuario, bool $supervision = false)
+    {
         $valid = Validator::make($params, [
             'seccion' => ['nullable', Rule::in(['areas', 'productos', 'pruebas'])],
             'registro_id' => [Rule::requiredIf($tipo === 'registro'), 'nullable', 'integer', 'exists:cci_registros,id'],
             'nivel_id' => [Rule::requiredIf($tipo === 'nivel'), 'nullable', 'integer', 'exists:cci_niveles,id'],
             'prueba_id' => [Rule::requiredIf($tipo === 'graficos'), 'nullable', 'integer', 'exists:cci_pruebas,id'],
             'incluir_graficos' => ['nullable', 'boolean'],
+            ...($supervision ? ['ids' => ['nullable', 'array', 'min:1', 'max:300'], 'ids.*' => ['required', 'integer', 'min:1', 'distinct']] : []),
         ])->validate();
         $filtros = app(ConsultaControlCalidad::class)->filtros($params);
         $incluirGraficos = (bool) ($valid['incluir_graficos'] ?? false);
-        abort_if($incluirGraficos && ! $user->can(Cci::CHARTS), 403);
         $titulos = ['resumen' => 'Resumen', 'catalogo' => 'Mantenimiento', 'registros' => 'Últimos registros', 'historial' => 'Historial', 'registro' => 'Registro de control', 'graficos' => 'Gráficos', 'nivel' => 'Gráfico de nivel'];
         $tablas = [];
         $graficos = [];
@@ -45,7 +60,7 @@ class ExportadorControlCalidad
                 $filtros['desde'] ??= now()->subDays(30)->toDateString();
                 $filtros['hasta'] ??= now()->toDateString();
             }
-            $query = app(ConsultaControlCalidad::class)->registros($filtros);
+            $query = app(ConsultaControlCalidad::class)->registros($filtros, $supervision);
             if ($tipo === 'registro') {
                 $query->whereKey($valid['registro_id']);
             }
@@ -54,6 +69,12 @@ class ExportadorControlCalidad
             }
             if ($tipo === 'nivel') {
                 $query->whereHas('resultados', fn ($q) => $q->where('nivel_id', $valid['nivel_id']));
+            }
+            if ($supervision && isset($valid['ids'])) {
+                $query->whereKey($valid['ids']);
+                if ($query->count() !== count($valid['ids'])) {
+                    throw ValidationException::withMessages(['ids' => 'La selección contiene registros eliminados o que no pertenecen a estos filtros. Actualiza la consulta.']);
+                }
             }
             $limit = match ($tipo) {
                 'resumen' => 8, 'registros' => 10, 'registro' => 1, default => 300
@@ -97,7 +118,7 @@ class ExportadorControlCalidad
 
         return Pdf::setOptions(['isRemoteEnabled' => false, 'chroot' => base_path(), 'defaultFont' => 'DejaVu Sans'])
             ->loadView('pdf.control-calidad.exportacion', ['titulo' => $titulos[$tipo], 'tablas' => $tablas, 'graficos' => $graficos,
-                'filtros' => $filtros, 'generado' => now()->format('d/m/Y H:i'), 'usuario' => $user->name])
+                'filtros' => $filtros, 'generado' => now()->format('d/m/Y H:i'), 'usuario' => $usuario])
             ->setPaper('a4', 'landscape');
     }
 

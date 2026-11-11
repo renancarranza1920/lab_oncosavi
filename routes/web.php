@@ -13,6 +13,9 @@ Route::redirect('/', '/admin');
 Route::get('/control-calidad-interno/supervision/{token}', \App\Http\Controllers\ControlCalidad\SupervisionController::class)
     ->where('token', '[A-Za-z0-9_-]{43}')->middleware('throttle:60,1')->name('cci.supervision');
 
+Route::get('/control-calidad-interno/supervision/{token}/pdf', [\App\Http\Controllers\ControlCalidad\SupervisionController::class, 'pdf'])
+    ->where('token', '[A-Za-z0-9_-]{43}')->middleware('throttle:20,1')->name('cci.supervision.pdf');
+
 Route::get('/control-calidad-interno/exportar/{tipo}', [\App\Http\Controllers\ControlCalidad\PdfController::class, 'exportar'])
     ->whereIn('tipo', ['resumen', 'catalogo', 'registros', 'historial', 'registro', 'graficos', 'nivel'])->name('cci.exportar');
 

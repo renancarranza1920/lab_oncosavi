@@ -173,9 +173,20 @@ período, sin recortar datos silenciosamente.
 
 La consulta independiente usa un enlace privado sin contraseña, compartido con
 el propietario en la entrega y dentro del PDF de presentación. Permite ver
-mediciones del historial, filtrar Desde y Hasta y buscar por área, equipo,
-prueba, nivel o lote. Excluye registros eliminados. No inicia una sesión del
-sistema y no tiene rutas de escritura ni botones de exportación o edición.
+una tabla compacta con registro, fecha, área, equipo, laboratorista y estado.
+**Ver registro** abre las lecturas detalladas. Permite filtrar por área,
+laboratorista y fechas, y buscar por los datos de los controles. Excluye
+registros eliminados y no inicia una sesión del sistema.
+
+El apartado **Gráficos** utiliza los mismos datos y motor visual del módulo:
+se seleccionan área y prueba, se conservan los filtros y se puede ampliar cada
+gráfico. La franja de control y las X rojas también aparecen en esta consulta.
+
+Los supervisores pueden guardar PDF del registro individual, de los registros
+seleccionados o de la consulta filtrada, con opción de incluir gráficos. La
+selección se limita a los registros activos que pertenecen a los filtros de esa
+consulta. Estas descargas validan el enlace privado por separado; no habilitan
+la exportación general del panel ni acciones de edición o eliminación.
 
 El repositorio contiene únicamente la huella de verificación del enlace en
 `config/control_calidad.php`. La variable opcional `CCI_SUPERVISION_TOKEN_HASH`
