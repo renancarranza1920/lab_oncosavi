@@ -41,7 +41,7 @@ class ControlCalidadMidpointTest extends TestCase
         $this->actor = User::factory()->create(['name' => 'Daniela Martínez']);
         $this->actor->givePermissionTo(['access_admin_panel', ...Cci::all()]);
         $this->actingAs($this->actor);
-        Filament::setCurrentPanel(Filament::getPanel('control-calidad'));
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         Filament::bootCurrentPanel();
         $this->area = Area::create(['nombre' => 'Hematología', 'equipo' => 'Mindray BC-20']);
         $producto = Producto::create(['nombre' => 'Control hematológico']);

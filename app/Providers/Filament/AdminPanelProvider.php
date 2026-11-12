@@ -29,6 +29,10 @@ use Filament\Http\RouteRegistrar;
 use Filament\Notifications\Notification;
 use Filament\Navigation\NavigationItem;
 use App\ControlCalidad\Filament\Pages\Resumen as ResumenControlCalidad;
+use App\ControlCalidad\Filament\Pages\Mantenimiento as MantenimientoControlCalidad;
+use App\ControlCalidad\Filament\Pages\Registro as RegistroControlCalidad;
+use App\ControlCalidad\Filament\Pages\Graficos as GraficosControlCalidad;
+use App\ControlCalidad\Filament\Pages\Historial as HistorialControlCalidad;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -59,9 +63,14 @@ class AdminPanelProvider extends PanelProvider
         $panel->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages');
         
         $panel->pages([
-    	Dashboard::class,
-    	DetalleOrdenKanban::class,
-	]);
+            Dashboard::class,
+            DetalleOrdenKanban::class,
+            ResumenControlCalidad::class,
+            MantenimientoControlCalidad::class,
+            RegistroControlCalidad::class,
+            GraficosControlCalidad::class,
+            HistorialControlCalidad::class,
+        ]);
         $panel->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets');
         $panel->widgets([
             Widgets\AccountWidget::class,
@@ -100,11 +109,12 @@ class AdminPanelProvider extends PanelProvider
             'Administración',          // Grupo 4 (Abajo)
         ]);
         $panel->navigationItems([
-            NavigationItem::make('QA · Control de calidad')
+            NavigationItem::make(ResumenControlCalidad::getNavigationParentItem())
                 ->group('Gestión de Laboratorio')
                 ->icon('heroicon-o-beaker')
                 ->sort(30)
-                ->url(fn (): string => ResumenControlCalidad::getUrl(panel: 'control-calidad'))
+                ->url(fn (): string => ResumenControlCalidad::getUrl(panel: 'admin'))
+                ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.control-calidad-interno*'))
                 ->visible(fn (): bool => ResumenControlCalidad::canAccess()),
         ]);
         

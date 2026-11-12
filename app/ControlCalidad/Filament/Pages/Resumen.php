@@ -16,23 +16,16 @@ class Resumen extends PaginaControlCalidad implements HasTable
     use InteractsWithTable;
 
     protected static ?string $title = 'Resumen';
+
     protected static ?string $navigationIcon = 'heroicon-o-home';
+
     protected static ?int $navigationSort = 1;
+
     protected static string $view = 'filament.control-calidad.resumen';
 
     public static function permission(): string
     {
         return ControlCalidadPermissions::VIEW;
-    }
-
-    public static function getRoutePath(): string
-    {
-        return '/';
-    }
-
-    public static function getRelativeRouteName(): string
-    {
-        return 'resumen';
     }
 
     public function table(Table $table): Table

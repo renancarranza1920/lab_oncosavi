@@ -116,9 +116,12 @@ class ControlCalidadPermisosTest extends TestCase
         $this->assertNotNull($qa);
         $this->assertTrue($qa->isVisible());
         $this->assertSame('Gestión de Laboratorio', $qa->getGroup());
-        $this->assertSame('/control-calidad-interno', parse_url($qa->getUrl(), PHP_URL_PATH));
-        foreach (Filament::getPanel('control-calidad')->getPages() as $page) {
-            $this->get($page::getUrl(panel: 'control-calidad'))->assertOk();
+        $this->assertSame('/admin/control-calidad-interno', parse_url($qa->getUrl(), PHP_URL_PATH));
+        foreach (Filament::getPanel('admin')->getPages() as $page) {
+            if (! is_subclass_of($page, \App\ControlCalidad\Filament\Pages\PaginaControlCalidad::class)) {
+                continue;
+            }
+            $this->get($page::getUrl(panel: 'admin'))->assertOk();
         }
     }
 

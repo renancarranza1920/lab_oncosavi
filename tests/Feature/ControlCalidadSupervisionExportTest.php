@@ -180,7 +180,7 @@ class ControlCalidadSupervisionExportTest extends TestCase
     public function test_el_boton_del_historial_conserva_los_filtros_y_la_busqueda_de_la_tabla(): void
     {
         $this->actingAs($this->actor);
-        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('control-calidad'));
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('admin'));
         \Filament\Facades\Filament::bootCurrentPanel();
         $page = \Livewire\Livewire::test(\App\ControlCalidad\Filament\Pages\Historial::class)
             ->filterTable('area_id', $this->prueba->area_id)

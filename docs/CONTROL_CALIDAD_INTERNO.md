@@ -1,10 +1,11 @@
 # Control de Calidad Interno
 
-Dirección: <https://applab.oncosavi.com/control-calidad-interno>.
+Dirección: <https://applab.oncosavi.com/admin/control-calidad-interno>.
 
-El módulo se abre desde **QA · Control de calidad**, dentro de **Gestión de
-Laboratorio** en el menú de Oncosavi. Utiliza la misma sesión y conserva estas
-cinco pantallas:
+El módulo está integrado en la barra lateral general de Oncosavi. Dentro de
+**Gestión de Laboratorio**, **QA · Control de calidad** abre un submenú con estas
+cinco pantallas. Al entrar en ellas se conservan el menú del laboratorio y la
+misma sesión:
 
 1. **Resumen:** últimos registros y gráficos.
 2. **Mantenimiento:** tres apartados: Áreas, Productos y Pruebas. Los productos
@@ -20,6 +21,14 @@ cinco pantallas:
 Los formularios, tablas, filtros, modales y gráficos son componentes nativos de
 Filament. Los niveles se agregan manualmente en cada prueba; una prueba de tres
 niveles muestra tres gráficos y una de cuatro muestra cuatro.
+
+Los enlaces anteriores de `/control-calidad-interno` y de sus cinco pantallas
+redirigen a las nuevas direcciones dentro de `/admin/control-calidad-interno`,
+conservando los parámetros de consulta. Los enlaces privados de supervisión y
+las exportaciones PDF conservan sus direcciones.
+
+La integración de QA en la barra lateral general no requiere nuevas migraciones
+ni vaciar datos. Conserva la configuración, las mediciones y los permisos de QA.
 
 ## Actualizar en Oracle
 

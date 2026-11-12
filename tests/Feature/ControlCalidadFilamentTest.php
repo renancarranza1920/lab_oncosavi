@@ -47,7 +47,7 @@ class ControlCalidadFilamentTest extends TestCase
         }
         $this->actor = $this->usuario(Cci::all(), 'Daniela Martínez');
         $this->actingAs($this->actor);
-        Filament::setCurrentPanel(Filament::getPanel('control-calidad'));
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         Filament::bootCurrentPanel();
     }
 
@@ -60,14 +60,20 @@ class ControlCalidadFilamentTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_el_panel_qa_conserva_sus_cinco_paginas_filament(): void
+    public function test_qa_conserva_sus_cinco_paginas_dentro_del_menu_general_de_oncosavi(): void
     {
         $expected = [Resumen::class, Mantenimiento::class, RegistroPagina::class, Graficos::class, Historial::class];
-        $this->assertEqualsCanonicalizing($expected, Filament::getPanel('control-calidad')->getPages());
+        $panel = Filament::getPanel('admin');
+        $this->assertFalse($panel->hasTopNavigation());
+        foreach (['view_any_orden', 'view_orden'] as $permission) {
+            $this->actor->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+        }
         foreach ($expected as $page) {
             $this->assertTrue(is_subclass_of($page, \Filament\Pages\Page::class));
-            $this->assertNotContains($page, Filament::getPanel('admin')->getPages());
-            $this->get($page::getUrl(panel: 'control-calidad'))->assertOk();
+            $this->assertContains($page, $panel->getPages());
+            $this->get($page::getUrl(panel: 'admin'))->assertOk()
+                ->assertSee('fi-sidebar-sub-group-items', false)
+                ->assertSee(\App\Filament\Resources\OrdenResource::getUrl(panel: 'admin'));
         }
         $this->assertCount(8, Cci::all());
         foreach (['/qa-quimica/exportar.csv', '/qa-quimica/informe.pdf', '/qa-quimica/eventos'] as $url) {
@@ -75,22 +81,32 @@ class ControlCalidadFilamentTest extends TestCase
         }
     }
 
+    public function test_los_enlaces_anteriores_redirigen_al_menu_general_y_conservan_los_filtros(): void
+    {
+        foreach (['' => Resumen::class, '/mantenimiento' => Mantenimiento::class,
+            '/registro' => RegistroPagina::class, '/graficos' => Graficos::class, '/historial' => Historial::class] as $path => $page) {
+            $this->get('/control-calidad-interno'.$path.'?seccion=productos')
+                ->assertRedirect($page::getUrl(parameters: ['seccion' => 'productos'], panel: 'admin'));
+        }
+        $this->get('/control-calidad-interno/no-existe')->assertNotFound();
+    }
+
     public function test_la_sesion_y_los_permisos_se_aplican_a_las_cinco_direcciones(): void
     {
         $this->app['auth']->guard('web')->logout();
         foreach ([Resumen::class, Mantenimiento::class, RegistroPagina::class, Graficos::class, Historial::class] as $page) {
-            $this->get($page::getUrl(panel: 'control-calidad'))->assertRedirect('/admin/login');
+            $this->get($page::getUrl(panel: 'admin'))->assertRedirect('/admin/login');
         }
         $reader = $this->usuario([Cci::VIEW], 'Rafael Hernández');
         $this->actingAs($reader);
-        $this->get(Resumen::getUrl(panel: 'control-calidad'))->assertOk();
+        $this->get(Resumen::getUrl(panel: 'admin'))->assertOk();
         foreach ([Mantenimiento::class, RegistroPagina::class, Graficos::class, Historial::class] as $page) {
-            $this->get($page::getUrl(panel: 'control-calidad'))->assertForbidden();
+            $this->get($page::getUrl(panel: 'admin'))->assertForbidden();
         }
         $withoutGeneral = $this->usuario([Cci::REGISTER], 'María Hernández');
-        $this->actingAs($withoutGeneral)->get(RegistroPagina::getUrl(panel: 'control-calidad'))->assertForbidden();
+        $this->actingAs($withoutGeneral)->get(RegistroPagina::getUrl(panel: 'admin'))->assertForbidden();
         $reader->revokePermissionTo('access_admin_panel');
-        $this->actingAs($reader->refresh())->get(Resumen::getUrl(panel: 'control-calidad'))->assertForbidden();
+        $this->actingAs($reader->refresh())->get(Resumen::getUrl(panel: 'admin'))->assertForbidden();
     }
 
     #[DataProvider('cantidadesNiveles')]

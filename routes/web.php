@@ -21,6 +21,9 @@ Route::get('/control-calidad-interno/exportar/{tipo}', [\App\Http\Controllers\Co
 
 Route::get('/control-calidad-interno/presentacion.pdf', [\App\Http\Controllers\ControlCalidad\PdfController::class, 'presentacion'])->name('cci.presentacion');
 
+Route::get('/control-calidad-interno/{pantalla?}', \App\Http\Controllers\ControlCalidad\RedireccionPanelController::class)
+    ->whereIn('pantalla', ['mantenimiento', 'registro', 'graficos', 'historial'])->name('cci.panel.anterior');
+
 Route::prefix('expediente')->name('expediente.')->middleware(\App\Http\Middleware\ExpedientePrivado::class)->group(function () {
     Route::get('/ingresar', [\App\Http\Controllers\Expediente\AuthMedicoController::class, 'create'])->name('login');
     Route::post('/ingresar', [\App\Http\Controllers\Expediente\AuthMedicoController::class, 'store'])->middleware('throttle:20,1')->name('login.store');

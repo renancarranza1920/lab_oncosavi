@@ -10,7 +10,7 @@
         <x-filament::section heading="No hay niveles configurados">
             <p class="text-sm text-gray-600 dark:text-gray-400">Selecciona una prueba con niveles de control para consultar sus gráficos.</p>
             @if(\App\ControlCalidad\Filament\Pages\Graficos::allowed(\App\Support\ControlCalidadPermissions::MAINTAIN))
-                <x-filament::link :href="\App\ControlCalidad\Filament\Pages\Mantenimiento::getUrl(panel: 'control-calidad')">Ir a Mantenimiento</x-filament::link>
+                <x-filament::link :href="\App\ControlCalidad\Filament\Pages\Mantenimiento::getUrl(panel: 'admin')">Ir a Mantenimiento</x-filament::link>
             @endif
         </x-filament::section>
     @endif

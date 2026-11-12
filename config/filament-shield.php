@@ -71,6 +71,8 @@ return [
 
         'pages' => [
             'Dashboard',
+            // QA mantiene sus permisos en la pestaña Control de Calidad Interno.
+            'Resumen', 'Mantenimiento', 'Registro', 'Graficos', 'Historial',
         ],
 
         'widgets' => [

@@ -9,6 +9,15 @@ use Filament\Pages\Page;
 
 abstract class PaginaControlCalidad extends Page
 {
+    protected static ?string $navigationGroup = 'Gestión de Laboratorio';
+
+    protected static ?string $navigationParentItem = 'QA · Control de calidad';
+
+    public static function getSlug(): string
+    {
+        return 'control-calidad-interno'.(static::class === Resumen::class ? '' : '/'.parent::getSlug());
+    }
+
     abstract public static function permission(): string;
 
     public static function allowed(string $permission): bool
