@@ -10,7 +10,9 @@ use App\Support\ControlCalidadPermissions as Cci;
 use Database\Seeders\RolesPermisosSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -35,7 +37,7 @@ class ControlCalidadPermisosTest extends TestCase
         $unrelated = Permission::findOrCreate('permiso_de_otro_modulo', 'web');
         $admin = Role::findByName('admin', 'web');
         $admin->givePermissionTo($unrelated);
-        $laboratorista = Role::findByName('Laboratorista', 'web');
+        $laboratorista = Role::findOrCreate('Consulta CCI personalizada', 'web');
         $laboratorista->givePermissionTo([Cci::VIEW, $unrelated]);
         $before = $laboratorista->fresh()->permissions->pluck('name')->sort()->values()->all();
 
@@ -94,6 +96,49 @@ class ControlCalidadPermisosTest extends TestCase
             ->call('save')->assertHasNoFormErrors();
         $this->assertFalse($role->fresh()->hasPermissionTo(Cci::EXPORT));
         $this->assertTrue($role->fresh()->hasPermissionTo('view_any_orden'));
+    }
+
+    #[DataProvider('rolesQa')]
+    public function test_qa_habilita_los_roles_del_laboratorio_y_se_abre_desde_el_menu(string $name): void
+    {
+        $role = Role::findOrCreate($name, 'web');
+        $unrelated = Permission::findOrCreate('permiso_existente_del_laboratorio', 'web');
+        $role->givePermissionTo($unrelated);
+        Cci::register();
+        Cci::register();
+        $this->assertTrue($role->fresh()->hasAllPermissions(['access_admin_panel', ...Cci::all()]));
+        $this->assertTrue($role->fresh()->hasPermissionTo($unrelated));
+        $user = User::factory()->create();
+        $user->assignRole($role);
+        $this->actingAs($user);
+        $items = collect(Filament::getPanel('admin')->getNavigationItems());
+        $qa = $items->first(fn ($item) => str_starts_with($item->getLabel(), 'QA'));
+        $this->assertNotNull($qa);
+        $this->assertTrue($qa->isVisible());
+        $this->assertSame('Gestión de Laboratorio', $qa->getGroup());
+        $this->assertSame('/control-calidad-interno', parse_url($qa->getUrl(), PHP_URL_PATH));
+        foreach (Filament::getPanel('control-calidad')->getPages() as $page) {
+            $this->get($page::getUrl(panel: 'control-calidad'))->assertOk();
+        }
+    }
+
+    public static function rolesQa(): array
+    {
+        return [['admin'], ['Laboratorista'], ['super_admin'], ['superadmin']];
+    }
+
+    public function test_el_menu_qa_no_aparece_sin_su_permiso_y_la_migracion_no_borra_datos(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('Recepcion');
+        $this->actingAs($user);
+        $qa = collect(Filament::getPanel('admin')->getNavigationItems())->first(fn ($item) => str_starts_with($item->getLabel(), 'QA'));
+        $this->assertFalse($qa->isVisible());
+        $before = DB::table('cci_areas')->insertGetId(['nombre' => 'Área existente', 'equipo' => 'Equipo existente', 'created_at' => now(), 'updated_at' => now()]);
+        $migration = require database_path('migrations/2026_11_12_000001_enable_quality_control_for_lab_roles.php');
+        $migration->up();
+        $this->assertDatabaseHas('cci_areas', ['id' => $before, 'nombre' => 'Área existente']);
+        $this->assertFalse(Role::findByName('Recepcion')->hasPermissionTo(Cci::VIEW));
     }
 
     public function test_se_puede_crear_un_rol_con_permisos_del_modulo_y_editar_no_se_habilita_por_registrar(): void

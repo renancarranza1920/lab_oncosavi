@@ -27,6 +27,8 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Http\RouteRegistrar; 
 use Filament\Notifications\Notification;
+use Filament\Navigation\NavigationItem;
+use App\ControlCalidad\Filament\Pages\Resumen as ResumenControlCalidad;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -96,6 +98,14 @@ class AdminPanelProvider extends PanelProvider
             'Reportes',
             'Catálogos y Ajustes',     // Grupo 3
             'Administración',          // Grupo 4 (Abajo)
+        ]);
+        $panel->navigationItems([
+            NavigationItem::make('QA · Control de calidad')
+                ->group('Gestión de Laboratorio')
+                ->icon('heroicon-o-beaker')
+                ->sort(30)
+                ->url(fn (): string => ResumenControlCalidad::getUrl(panel: 'control-calidad'))
+                ->visible(fn (): bool => ResumenControlCalidad::canAccess()),
         ]);
         
         

@@ -60,7 +60,7 @@ class ControlCalidadFilamentTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_el_panel_tiene_cinco_paginas_filament_y_no_se_agrega_al_menu_principal(): void
+    public function test_el_panel_qa_conserva_sus_cinco_paginas_filament(): void
     {
         $expected = [Resumen::class, Mantenimiento::class, RegistroPagina::class, Graficos::class, Historial::class];
         $this->assertEqualsCanonicalizing($expected, Filament::getPanel('control-calidad')->getPages());

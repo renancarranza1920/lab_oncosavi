@@ -2,8 +2,9 @@
 
 Dirección: <https://applab.oncosavi.com/control-calidad-interno>.
 
-El módulo es un panel independiente de Filament. Utiliza el inicio de sesión de
-Oncosavi y no añade accesos al menú principal. Tiene estas cinco pantallas:
+El módulo se abre desde **QA · Control de calidad**, dentro de **Gestión de
+Laboratorio** en el menú de Oncosavi. Utiliza la misma sesión y conserva estas
+cinco pantallas:
 
 1. **Resumen:** últimos registros y gráficos.
 2. **Mantenimiento:** tres apartados: Áreas, Productos y Pruebas. Los productos
@@ -46,6 +47,7 @@ Ejecuta el bloque completo por SSH:
   docker compose exec -T --user www-data app php artisan migrate --path=database/migrations/2026_11_11_000001_create_internal_quality_control_tables.php --force
   docker compose exec -T --user www-data app php artisan migrate --path=database/migrations/2026_11_11_000002_remove_unrequested_control_calidad_permissions.php --force
   docker compose exec -T --user www-data app php artisan migrate --path=database/migrations/2026_11_11_000003_add_control_calidad_export_permission.php --force
+  docker compose exec -T --user www-data app php artisan migrate --path=database/migrations/2026_11_12_000001_enable_quality_control_for_lab_roles.php --force
   docker compose exec -T --user www-data app php artisan permission:cache-reset
 )
 ```
@@ -55,6 +57,8 @@ Oncosavi. La segunda registra los siete permisos y retira los permisos de las
 funciones descartadas de la implementación anterior. Los permisos de los demás
 módulos se conservan. La tercera agrega el permiso de exportación PDF, que se
 concede inicialmente a los administradores existentes.
+La cuarta habilita los permisos completos de QA a los roles existentes Admin,
+Laboratorista y Superadmin. No elimina datos ni reemplaza permisos clínicos.
 
 La instalación comienza sin registros ni catálogos de demostración. Los datos se
 configuran desde **Mantenimiento**. No se ejecutan seeders ni se modifican las
@@ -63,7 +67,7 @@ configuran desde **Mantenimiento**. No se ejecutan seeders ni se modifican las
 La implementación anterior y sus rutas `/qa-quimica` se retiraron. Sus archivos
 de almacenamiento no se consultan ni se importan en este panel nuevo. Los
 comandos antiguos `oncosavi:qa-demo-preparar` y sus alias también se retiraron;
-esta versión se instala con las tres migraciones indicadas.
+esta versión se instala con las cuatro migraciones indicadas.
 
 ## Configurar los permisos
 
@@ -80,7 +84,7 @@ junto a **Permisos personalizados**:
 - Exportar PDF de datos y gráficos.
 
 El permiso de acceso es necesario junto con cada permiso de acción. Los
-administradores existentes reciben los permisos iniciales; los demás roles se
+roles Admin, Laboratorista y Superadmin reciben los permisos iniciales; los demás roles se
 habilitan desde esta pestaña. Las acciones se verifican también en el servidor.
 
 ## Empezar a utilizarlo
@@ -115,6 +119,9 @@ de la medición. La eliminación retira el registro de las consultas, del histor
 y de los gráficos.
 
 ## Datos ficticios para probar el módulo
+
+La carga de demostración es opcional y se utiliza antes de iniciar la captura
+real. La puesta en producción se deja vacía siguiendo el apartado siguiente.
 
 Después de actualizar, ejecuta por SSH:
 
@@ -203,5 +210,28 @@ breves. Todas las capturas muestran datos ficticios.
 La dirección privada de descarga se entrega al propietario. Para descargar el
 PDF desde el sistema se requiere sesión, acceso al módulo, mantenimiento y
 exportación. El documento incluye el enlace de consulta sin contraseña.
-Esta actualización conserva los datos de demostración existentes; se pueden
-mantener durante la revisión de los supervisores y limpiar al finalizar.
+Las actualizaciones conservan los datos existentes. Para iniciar el trabajo
+real con QA vacío, utiliza una sola vez el comando del siguiente apartado.
+
+## Iniciar QA vacío para la configuración manual
+
+Después de actualizar y aplicar la migración de acceso a los roles, ejecuta una
+sola vez:
+
+```bash
+cd ~/lab_oncosavi && docker compose exec -T --user www-data app php artisan oncosavi:cci-vaciar --force
+```
+
+Este comando elimina toda la configuración y las mediciones de QA: áreas,
+equipos, productos, lotes, pruebas, niveles, valores y registros de control,
+incluidos los registros eliminados desde la interfaz. Los usuarios, permisos,
+pacientes, órdenes y resultados clínicos se conservan. Antes de borrar se
+guarda un respaldo JSON privado en `storage/app/private/cci-respaldos/`.
+
+La limpieza no se ejecuta al actualizar ni al aplicar migraciones. No repitas
+este comando después de que el laboratorio comience su carga real. Para las
+actualizaciones siguientes utiliza únicamente los comandos de actualización.
+
+Con QA vacío, el laboratorista empieza en **Mantenimiento**: registra las áreas
+y equipos, agrega los productos con sus lotes y configura las pruebas, unidades
+y niveles. Después puede comenzar a ingresar mediciones desde **Registro**.

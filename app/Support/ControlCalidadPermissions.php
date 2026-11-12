@@ -61,7 +61,10 @@ final class ControlCalidadPermissions
     {
         DB::transaction(function (): void {
             $permissions = collect(self::all())->map(fn (string $name): Permission => Permission::findOrCreate($name, 'web'));
-            Role::query()->where('guard_name', 'web')->whereRaw('LOWER(name) = ?', ['admin'])
+            $panel = Permission::findOrCreate('access_admin_panel', 'web');
+            $permissions->push($panel);
+            $roles = array_unique(['admin', 'laboratorista', 'superadmin', mb_strtolower((string) config('filament-shield.super_admin.name', 'super_admin'))]);
+            Role::query()->where('guard_name', 'web')->whereIn(DB::raw('LOWER(name)'), $roles)
                 ->get()->each(fn (Role $role) => $role->givePermissionTo($permissions));
         });
 
