@@ -58,6 +58,7 @@ Ejecuta el bloque completo por SSH:
   docker compose exec -T --user www-data app php artisan migrate --path=database/migrations/2026_11_11_000002_remove_unrequested_control_calidad_permissions.php --force
   docker compose exec -T --user www-data app php artisan migrate --path=database/migrations/2026_11_11_000003_add_control_calidad_export_permission.php --force
   docker compose exec -T --user www-data app php artisan migrate --path=database/migrations/2026_11_12_000001_enable_quality_control_for_lab_roles.php --force
+  docker compose exec -T --user www-data app php artisan migrate --path=database/migrations/2026_11_12_000002_add_granular_quality_control_maintenance_permissions.php --force
   docker compose exec -T --user www-data app php artisan permission:cache-reset
 )
 ```
@@ -69,6 +70,10 @@ módulos se conservan. La tercera agrega el permiso de exportación PDF, que se
 concede inicialmente a los administradores existentes.
 La cuarta habilita los permisos completos de QA a los roles existentes Admin,
 Laboratorista y Superadmin. No elimina datos ni reemplaza permisos clínicos.
+La quinta separa las acciones de mantenimiento y conserva una sola vez los
+accesos de quienes ya tenían la administración completa, incluidos los permisos
+asignados directamente. Los usuarios de un rol siguen heredando sus permisos;
+no reciben copias directas de las asignaciones de ese rol.
 
 La instalación comienza sin registros ni catálogos de demostración. Los datos se
 configuran desde **Mantenimiento**. No se ejecutan seeders ni se modifican las
@@ -77,7 +82,7 @@ configuran desde **Mantenimiento**. No se ejecutan seeders ni se modifican las
 La implementación anterior y sus rutas `/qa-quimica` se retiraron. Sus archivos
 de almacenamiento no se consultan ni se importan en este panel nuevo. Los
 comandos antiguos `oncosavi:qa-demo-preparar` y sus alias también se retiraron;
-esta versión se instala con las cuatro migraciones indicadas.
+esta versión se instala con las cinco migraciones indicadas.
 
 ## Configurar los permisos
 
@@ -85,7 +90,10 @@ Abre **Roles** en Oncosavi y selecciona la pestaña **Control de Calidad Interno
 junto a **Permisos personalizados**:
 
 - Acceder al módulo y ver el resumen.
-- Administrar mantenimiento.
+- Consultar mantenimiento.
+- Áreas y equipos: agregar, editar o eliminar, de forma independiente.
+- Productos y lotes: agregar, editar o eliminar, de forma independiente.
+- Pruebas y niveles: agregar, editar o eliminar, de forma independiente.
 - Registrar controles.
 - Editar registros.
 - Eliminar registros.
@@ -96,6 +104,22 @@ junto a **Permisos personalizados**:
 El permiso de acceso es necesario junto con cada permiso de acción. Los
 roles Admin, Laboratorista y Superadmin reciben los permisos iniciales; los demás roles se
 habilitan desde esta pestaña. Las acciones se verifican también en el servidor.
+
+Hay 17 permisos de QA. El permiso **Consultar mantenimiento** permite abrir sus
+tres apartados, pero no autoriza cambios por sí solo. Además del acceso al módulo
+y de consulta, marca únicamente las acciones que necesite cada rol. Por ejemplo,
+puedes permitir editar productos sin permitir agregar o eliminar productos, o
+permitir administrar áreas sin permitir cambiar pruebas.
+
+Laboratorista, Admin y Superadmin conservan todos los permisos iniciales. Después
+de actualizar, el administrador puede desmarcar cualquier acción desde Roles;
+abrir las pantallas no vuelve a conceder los permisos retirados. Los permisos de
+edición y eliminación de **registros** son independientes de los de mantenimiento.
+
+Eliminar una configuración requiere su permiso y confirmación. No se permite
+eliminar áreas con pruebas o controles, lotes utilizados por niveles, ni pruebas
+con mediciones guardadas, incluso si esas mediciones se eliminaron del historial.
+Los catálogos y mediciones existentes no se borran al aplicar esta actualización.
 
 ## Empezar a utilizarlo
 

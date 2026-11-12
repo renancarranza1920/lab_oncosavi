@@ -75,7 +75,7 @@ class ControlCalidadFilamentTest extends TestCase
                 ->assertSee('data-group-label="QA · Control de calidad"', false)
                 ->assertSee(\App\Filament\Resources\OrdenResource::getUrl(panel: 'admin'));
         }
-        $this->assertCount(8, Cci::all());
+        $this->assertCount(17, Cci::all());
         foreach (['/qa-quimica/exportar.csv', '/qa-quimica/informe.pdf', '/qa-quimica/eventos'] as $url) {
             $this->get($url)->assertNotFound();
         }

@@ -190,7 +190,8 @@ class DemoControlCalidadService
         $candidates = $candidates->sortBy(fn (User $user): int => $user->roles->contains(fn ($role) => mb_strtolower($role->name) === 'admin') ? 0 : 1);
         foreach ($candidates as $user) {
             if ($user->can('access_admin_panel') && $user->can(Permission::VIEW)
-                && $user->can(Permission::MAINTAIN) && $user->can(Permission::REGISTER)) {
+                && $user->can(Permission::MAINTAIN) && $user->hasAllPermissions([Permission::CREATE_AREA, Permission::CREATE_PRODUCT, Permission::CREATE_TEST])
+                && $user->can(Permission::REGISTER)) {
                 return $user;
             }
         }

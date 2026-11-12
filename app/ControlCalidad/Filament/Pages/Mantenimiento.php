@@ -18,6 +18,7 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions\CreateAction;
+use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -95,6 +96,7 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
             ->defaultSort($this->seccion === 'productos' ? 'numero' : 'nombre')
             ->emptyStateHeading('Todavía no hay '.mb_strtolower($this->secciones()[$this->seccion]))
             ->emptyStateDescription(fn (): string => match (true) {
+                ! $this->puedeAccion('create') => 'No hay registros para mostrar.',
                 $this->seccion === 'pruebas' && ! Area::query()->exists() => 'Primero registra un área y equipo.',
                 $this->seccion === 'pruebas' && ! Lote::query()->exists() => 'Registra el producto y su lote para configurar los niveles de la prueba.',
                 default => 'Usa el botón de agregar para registrar el primero.',
@@ -108,7 +110,7 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
                     ->form($this->campos())
                     ->modalWidth($this->seccion === 'pruebas' ? '6xl' : '2xl')
                     ->createAnother(false)
-                    ->authorize(fn (): bool => static::canAccess())
+                    ->authorize(fn (): bool => $this->puedeAccion('create'))
                     ->using(fn (array $data): Model => $this->guardarCatalogo($data))
                     ->successNotificationTitle('Registro guardado'),
             ])
@@ -119,7 +121,7 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
                     ->modalSubmitActionLabel('Guardar cambios')
                     ->form($this->campos())
                     ->modalWidth($this->seccion === 'pruebas' ? '6xl' : '2xl')
-                    ->authorize(fn (): bool => static::canAccess())
+                    ->authorize(fn (): bool => $this->puedeAccion('edit'))
                     ->mutateRecordDataUsing(function (array $data, Model $record): array {
                         if ($record instanceof Lote) {
                             $data['producto_nombre'] = $record->producto->nombre;
@@ -139,6 +141,26 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
                     })
                     ->using(fn (Model $record, array $data): Model => $this->guardarCatalogo($data, $record))
                     ->successNotificationTitle('Cambios guardados'),
+                DeleteAction::make('eliminar')
+                    ->label('Eliminar')
+                    ->modalHeading(fn (Model $record): string => $record instanceof Lote
+                        ? 'Eliminar '.$record->producto->nombre.' · lote '.$record->numero : 'Eliminar '.$record->nombre)
+                    ->requiresConfirmation()
+                    ->modalDescription('Solo se puede eliminar si no está vinculado a otras configuraciones o a mediciones guardadas.')
+                    ->authorize(fn (): bool => $this->puedeAccion('delete'))
+                    ->using(function (Model $record, DeleteAction $action): bool {
+                        $this->authorizeMaintenance('delete');
+                        try {
+                            app(ControlCalidadService::class)->eliminarCatalogo($record, auth()->user());
+                        } catch (ValidationException $exception) {
+                            Notification::make()->danger()->title('No se puede eliminar')
+                                ->body($exception->validator->errors()->first())->send();
+                            $action->halt();
+                        }
+
+                        return true;
+                    })
+                    ->successNotificationTitle('Registro eliminado'),
             ])
             ->paginated([10, 25, 50]);
     }
@@ -264,7 +286,7 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
 
     private function guardarCatalogo(array $data, ?Model $record = null): Model
     {
-        $this->authorizeMaintenance();
+        $this->authorizeMaintenance($record === null ? 'create' : 'edit');
 
         try {
             if ($this->seccion === 'productos') {
@@ -320,8 +342,13 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
         });
     }
 
-    private function authorizeMaintenance(): void
+    public function puedeAccion(string $action): bool
     {
-        abort_unless(static::canAccess(), 403);
+        return static::canAccess() && static::allowed(ControlCalidadPermissions::maintenancePermission($this->seccion, $action));
+    }
+
+    private function authorizeMaintenance(?string $action = null): void
+    {
+        abort_unless($action === null ? static::canAccess() : $this->puedeAccion($action), 403);
     }
 }

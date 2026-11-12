@@ -2,12 +2,16 @@
 
 namespace App\ControlCalidad\Services;
 
+use App\ControlCalidad\Models\Area;
+use App\ControlCalidad\Models\Lote;
 use App\ControlCalidad\Models\Nivel;
+use App\ControlCalidad\Models\Producto;
 use App\ControlCalidad\Models\Prueba;
 use App\ControlCalidad\Models\Registro;
 use App\ControlCalidad\Models\ValorControl;
 use App\Models\User;
 use App\Support\ControlCalidadPermissions as Permission;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -18,6 +22,7 @@ class ControlCalidadService
     public function guardarPrueba(array $data, User $actor, ?Prueba $prueba = null): Prueba
     {
         $this->autorizar($actor, Permission::MAINTAIN);
+        $this->autorizar($actor, $prueba === null ? Permission::CREATE_TEST : Permission::EDIT_TEST);
         foreach (['nombre', 'unidad'] as $field) {
             if (isset($data[$field]) && is_string($data[$field])) {
                 $data[$field] = trim($data[$field]);
@@ -197,6 +202,36 @@ class ControlCalidadService
             $current = Registro::query()->lockForUpdate()->findOrFail($registro->id);
             $current->forceFill(['actualizado_por_id' => $actor->id])->save();
             $current->delete();
+        });
+    }
+
+    public function eliminarCatalogo(Model $record, User $actor): void
+    {
+        $section = match (true) {
+            $record instanceof Area => 'areas',
+            $record instanceof Lote => 'productos',
+            $record instanceof Prueba => 'pruebas',
+            default => abort(404),
+        };
+        $this->autorizar($actor, Permission::MAINTAIN);
+        $this->autorizar($actor, Permission::maintenancePermission($section, 'delete'));
+
+        DB::transaction(function () use ($record): void {
+            $current = $record->newQuery()->lockForUpdate()->findOrFail($record->getKey());
+            if ($current instanceof Area && (Prueba::where('area_id', $current->id)->exists()
+                || Registro::withTrashed()->where('area_id', $current->id)->exists())) {
+                $this->invalid('catalogo', 'El área está vinculada a pruebas o a controles guardados. Sus datos se conservan.');
+            }
+            if ($current instanceof Lote && ValorControl::where('lote_id', $current->id)->exists()) {
+                $this->invalid('catalogo', 'El producto y lote están vinculados a niveles de una prueba. Sus datos se conservan.');
+            }
+            if ($current instanceof Prueba && $current->resultados()->exists()) {
+                $this->invalid('catalogo', 'La prueba tiene mediciones guardadas. Sus niveles y su historial se conservan.');
+            }
+            $current->delete();
+            if ($current instanceof Lote) {
+                Producto::whereKey($current->producto_id)->whereDoesntHave('lotes')->delete();
+            }
         });
     }
 
