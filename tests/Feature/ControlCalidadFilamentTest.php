@@ -72,7 +72,7 @@ class ControlCalidadFilamentTest extends TestCase
             $this->assertTrue(is_subclass_of($page, \Filament\Pages\Page::class));
             $this->assertContains($page, $panel->getPages());
             $this->get($page::getUrl(panel: 'admin'))->assertOk()
-                ->assertSee('fi-sidebar-sub-group-items', false)
+                ->assertSee('data-group-label="QA · Control de calidad"', false)
                 ->assertSee(\App\Filament\Resources\OrdenResource::getUrl(panel: 'admin'));
         }
         $this->assertCount(8, Cci::all());

@@ -111,12 +111,10 @@ class ControlCalidadPermisosTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole($role);
         $this->actingAs($user);
-        $items = collect(Filament::getPanel('admin')->getNavigationItems());
-        $qa = $items->first(fn ($item) => str_starts_with($item->getLabel(), 'QA'));
+        $qa = collect(Filament::getNavigation())->first(fn ($group) => $group->getLabel() === 'QA · Control de calidad');
         $this->assertNotNull($qa);
-        $this->assertTrue($qa->isVisible());
-        $this->assertSame('Gestión de Laboratorio', $qa->getGroup());
-        $this->assertSame('/admin/control-calidad-interno', parse_url($qa->getUrl(), PHP_URL_PATH));
+        $this->assertTrue($qa->isCollapsible());
+        $this->assertCount(5, $qa->getItems());
         foreach (Filament::getPanel('admin')->getPages() as $page) {
             if (! is_subclass_of($page, \App\ControlCalidad\Filament\Pages\PaginaControlCalidad::class)) {
                 continue;
@@ -135,8 +133,8 @@ class ControlCalidadPermisosTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('Recepcion');
         $this->actingAs($user);
-        $qa = collect(Filament::getPanel('admin')->getNavigationItems())->first(fn ($item) => str_starts_with($item->getLabel(), 'QA'));
-        $this->assertFalse($qa->isVisible());
+        $qa = collect(Filament::getNavigation())->first(fn ($group) => $group->getLabel() === 'QA · Control de calidad');
+        $this->assertNull($qa);
         $before = DB::table('cci_areas')->insertGetId(['nombre' => 'Área existente', 'equipo' => 'Equipo existente', 'created_at' => now(), 'updated_at' => now()]);
         $migration = require database_path('migrations/2026_11_12_000001_enable_quality_control_for_lab_roles.php');
         $migration->up();

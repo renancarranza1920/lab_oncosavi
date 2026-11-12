@@ -27,7 +27,6 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Http\RouteRegistrar; 
 use Filament\Notifications\Notification;
-use Filament\Navigation\NavigationItem;
 use App\ControlCalidad\Filament\Pages\Resumen as ResumenControlCalidad;
 use App\ControlCalidad\Filament\Pages\Mantenimiento as MantenimientoControlCalidad;
 use App\ControlCalidad\Filament\Pages\Registro as RegistroControlCalidad;
@@ -102,20 +101,12 @@ class AdminPanelProvider extends PanelProvider
         $panel->favicon(asset(config('laboratorio.logo')));
 
         $panel->navigationGroups([
-            'Atención al Paciente',    // Grupo 1 (Arriba)
-            'Gestión de Laboratorio',  // Grupo 2
+            'Atención al Paciente',
+            'Gestión de Laboratorio',
+            'QA · Control de calidad',
             'Reportes',
-            'Catálogos y Ajustes',     // Grupo 3
-            'Administración',          // Grupo 4 (Abajo)
-        ]);
-        $panel->navigationItems([
-            NavigationItem::make(ResumenControlCalidad::getNavigationParentItem())
-                ->group('Gestión de Laboratorio')
-                ->icon('heroicon-o-beaker')
-                ->sort(30)
-                ->url(fn (): string => ResumenControlCalidad::getUrl(panel: 'admin'))
-                ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.control-calidad-interno*'))
-                ->visible(fn (): bool => ResumenControlCalidad::canAccess()),
+            'Catálogos y Ajustes',
+            'Administración',
         ]);
         
         

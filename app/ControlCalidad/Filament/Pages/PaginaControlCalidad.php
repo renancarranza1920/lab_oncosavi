@@ -9,9 +9,7 @@ use Filament\Pages\Page;
 
 abstract class PaginaControlCalidad extends Page
 {
-    protected static ?string $navigationGroup = 'Gestión de Laboratorio';
-
-    protected static ?string $navigationParentItem = 'QA · Control de calidad';
+    protected static ?string $navigationGroup = 'QA · Control de calidad';
 
     public static function getSlug(): string
     {

@@ -2,10 +2,11 @@
 
 Dirección: <https://applab.oncosavi.com/admin/control-calidad-interno>.
 
-El módulo está integrado en la barra lateral general de Oncosavi. Dentro de
-**Gestión de Laboratorio**, **QA · Control de calidad** abre un submenú con estas
-cinco pantallas. Al entrar en ellas se conservan el menú del laboratorio y la
-misma sesión:
+El módulo está integrado en la barra lateral general de Oncosavi. Justo después
+de **Gestión de Laboratorio**, el grupo **QA · Control de calidad** reúne estas
+cinco pantallas. Su encabezado y su flecha permiten mostrar u ocultar las
+opciones sin cambiar de pantalla. El navegador recuerda si se dejó abierto o
+cerrado. Al entrar en ellas se conservan el menú del laboratorio y la misma sesión:
 
 1. **Resumen:** últimos registros y gráficos.
 2. **Mantenimiento:** tres apartados: Áreas, Productos y Pruebas. Los productos
