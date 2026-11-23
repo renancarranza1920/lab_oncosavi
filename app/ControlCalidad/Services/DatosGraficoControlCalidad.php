@@ -41,7 +41,8 @@ class DatosGraficoControlCalidad
             $label = 'Lote '.$group['lote'].' · '.$group['unidad'];
             $axes[$group['unidad']] ??= $axes === [] ? 'y' : 'unidad-'.substr(hash('sha256', $group['unidad']), 0, 8);
             $maximoIndex = count($datasets) + 3;
-            foreach (['valor' => ['Medido', '#2563eb'], 'esperado' => ['Esperado', '#0f766e'], 'minimo' => ['Mínimo', '#64748b'], 'maximo' => ['Máximo', '#64748b']] as $field => [$name, $color]) {
+            foreach (['valor' => ['Medido', '#2563eb', []], 'esperado' => ['Esperado', '#7c3aed', []],
+                'minimo' => ['Mínimo', '#0f766e', [4, 4]], 'maximo' => ['Máximo', '#d97706', [9, 4]]] as $field => [$name, $color, $dash]) {
                 $values = array_fill(0, $lecturas->count(), null);
                 $pointColors = [];
                 $pointStyles = [];
@@ -54,14 +55,17 @@ class DatosGraficoControlCalidad
                 }
                 $datasets[] = [
                     'label' => $name.' · '.$label,
+                    'cciKind' => $field,
+                    'cciLabel' => $name,
                     'data' => $values,
                     'borderColor' => $color,
-                    'backgroundColor' => $field === 'minimo' ? 'rgba(20, 184, 166, 0.16)' : $color,
+                    'backgroundColor' => $field === 'minimo' ? 'rgba(15, 118, 110, 0.12)' : $color,
                     'fill' => $field === 'minimo' ? ['target' => $maximoIndex] : false,
-                    'borderWidth' => $field === 'valor' ? 2 : 1,
-                    'borderDash' => $field === 'valor' ? [] : [5, 4],
+                    'borderWidth' => $field === 'valor' ? 2.5 : 2,
+                    'borderDash' => $dash,
                     'pointRadius' => $field === 'valor' ? 4 : 0,
                     'pointHoverRadius' => $field === 'valor' ? 6 : 0,
+                    'pointHitRadius' => $field === 'valor' ? 6 : 0,
                     'pointBackgroundColor' => $field === 'valor' ? array_replace(array_fill(0, $lecturas->count(), $color), $pointColors) : $color,
                     'pointBorderColor' => $field === 'valor' ? array_replace(array_fill(0, $lecturas->count(), $color), $pointColors) : $color,
                     'pointBorderWidth' => $field === 'valor' ? 2 : 1,
@@ -90,13 +94,15 @@ class DatosGraficoControlCalidad
                 'beginAtZero' => false,
                 'title' => ['display' => true, 'text' => $dataset['unidad']],
                 'grid' => ['drawOnChartArea' => count($scales) === 1],
+                'ticks' => ['precision' => 2],
             ];
         }
 
         return [
             'maintainAspectRatio' => false,
-            'interaction' => ['mode' => 'index', 'intersect' => false],
-            'plugins' => ['legend' => ['position' => 'bottom', 'labels' => ['boxWidth' => 12]]],
+            'interaction' => ['mode' => 'nearest', 'intersect' => true],
+            'plugins' => ['legend' => ['display' => false], 'cci' => ['enabled' => true],
+                'tooltip' => ['mode' => 'nearest', 'intersect' => true]],
             'scales' => $scales,
         ];
     }

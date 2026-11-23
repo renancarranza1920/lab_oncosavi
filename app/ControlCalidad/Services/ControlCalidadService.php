@@ -106,13 +106,8 @@ class ControlCalidadService
     {
         $bounds = [];
         foreach ([$minimo, $maximo] as $raw) {
-            if ((! is_string($raw) && ! is_int($raw) && ! is_float($raw))
-                || strlen(trim((string) $raw)) > 40
-                || ! preg_match('/^[+-]?\d+(?:[.,]\d{1,6})?$/D', trim((string) $raw))) {
-                return null;
-            }
-            $value = str_replace(',', '.', trim((string) $raw));
-            if (bccomp($value, '1000000000000', 6) > 0 || bccomp($value, '-1000000000000', 6) < 0) {
+            $value = NumeroControlCalidad::normalizar($raw);
+            if ($value === null) {
                 return null;
             }
             $bounds[] = $value;
@@ -121,10 +116,7 @@ class ControlCalidadService
             return null;
         }
 
-        $middle = bcdiv(bcadd($bounds[0], $bounds[1], 6), '2', 7);
-        $rounding = bccomp($middle, '0', 7) < 0 ? '-0.0000005' : '0.0000005';
-
-        return bcadd(bcadd($middle, $rounding, 7), '0', 6);
+        return NumeroControlCalidad::normalizar(bcdiv(bcadd($bounds[0], $bounds[1], 2), '2', 3));
     }
 
     public function guardar(array $data, User $actor, ?Registro $registro = null): Registro
@@ -261,7 +253,12 @@ class ControlCalidadService
             $this->invalid($field, 'El número supera el valor permitido.');
         }
 
-        return $value;
+        $normalized = NumeroControlCalidad::normalizar($value);
+        if ($normalized === null) {
+            $this->invalid($field, 'El número supera el valor permitido.');
+        }
+
+        return $normalized;
     }
 
     private function invalid(string $field, string $message): never

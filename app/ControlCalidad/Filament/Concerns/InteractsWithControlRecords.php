@@ -6,6 +6,7 @@ use App\ControlCalidad\Models\Area;
 use App\ControlCalidad\Models\Nivel;
 use App\ControlCalidad\Models\Registro as ControlRegistro;
 use App\ControlCalidad\Services\ControlCalidadService;
+use App\ControlCalidad\Services\NumeroControlCalidad;
 use App\Support\ControlCalidadPermissions as Permission;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
@@ -60,6 +61,13 @@ trait InteractsWithControlRecords
                         TextInput::make('valor')->label('Resultado')->required()->inputMode('decimal')
                             ->maxLength(40)->autocomplete(false)
                             ->regex('/^[+-]?\d+(?:[.,]\d{1,6})?$/D')
+                            ->formatStateUsing(fn ($state): ?string => filled($state) ? NumeroControlCalidad::mostrar($state) : null)
+                            ->live(onBlur: true)->afterStateUpdated(function ($state, Set $set): void {
+                                $value = NumeroControlCalidad::normalizar($state);
+                                if ($value !== null) {
+                                    $set('valor', str_replace('.', ',', $value));
+                                }
+                            })
                             ->validationMessages(['regex' => 'Escribe un número con coma o punto decimal.']),
                     ])->columns(1),
             ]),
@@ -89,7 +97,7 @@ trait InteractsWithControlRecords
             'observaciones' => $registro->observaciones,
             'resultados' => $registro->resultados->map(fn ($resultado): array => [
                 'nivel_id' => $resultado->nivel_id,
-                'valor' => $resultado->valor_original,
+                'valor' => NumeroControlCalidad::mostrar($resultado->valor),
             ])->all(),
         ];
     }
@@ -124,16 +132,7 @@ trait InteractsWithControlRecords
 
     private function numeroVisible(mixed $value): string
     {
-        if ($value === null) {
-            return '—';
-        }
-
-        $text = (string) $value;
-        if (str_contains($text, '.')) {
-            $text = rtrim(rtrim($text, '0'), '.');
-        }
-
-        return $text === '-0' ? '0' : str_replace('.', ',', $text);
+        return NumeroControlCalidad::mostrar($value);
     }
 
     protected function tablaRegistros(Table $table, bool $historial = false): Table
@@ -186,7 +185,7 @@ trait InteractsWithControlRecords
                         RepeatableEntry::make('resultados')->label('Resultados')->schema([
                             TextEntry::make('prueba_nombre')->label('Prueba'),
                             TextEntry::make('nivel_nombre')->label('Nivel'),
-                            TextEntry::make('valor_original')->label('Resultado'),
+                            TextEntry::make('valor')->label('Resultado')->formatStateUsing(fn ($state): string => $this->numeroVisible($state)),
                             TextEntry::make('unidad')->label('Unidad'),
                             TextEntry::make('lote_numero')->label('Lote'),
                             TextEntry::make('esperado')->label('Esperado')->formatStateUsing(fn ($state): string => $this->numeroVisible($state)),

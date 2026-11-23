@@ -93,7 +93,7 @@ class ExportadorControlCalidad
                     if ($tipo === 'nivel' && $r->nivel_id !== (int) $valid['nivel_id']) {
                         continue;
                     }
-                    $rows[] = [$r->prueba_nombre, $r->nivel_nombre, $r->valor_original, $r->unidad,
+                    $rows[] = [$r->prueba_nombre, $r->nivel_nombre, $this->numero($r->valor), $r->unidad,
                         $this->numero($r->minimo).' — '.$this->numero($r->maximo)."\nEsperado: ".$this->numero($r->esperado),
                         $r->lote_numero, bccomp($r->valor, $r->minimo, 6) < 0 || bccomp($r->valor, $r->maximo, 6) > 0 ? 'Fuera de rango' : 'Dentro de rango'];
                 }
@@ -154,11 +154,6 @@ class ExportadorControlCalidad
 
     private function numero(mixed $value): string
     {
-        if ($value === null) {
-            return '—';
-        }
-        $text = (string) $value;
-
-        return str_replace('.', ',', str_contains($text, '.') ? rtrim(rtrim($text, '0'), '.') : $text);
+        return NumeroControlCalidad::mostrar($value);
     }
 }

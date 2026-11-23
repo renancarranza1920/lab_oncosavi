@@ -68,8 +68,9 @@
                     options: @js($this->getOptions()),
                     type: @js($this->getType()),
                 })"
-                x-bind:style="ampliado ? 'position: relative; height: calc(100dvh - 13rem); min-height: 200px;' : 'position: relative; height: 300px;'"
+                data-cci-chart
             >
+                <div x-bind:style="ampliado ? 'position: relative; height: calc(100dvh - 18rem); min-height: 200px;' : 'position: relative; height: 300px;'">
                 <canvas x-ref="canvas" aria-label="Mediciones, mínimo, máximo y valor esperado" role="img"></canvas>
                 <span x-ref="backgroundColorElement" class="text-custom-50 dark:text-custom-400/10"
                     @style([\Filament\Support\get_color_css_variables($this->getColor(), shades: [50, 400], alias: 'widgets::chart-widget.background')])
@@ -77,8 +78,10 @@
                 <span x-ref="borderColorElement" class="text-custom-500 dark:text-custom-400"
                     @style([\Filament\Support\get_color_css_variables($this->getColor(), shades: [400, 500], alias: 'widgets::chart-widget.border')])
                 ></span>
-                <span x-ref="gridColorElement" class="text-gray-200 dark:text-gray-800"></span>
+                <span x-ref="gridColorElement" class="cci-chart-grid-color"></span>
                 <span x-ref="textColorElement" class="text-gray-500 dark:text-gray-400"></span>
+                </div>
+                <div data-cci-legend class="cci-chart-legend" role="group" aria-label="Leyenda del gráfico"></div>
             </div>
         </x-filament::section>
     </div>

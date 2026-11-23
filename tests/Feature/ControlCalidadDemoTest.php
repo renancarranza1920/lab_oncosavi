@@ -67,7 +67,7 @@ class ControlCalidadDemoTest extends TestCase
             $this->assertStringStartsWith('[DEMO]', $area->nombre);
         }
         foreach (ValorControl::all() as $control) {
-            $this->assertEqualsWithDelta(((float) $control->minimo + (float) $control->maximo) / 2, (float) $control->esperado, 0.000001);
+            $this->assertEqualsWithDelta(round(((float) $control->minimo + (float) $control->maximo) / 2, 2), (float) $control->esperado, 0.000001);
         }
         $this->assertTrue(Resultado::whereColumn('valor', '>', 'maximo')->exists());
         $this->assertEquals($before, $this->clinicalSnapshot());

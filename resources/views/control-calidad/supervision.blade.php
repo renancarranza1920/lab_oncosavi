@@ -6,6 +6,7 @@
     <title>Historial · Control de Calidad Interno · Oncosavi</title>
     <link rel="icon" href="{{ asset(config('laboratorio.logo')) }}">
     <link rel="stylesheet" href="{{ asset('css/cci-supervision.css') }}?v={{ filemtime(public_path('css/cci-supervision.css')) }}">
+    @include('filament.control-calidad.chart-assets')
     <script type="module" src="{{ asset('js/cci-supervision.js') }}?v={{ filemtime(public_path('js/cci-supervision.js')) }}"></script>
 </head>
 <body>
@@ -58,9 +59,10 @@
         @else
             <div class="charts-grid" data-chart-module="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('chart', 'filament/widgets') }}">
                 @foreach($graficos as $grafico)
-                    <article class="panel chart-card"><div class="chart-heading"><div><h3>{{ $grafico['nombre'] }}</h3><p class="muted">{{ $prueba->nombre }}</p></div><button type="button" class="text-button" data-expand-chart="graph-{{ $grafico['id'] }}">@include('control-calidad.icon', ['name' => 'expand']) Ampliar</button></div>
+                    <article class="panel chart-card" data-cci-chart><div class="chart-heading"><div><h3>{{ $grafico['nombre'] }}</h3><p class="muted">{{ $prueba->nombre }}</p></div><button type="button" class="text-button" data-expand-chart="graph-{{ $grafico['id'] }}">@include('control-calidad.icon', ['name' => 'expand']) Ampliar</button></div>
                         @if(!$grafico['data']['labels'])<p class="chart-empty">No hay mediciones para esta prueba con los filtros seleccionados.</p>@endif
-                        <div class="chart-canvas" data-chart="graph-{{ $grafico['id'] }}"><canvas aria-label="Gráfico de {{ $grafico['nombre'] }}" role="img"></canvas><span data-chart-color="background" style="color:#eff6ff"></span><span data-chart-color="border" style="color:#2563eb"></span><span data-chart-color="text" style="color:#526377"></span><span data-chart-color="grid" style="color:#e2e8f0"></span></div>
+                        <div class="chart-canvas" data-chart="graph-{{ $grafico['id'] }}"><canvas aria-label="Gráfico de {{ $grafico['nombre'] }}" role="img"></canvas><span data-chart-color="background" style="color:#eff6ff"></span><span data-chart-color="border" style="color:#2563eb"></span><span data-chart-color="text" style="color:#526377"></span><span data-chart-color="grid" style="color:#cbd5e1"></span></div>
+                        <div data-cci-legend class="cci-chart-legend" role="group" aria-label="Leyenda del gráfico"></div>
                         <script type="application/json" id="graph-{{ $grafico['id'] }}">{!! json_encode(['cachedData' => $grafico['data'], 'options' => $grafico['options'], 'type' => 'line'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) !!}</script>
                     </article>
                 @endforeach
@@ -75,12 +77,12 @@
             <div class="table-wrap"><table class="results-table"><thead><tr><th>Prueba</th><th>Nivel</th><th>Resultado</th><th>Unidad</th><th>Valores de control</th><th>Lote</th><th>Evaluación</th></tr></thead><tbody>
             @foreach($registro->resultados as $resultado)
                 @php($fuera = bccomp($resultado->valor, $resultado->minimo, 6) < 0 || bccomp($resultado->valor, $resultado->maximo, 6) > 0)
-                @php($numero = fn($v) => str_replace('.', ',', rtrim(rtrim((string) $v, '0'), '.')))
-                <tr><td>{{ $resultado->prueba_nombre }}</td><td>{{ $resultado->nivel_nombre }}</td><td>{{ $resultado->valor_original }}</td><td>{{ $resultado->unidad }}</td><td>{{ $numero($resultado->minimo) }} — {{ $numero($resultado->maximo) }}<br><small>Esperado: {{ $numero($resultado->esperado) }}</small></td><td>{{ $resultado->lote_numero }}</td><td class="{{ $fuera ? 'outside' : 'inside' }}">{{ $fuera ? '✕ Fuera de rango' : 'Dentro de rango' }}</td></tr>
+                @php($numero = fn($v) => \App\ControlCalidad\Services\NumeroControlCalidad::mostrar($v))
+                <tr><td>{{ $resultado->prueba_nombre }}</td><td>{{ $resultado->nivel_nombre }}</td><td>{{ $numero($resultado->valor) }}</td><td>{{ $resultado->unidad }}</td><td>{{ $numero($resultado->minimo) }} — {{ $numero($resultado->maximo) }}<br><small>Esperado: {{ $numero($resultado->esperado) }}</small></td><td>{{ $resultado->lote_numero }}</td><td class="{{ $fuera ? 'outside' : 'inside' }}">{{ $fuera ? '✕ Fuera de rango' : 'Dentro de rango' }}</td></tr>
             @endforeach
             </tbody></table></div>@if(filled($registro->observaciones))<p class="note">{{ $registro->observaciones }}</p>@endif
         </div><div class="modal-footer"><a class="text-button" href="{{ url()->current().'?'.http_build_query([...collect($filtros)->except(['page','prueba_id'])->all(), 'area_id' => $registro->area_id]).'#graficos' }}" data-go-graphs>Ver gráficos</a><a class="primary" href="{{ $exportUrl.'?'.http_build_query(['ids' => [$registro->id], 'incluir_graficos' => 1]) }}" target="_blank" rel="noopener">@include('control-calidad.icon', ['name' => 'download']) Guardar PDF</a></div></dialog>
     @endforeach
 @endif
-<dialog class="modal chart-modal" id="chart-expanded" aria-labelledby="expanded-title"><div class="modal-heading"><h2 id="expanded-title">Gráfico de control</h2><button type="button" class="text-button" data-close-dialog aria-label="Cerrar gráfico">@include('control-calidad.icon', ['name' => 'close']) Cerrar</button></div><div class="expanded-canvas chart-canvas"><canvas aria-label="Gráfico ampliado" role="img"></canvas><span data-chart-color="background" style="color:#eff6ff"></span><span data-chart-color="border" style="color:#2563eb"></span><span data-chart-color="text" style="color:#526377"></span><span data-chart-color="grid" style="color:#e2e8f0"></span></div></dialog>
+<dialog class="modal chart-modal" data-cci-chart id="chart-expanded" aria-labelledby="expanded-title"><div class="modal-heading"><h2 id="expanded-title">Gráfico de control</h2><button type="button" class="text-button" data-close-dialog aria-label="Cerrar gráfico">@include('control-calidad.icon', ['name' => 'close']) Cerrar</button></div><div class="expanded-canvas chart-canvas"><canvas aria-label="Gráfico ampliado" role="img"></canvas><span data-chart-color="background" style="color:#eff6ff"></span><span data-chart-color="border" style="color:#2563eb"></span><span data-chart-color="text" style="color:#526377"></span><span data-chart-color="grid" style="color:#cbd5e1"></span></div><div data-cci-legend class="cci-chart-legend" role="group" aria-label="Leyenda del gráfico ampliado"></div></dialog>
 </body></html>

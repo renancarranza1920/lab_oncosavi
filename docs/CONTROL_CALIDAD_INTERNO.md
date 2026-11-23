@@ -138,13 +138,21 @@ Los catálogos y mediciones existentes no se borran al aplicar esta actualizaci�
    Las lecturas se distribuyen en tres columnas en computadora, dos en pantallas
    medianas y una en móvil, conservando la unidad y los valores de cada nivel.
 5. Completa los resultados y, si corresponde, las observaciones. Se admiten
-   decimales con coma o punto; el cero es un resultado válido.
+   decimales con coma o punto; el cero es un resultado válido. Los nuevos límites,
+   resultados y valores esperados se normalizan a dos decimales. Los formularios,
+   el historial, los gráficos y los PDF muestran siempre dos decimales, también
+   para valores enteros. La actualización no reescribe mediciones anteriores.
 6. En **Gráficos**, elige Diario para el día actual, Semanal para la semana actual
    de lunes a domingo, o Mensual para el mes actual. Se usa la hora de El Salvador.
    La franja sombreada muestra el rango entre el mínimo y el máximo. Las
    mediciones fuera del rango aparecen como una X roja. El botón **Ampliar**
    abre cualquier gráfico a pantalla completa; **Cerrar** o Escape devuelve
    la vista normal.
+   La leyenda se distribuye en dos columnas y dos filas: Medido (azul), Esperado
+   (violeta), Mínimo (verde azulado) y Máximo (ámbar). Cada botón permite ocultar
+   o mostrar esa serie. El aviso de valor solo aparece sobre el punto de una
+   medición; no se activa al recorrer el resto del gráfico. Con una única lectura
+   siguen visibles la franja y las tres líneas de referencia, también en el PDF.
    Cambiar los valores de control en
    Mantenimiento no altera los límites que ya quedaron guardados con un resultado.
 

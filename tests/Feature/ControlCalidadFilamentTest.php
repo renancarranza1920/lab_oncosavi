@@ -226,7 +226,7 @@ class ControlCalidadFilamentTest extends TestCase
         $this->assertSame('2026-11-10 16:00:00', $record->fecha_hora->utc()->format('Y-m-d H:i:s'));
         $values = $record->resultados->keyBy('nivel_id');
         $this->assertSame(6.3, (float) $values[$niveles[0]->id]->valor);
-        $this->assertSame('6,3', $values[$niveles[0]->id]->valor_original);
+        $this->assertSame('6,30', $values[$niveles[0]->id]->valor_original);
         $this->assertSame(0.0, (float) $values[$niveles[1]->id]->valor);
         $this->assertNull($record->observaciones);
     }

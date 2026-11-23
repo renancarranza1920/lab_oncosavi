@@ -71,17 +71,17 @@ class ControlCalidadMidpointTest extends TestCase
         return [
             'coma decimal' => ['5,7', '6,7', '6.200000'],
             'mínimo cero' => ['0', '11', '5.500000'],
-            'rango igual' => ['9,125', '9.125', '9.125000'],
+            'rango igual' => ['9,125', '9.125', '9.130000'],
             'negativos' => ['-5.1', '-2,3', '-3.700000'],
             'centro cero' => ['-8', '8', '0.000000'],
-            'redondeo positivo' => ['0', '0.000001', '0.000001'],
-            'redondeo negativo' => ['-0.000001', '0', '-0.000001'],
+            'redondeo positivo' => ['0', '0.01', '0.010000'],
+            'redondeo negativo' => ['-0.01', '0', '-0.010000'],
         ];
     }
 
-    public function test_el_calculo_conserva_los_seis_decimales_significativos_con_valores_grandes(): void
+    public function test_el_calculo_redondea_a_dos_decimales_sin_perder_precision_con_valores_grandes(): void
     {
-        $this->assertSame('999999999999.999999', ControlCalidadService::puntoMedio('999999999999.999998', '1000000000000'));
+        $this->assertSame('1000000000000.00', ControlCalidadService::puntoMedio('999999999999.999998', '1000000000000'));
     }
 
     public function test_ignora_el_valor_esperado_enviado_y_preserva_las_referencias_de_resultados_anteriores(): void
@@ -120,16 +120,17 @@ class ControlCalidadMidpointTest extends TestCase
             ->mountTableAction('crear')->setTableActionData($this->datos('5,7', '6,7'));
         $component->set('mountedTableActionsData.0.niveles.0.minimo', '5,7')
             ->set('mountedTableActionsData.0.niveles.0.maximo', '6,7')
-            ->assertSet('mountedTableActionsData.0.niveles.0.esperado', '6,2');
+            ->assertSet('mountedTableActionsData.0.niveles.0.esperado', '6,20');
 
         $fields = $component->instance()->getMountedTableActionForm()->getFlatFields();
         $field = collect($fields)->first(fn ($field) => $field->getName() === 'esperado');
         $this->assertNotNull($field);
         $this->assertTrue($field->isReadOnly());
+        $this->assertTrue($field->isDisabled());
         $this->assertFalse($field->isDehydrated());
 
         $component->set('mountedTableActionsData.0.niveles.0.maximo', '7,7')
-            ->assertSet('mountedTableActionsData.0.niveles.0.esperado', '6,7')
+            ->assertSet('mountedTableActionsData.0.niveles.0.esperado', '6,70')
             ->call('callMountedTableAction')->assertHasNoTableActionErrors();
         $this->assertSame('6.700000', Prueba::sole()->niveles->sole()->valorControlActual->esperado);
     }

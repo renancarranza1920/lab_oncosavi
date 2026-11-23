@@ -58,6 +58,8 @@ class AdminPanelProvider extends PanelProvider
             'danger' => config('estados.danger.base'),
         ]);
         $panel->renderHook('panels::head.end', fn () => view('partials.tema-oncosavi'));
+        $panel->renderHook('panels::head.end', fn () => request()->routeIs('filament.admin.pages.control-calidad-interno*')
+            ? view('filament.control-calidad.chart-assets') : '');
         $panel->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources');
         $panel->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages');
         

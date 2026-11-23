@@ -7,6 +7,7 @@ use App\ControlCalidad\Models\Lote;
 use App\ControlCalidad\Models\Producto;
 use App\ControlCalidad\Models\Prueba;
 use App\ControlCalidad\Services\ControlCalidadService;
+use App\ControlCalidad\Services\NumeroControlCalidad;
 use App\Support\ControlCalidadPermissions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
@@ -249,13 +250,11 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
                                 ->mapWithKeys(fn (Lote $lote): array => [$lote->id => $lote->producto->nombre.' · '.$lote->numero])->all())
                             ->exists(Lote::class, 'id'),
                         Grid::make(3)->schema([
-                            TextInput::make('esperado')->label('Valor esperado')->readOnly()->dehydrated(false)
+                            $this->campoValor('minimo', 'Mínimo'),
+                            $this->campoValor('maximo', 'Máximo'),
+                            TextInput::make('esperado')->label('Valor esperado')->readOnly()->disabled()->dehydrated(false)
                                 ->afterStateHydrated(fn (Get $get, Set $set) => $set('esperado', $this->puntoMedioVisible($get)))
                                 ->formatStateUsing(fn (Get $get): ?string => $this->puntoMedioVisible($get)),
-                            $this->campoValor('minimo', 'Mínimo')->live(onBlur: true)
-                                ->afterStateUpdated(fn (Get $get, Set $set) => $set('esperado', $this->puntoMedioVisible($get))),
-                            $this->campoValor('maximo', 'Máximo')->live(onBlur: true)
-                                ->afterStateUpdated(fn (Get $get, Set $set) => $set('esperado', $this->puntoMedioVisible($get))),
                         ]),
                     ])->columns(2)->minItems(1)->defaultItems(1)->reorderable()->collapsible()
                     ->itemLabel(fn (array $state): string => $state['nombre'] ?? 'Nuevo nivel')
@@ -274,14 +273,23 @@ class Mantenimiento extends PaginaControlCalidad implements HasTable
     private function campoValor(string $nombre, string $etiqueta): TextInput
     {
         return TextInput::make($nombre)->label($etiqueta)->required()->inputMode('decimal')->maxLength(40)
-            ->regex('/^[+-]?\d+(?:[.,]\d+)?$/D');
+            ->regex('/^[+-]?\d+(?:[.,]\d{1,6})?$/D')
+            ->formatStateUsing(fn ($state): ?string => filled($state) ? NumeroControlCalidad::mostrar($state) : null)
+            ->live(onBlur: true)
+            ->afterStateUpdated(function ($state, Get $get, Set $set) use ($nombre): void {
+                $value = NumeroControlCalidad::normalizar($state);
+                if ($value !== null) {
+                    $set($nombre, str_replace('.', ',', $value));
+                }
+                $set('esperado', $this->puntoMedioVisible($get));
+            });
     }
 
     private function puntoMedioVisible(Get $get): ?string
     {
         $value = ControlCalidadService::puntoMedio($get('minimo'), $get('maximo'));
 
-        return $value === null ? null : str_replace('.', ',', rtrim(rtrim($value, '0'), '.'));
+        return $value === null ? null : NumeroControlCalidad::mostrar($value);
     }
 
     private function guardarCatalogo(array $data, ?Model $record = null): Model
