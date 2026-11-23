@@ -24,6 +24,11 @@ class UserResource extends Resource
     protected static ?string $navigationLabel = 'Usuarios';
 protected static ?int $navigationSort = 1;
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return \App\Support\AccesoSoporte::usuariosVisibles(parent::getEloquentQuery(), auth()->user());
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -59,9 +64,9 @@ protected static ?int $navigationSort = 1;
 
                         Forms\Components\Select::make('roles')
                             ->label('Rol')
-                            ->relationship('roles', 'name', modifyQueryUsing: fn ($query) => $query->when(!\App\Support\AccesoSoporte::autorizado(auth()->user()), fn ($q) => $q->where('name', '!=', 'super_admin'))) // Filament maneja la relación y muestra el valor actual
-                            ->options(fn () => \Spatie\Permission\Models\Role::query()->when(!\App\Support\AccesoSoporte::autorizado(auth()->user()), fn ($q) => $q->where('name', '!=', 'super_admin'))->pluck('name', 'id'))
-                            ->rules(fn () => [\Illuminate\Validation\Rule::exists('roles', 'id')->where(fn ($q) => $q->where('guard_name', 'web')->when(!\App\Support\AccesoSoporte::autorizado(auth()->user()), fn ($q) => $q->where('name', '!=', 'super_admin')))])
+                            ->relationship('roles', 'name', modifyQueryUsing: fn ($query) => \App\Support\AccesoSoporte::rolesVisibles($query, auth()->user())) // Filament maneja la relación y muestra el valor actual
+                            ->options(fn () => \App\Support\AccesoSoporte::rolesVisibles(\Spatie\Permission\Models\Role::query(), auth()->user())->pluck('name', 'id'))
+                            ->rules(fn () => [\Illuminate\Validation\Rule::exists('roles', 'id')->where(fn ($q) => $q->where('guard_name', 'web')->when(!\App\Support\AccesoSoporte::autorizado(auth()->user()), fn ($q) => $q->whereNotIn('id', \App\Support\AccesoSoporte::rolesReservados(\Spatie\Permission\Models\Role::query())->select('id'))))])
                             ->required()
                             ->preload()
                             ->multiple(false)

@@ -57,9 +57,11 @@ class BitacoraSoporteTest extends TestCase
         $this->assertArrayNotHasKey('password', $privado->datos['properties']['attributes']);
         $this->assertSame($cliente->id, $privado->datos['subject_id']);
         $this->actingAs($this->usuario());
-        $pagina = Livewire::test(ListActivityLogs::class)->assertCanSeeTableRecords([$publico])
-            ->assertSee('Ajuste de soporte técnico')->assertDontSee('Domicilio reservado nuevo')
-            ->mountTableAction('view', $publico)->assertDontSee('direccion')->assertDontSee('Cambio de domicilio solicitado privadamente.');
+        $pagina = Livewire::test(ListActivityLogs::class)->assertCanNotSeeTableRecords([$publico])
+            ->assertDontSee('Ajuste de soporte técnico')->assertDontSee('Domicilio reservado nuevo')
+            ->mountTableAction('view', $publico)->assertTableActionNotMounted('view')
+            ->assertDontSee('direccion')->assertDontSee('Cambio de domicilio solicitado privadamente.');
+        $this->assertFalse(auth()->user()->can('view', $publico));
         $this->assertStringNotContainsString('Domicilio reservado', json_encode($pagina->snapshot));
         Livewire::test(ListActivityLogs::class)->searchTable('Domicilio reservado')->assertCanNotSeeTableRecords([$publico]);
         Livewire::test(ListActivityLogs::class)->filterTable('event', 'updated')->assertCanNotSeeTableRecords([$publico]);
@@ -94,9 +96,10 @@ class BitacoraSoporteTest extends TestCase
         $this->artisan('oncosavi:proteger-bitacora-soporte')->assertSuccessful();
         $this->assertSame('2026-10-01 09:00:00', $registro->fresh()->created_at->format('Y-m-d H:i:s'));
         $this->assertSame('Ajuste de soporte técnico', $registro->fresh()->description);
-        $this->assertSame('Dato confidencial anterior', RegistroSoporte::sole()->datos['description']);
+        $this->assertSame('Dato confidencial anterior', RegistroSoporte::where('activity_id', $registro->id)->sole()->datos['description']);
+        $cantidad = RegistroSoporte::count();
         $this->artisan('oncosavi:proteger-bitacora-soporte')->assertSuccessful();
-        $this->assertSame(1, RegistroSoporte::count());
+        $this->assertSame($cantidad, RegistroSoporte::count());
         $this->assertDatabaseHas('activity_log', ['id' => $registro->id, 'causer_id' => $soporte->id]);
     }
 
@@ -106,8 +109,8 @@ class BitacoraSoporteTest extends TestCase
         $admin = $this->usuario();
         $this->actingAs($admin);
         $rol = Role::findByName('super_admin');
-        $this->get('/admin/users/'.$soporte->id.'/edit')->assertForbidden();
-        $this->get('/admin/shield/roles/'.$rol->id.'/edit')->assertForbidden();
+        $this->get('/admin/users/'.$soporte->id.'/edit')->assertNotFound();
+        $this->get('/admin/shield/roles/'.$rol->id.'/edit')->assertNotFound();
         $this->assertFalse($admin->can('delete', $soporte));
         $this->assertFalse($admin->can('delete', $rol));
         Livewire::test(\App\Filament\Resources\UserResource\Pages\CreateUser::class)->fillForm([
@@ -162,6 +165,133 @@ class BitacoraSoporteTest extends TestCase
         }
         $this->assertSame($cantidad, Activity::count());
         $this->assertSame(0, RegistroSoporte::count());
+    }
+
+    public function test_cuenta_y_rol_de_soporte_no_aparecen_en_listas_busquedas_ni_selectores_normales(): void
+    {
+        $soporte = $this->usuario(true);
+        $soporte->update(['name' => 'Soporte reservado', 'nickname' => 'soporte.admin']);
+        $admin = $this->usuario();
+        $rol = Role::findByName('super_admin');
+        $this->actingAs($admin);
+
+        Livewire::test(\App\Filament\Resources\UserResource\Pages\ListUsers::class)
+            ->assertCanSeeTableRecords([$admin])->assertCanNotSeeTableRecords([$soporte])
+            ->assertDontSee('soporte.admin')->assertDontSee('Soporte reservado')
+            ->searchTable('soporte.admin')->assertCountTableRecords(0);
+        Livewire::test(\App\Filament\Resources\RoleResource\Pages\ListRoles::class)
+            ->assertCanSeeTableRecords([Role::findByName('admin')])->assertCanNotSeeTableRecords([$rol])
+            ->searchTable('super_admin')->assertCountTableRecords(0);
+        Livewire::test(\App\Filament\Resources\UserResource\Pages\CreateUser::class)
+            ->assertDontSee('super_admin');
+        $this->assertFalse($admin->can('view', $soporte));
+        $this->assertFalse($admin->can('view', $rol));
+        // La cuenta sigue existiendo para autenticación y relaciones clínicas.
+        $this->assertSame($soporte->id, User::where('nickname', 'soporte.admin')->sole()->id);
+
+        $this->actingAs($soporte);
+        Livewire::test(\App\Filament\Resources\UserResource\Pages\ListUsers::class)
+            ->assertCanSeeTableRecords([$soporte]);
+        Livewire::test(\App\Filament\Resources\RoleResource\Pages\ListRoles::class)
+            ->assertCanSeeTableRecords([$rol]);
+    }
+
+    public function test_bitacora_filtra_eventos_anteriores_autores_y_cuentas_reservadas_sin_ocultar_eventos_anonimos(): void
+    {
+        $soporte = $this->usuario(true);
+        $admin = $this->usuario();
+        $rol = Role::findByName('super_admin');
+        $this->actingAs($admin);
+        $ocultos = collect([
+            Activity::create(['log_name' => 'Operación general', 'description' => 'Evento antiguo del soporte', 'event' => null,
+                'causer_type' => User::class, 'causer_id' => $soporte->id]),
+            Activity::create(['log_name' => 'Operación general', 'description' => 'Cuenta de soporte creada', 'event' => 'created',
+                'subject_type' => User::class, 'subject_id' => $soporte->id, 'causer_type' => User::class, 'causer_id' => $admin->id]),
+            Activity::create(['log_name' => 'Operación general', 'description' => 'Rol reservado modificado', 'event' => 'updated',
+                'subject_type' => Role::class, 'subject_id' => $rol->id]),
+            Activity::create(['log_name' => 'Operación general', 'description' => 'Ajuste de soporte técnico', 'event' => Actividad::EVENTO_SOPORTE]),
+        ]);
+        $visibles = collect([
+            Activity::create(['log_name' => 'Operación general', 'description' => 'Importación automática', 'event' => null]),
+            Activity::create(['log_name' => 'Operación general', 'description' => 'Cambio normal de paciente', 'event' => 'updated',
+                'causer_type' => User::class, 'causer_id' => $admin->id, 'subject_type' => Cliente::class, 'subject_id' => 321]),
+            Activity::create(['log_name' => 'Operación general', 'description' => 'Evento con autor sin identificar', 'event' => 'updated',
+                'causer_type' => User::class, 'causer_id' => null]),
+        ]);
+        $pagina = Livewire::test(ListActivityLogs::class)
+            ->assertCanSeeTableRecords($visibles)->assertCanNotSeeTableRecords($ocultos)
+            ->assertDontSee('Ajuste de soporte técnico');
+        $filtros = $pagina->instance()->getTable()->getFilters();
+        $this->assertArrayNotHasKey(Actividad::EVENTO_SOPORTE, $filtros['event']->getOptions());
+        $this->assertArrayNotHasKey($soporte->id, collect($filtros['causer_id']->getOptions())->all());
+        foreach ($ocultos as $registro) {
+            $this->assertFalse($admin->can('view', $registro));
+        }
+        Livewire::test(ListActivityLogs::class)->searchTable('soporte')->assertCountTableRecords(0);
+        Livewire::test(ListActivityLogs::class)->filterTable('causer_id', $soporte->id)->assertCountTableRecords(0);
+        $cantidad = Activity::count();
+        $this->artisan('oncosavi:proteger-bitacora-soporte')->assertSuccessful();
+        $this->assertSame($cantidad, Activity::count());
+        foreach ($ocultos->take(3) as $registro) {
+            $this->assertDatabaseHas('registros_soporte', ['activity_id' => $registro->id]);
+        }
+        foreach ($visibles as $registro) {
+            $this->assertDatabaseMissing('registros_soporte', ['activity_id' => $registro->id]);
+        }
+    }
+
+    public function test_variantes_del_nombre_de_super_admin_tambien_se_reservan_y_no_se_pueden_asignar(): void
+    {
+        $admin = $this->usuario();
+        foreach (['Super Admin', 'super-admin', 'superadmin', ' SUPER_ADMIN '] as $nombre) {
+            $rol = Role::findOrCreate($nombre, 'web');
+            $soporte = $this->usuario();
+            $soporte->assignRole($rol);
+            $this->actingAs($soporte);
+            $registro = activity('Configuración')->event('updated')->log('Cambio reservado de '.$nombre);
+            $this->assertSame(Actividad::EVENTO_SOPORTE, $registro->event);
+            $this->assertDatabaseHas('registros_soporte', ['activity_id' => $registro->id]);
+            $this->assertTrue(\App\Support\AccesoSoporte::autorizado($soporte));
+            $this->actingAs($admin);
+            $this->assertFalse(\App\Filament\Resources\UserResource::getEloquentQuery()->whereKey($soporte)->exists());
+            $this->assertFalse(\App\Filament\Resources\RoleResource::getEloquentQuery()->whereKey($rol)->exists());
+            $this->assertFalse($admin->can('update', $rol));
+            $this->assertFalse($admin->can('update', $soporte));
+            Livewire::test(\App\Filament\Resources\UserResource\Pages\CreateUser::class)->fillForm([
+                'name' => 'Cuenta indebida', 'nickname' => 'indebida', 'email' => 'indebida@example.invalid',
+                'password' => 'Contraseña segura de prueba', 'roles' => $rol->id,
+            ])->call('create')->assertHasFormErrors(['roles']);
+        }
+        $this->assertDatabaseMissing('users', ['nickname' => 'indebida']);
+    }
+
+    public function test_ajustes_del_propietario_sobre_la_cuenta_reservada_tambien_conservan_auditoria_privada(): void
+    {
+        $soporte = $this->usuario(true);
+        $propietario = $this->usuario();
+        $this->artisan('oncosavi:autorizar-bitacora-soporte', ['usuario' => $propietario->nickname])->assertSuccessful();
+        $this->actingAs($propietario->fresh());
+        $registro = activity('Usuarios')->performedOn($soporte)->event('updated')
+            ->withProperties(['old' => ['name' => $soporte->name], 'attributes' => ['name' => 'Soporte actualizado']])
+            ->log('Actualización autorizada de soporte');
+        $this->assertSame(Actividad::EVENTO_SOPORTE, $registro->event);
+        $privado = RegistroSoporte::where('activity_id', $registro->id)->sole();
+        $this->assertSame($propietario->id, $privado->datos['causer_id']);
+        $this->assertSame($soporte->id, $privado->datos['subject_id']);
+        $this->assertSame('Actualización autorizada de soporte', $privado->datos['description']);
+        Livewire::test(ListActivityLogs::class)->assertCanNotSeeTableRecords([$registro]);
+        Livewire::test(ListRegistrosSoporte::class)->assertCanSeeTableRecords([$privado]);
+    }
+
+    public function test_nombre_de_usuario_no_concede_privacidad_sin_el_rol_reservado(): void
+    {
+        $admin = $this->usuario();
+        $impostor = $this->usuario();
+        $impostor->update(['nickname' => 'soporte.admin']);
+        $this->assertFalse(\App\Support\AccesoSoporte::esCuentaReservada($impostor));
+        $this->actingAs($admin);
+        Livewire::test(\App\Filament\Resources\UserResource\Pages\ListUsers::class)
+            ->assertCanSeeTableRecords([$impostor])->assertSee('soporte.admin');
     }
 
     public function test_actividad_de_otros_usuarios_sigue_mostrando_detalles_normales(): void

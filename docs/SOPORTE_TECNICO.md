@@ -3,11 +3,13 @@
 La cuenta de soporte se crea únicamente al ejecutar `php artisan oncosavi:crear-superadmin`.
 El despliegue o las migraciones no crean usuarios ni cambian las cuentas existentes.
 
-La cuenta `soporte.superadmin` tiene los roles `admin` y `super_admin`. Es visible en
-Usuarios y sus operaciones mantienen una auditoría completa, con el detalle reservado
-a soporte y al propietario autorizado. No hay cuentas ocultas, excepciones para borrar auditoría ni
-credenciales preestablecidas en el repositorio. El rol adicional identifica soporte;
-los permisos operativos siguen siendo los del rol `admin` existente.
+La cuenta de soporte (por ejemplo, `soporte.admin` o `soporte.superadmin`) se identifica
+por su rol `super_admin`, no por su nombre de usuario. Su cuenta y su rol se muestran
+en Usuarios y Roles únicamente al soporte y al propietario autorizado. Los demás
+usuarios no pueden encontrarlos mediante listas, búsquedas ni URLs de edición.
+Sus operaciones mantienen una auditoría completa en la sección privada. No se borran
+registros ni existen credenciales preestablecidas en el repositorio. Los permisos
+operativos siguen siendo los del rol `admin` existente.
 
 En Oracle, después de actualizar el contenedor:
 
@@ -36,10 +38,14 @@ La bitácora general y la bitácora de soporte requieren el rol `admin`; Recepci
 y Laboratorista no tienen acceso. La cuenta de soporte conserva sus roles
 `admin` y `super_admin`.
 
-Los eventos cuyo autor tiene el rol `super_admin` se muestran en la bitácora general
-como **Ajuste de soporte técnico**, con fecha y usuario. El módulo, la acción original,
-el modelo, los campos y los valores se conservan en `registros_soporte`, y no se
-incluyen en los registros, búsquedas, filtros ni respuestas de la bitácora general.
+La bitácora general excluye los eventos de soporte y los cambios sobre su cuenta o
+su rol. También excluye los eventos antiguos aún sin archivar y el aviso genérico
+«Ajuste de soporte técnico». No expone estos registros mediante búsquedas, filtros,
+contadores ni detalles. El módulo, la acción original, el autor, la fecha, el modelo,
+los campos y los valores se conservan en `registros_soporte`.
+
+El acceso al inicio de sesión y la autoría de resultados clínicos siguen usando los
+usuarios reales. No se cambia ni se anonimiza al responsable de un resultado o informe.
 
 En **Administración → Bitácora de soporte**, el soporte identificado puede revisar
 los detalles. El propietario debe recibir un permiso **directo**, mediante consola:
@@ -55,8 +61,8 @@ El propietario autorizado y el soporte pueden consultar, pero no editar ni elimi
 los registros desde esta pantalla. Contraseñas, tokens y claves no se almacenan en
 los campos del detalle de auditoría.
 
-Para reservar eventos anteriores de usuarios que actualmente tienen el rol
-`super_admin`, ejecuta después de migrar:
+Para archivar también los eventos anteriores de usuarios que actualmente tienen el
+rol de soporte y los cambios sobre sus cuentas o roles, ejecuta después de actualizar:
 
 ```bash
 php artisan oncosavi:proteger-bitacora-soporte
@@ -68,10 +74,14 @@ aviso genérico dentro de la misma transacción. Repetirlo no duplica registros 
 cambia los datos clínicos. La migración de auditoría crea una tabla adicional y
 conserva esa tabla si se revierte: no se elimina el historial privado.
 
-La cuenta y el rol de soporte siguen visibles, pero su edición o eliminación en
-el panel requiere ser soporte o propietario autorizado. Otros administradores no
-pueden asignarse `super_admin`, renombrar un rol normal a ese nombre ni usar la
+La cuenta y el rol de soporte solo se muestran a soporte y al propietario autorizado;
+este último conserva acceso para revisarlos, editarlos o eliminarlos. Otros
+administradores no pueden asignarse `super_admin`, renombrar un rol normal a ese nombre ni usar la
 eliminación masiva de usuarios o roles. Conservan la gestión individual de usuarios
 y roles ordinarios. Esto evita obtener el detalle privado tomando la cuenta o el rol
 de soporte. El propietario debe usar la autorización directa anterior para gestionar
 estas operaciones desde su cuenta habitual.
+
+También se reservan las variantes de nombre `Super Admin`, `super-admin` y
+`superadmin`, sin distinguir mayúsculas ni espacios exteriores. Cambiar el apodo
+de un usuario ordinario a `soporte.admin` no le concede permisos ni privacidad.

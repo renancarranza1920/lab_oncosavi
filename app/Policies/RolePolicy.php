@@ -23,7 +23,7 @@ class RolePolicy
      */
     public function view(User $user, Role $role): bool
     {
-        return $user->can('view_role');
+        return $user->can('view_role') && (!\App\Support\AccesoSoporte::rolReservado($role->name) || \App\Support\AccesoSoporte::autorizado($user));
     }
 
     /**
@@ -39,7 +39,7 @@ class RolePolicy
      */
     public function update(User $user, Role $role): bool
     {
-        return $user->can('update_role') && ($role->name !== 'super_admin' || \App\Support\AccesoSoporte::autorizado($user));
+        return $user->can('update_role') && (!\App\Support\AccesoSoporte::rolReservado($role->name) || \App\Support\AccesoSoporte::autorizado($user));
     }
 
     /**
@@ -47,7 +47,7 @@ class RolePolicy
      */
     public function delete(User $user, Role $role): bool
     {
-        return $user->can('delete_role') && ($role->name !== 'super_admin' || \App\Support\AccesoSoporte::autorizado($user));
+        return $user->can('delete_role') && (!\App\Support\AccesoSoporte::rolReservado($role->name) || \App\Support\AccesoSoporte::autorizado($user));
     }
 
     /**

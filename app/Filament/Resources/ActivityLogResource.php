@@ -32,7 +32,7 @@ protected static ?int $navigationSort = 3;
     public static function getEloquentQuery(): Builder
     {
         abort_unless(static::canViewAny(), 403);
-        $query = parent::getEloquentQuery();
+        $query = \App\Support\Bitacora::visibles(parent::getEloquentQuery());
         if (!auth()->user()->can('ver_bitacora_completa')) {
             $query->where('subject_type', \App\Models\Resultado::class);
         }
@@ -85,9 +85,6 @@ protected static ?int $navigationSort = 3;
                     ->badge()
                     ->color('gray')
                     ->formatStateUsing(function ($record) {
-                        if ($record->event === \App\Models\Actividad::EVENTO_SOPORTE) {
-                            return 'Reservado a soporte';
-                        }
                         if ($record->event === 'created' || $record->event === 'deleted') {
                             return 'N/A';
                         }
@@ -101,7 +98,7 @@ protected static ?int $navigationSort = 3;
                 
                 Tables\Columns\TextColumn::make('subject_type')
                     ->label('Modelo')
-                    ->formatStateUsing(fn (?string $state): string => $state ? class_basename($state) : 'Reservado a soporte')
+                    ->formatStateUsing(fn (?string $state): string => $state ? class_basename($state) : 'Sin modelo')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -114,7 +111,7 @@ protected static ?int $navigationSort = 3;
                     ->options(fn () => \App\Models\User::whereIn('id', static::getEloquentQuery()->select('causer_id'))
                         ->pluck('name', 'id')),
                 SelectFilter::make('event')->label('Acción')
-                    ->options(['created' => 'Creación', 'updated' => 'Edición', 'deleted' => 'Eliminación', 'consulted' => 'Consulta de informe', \App\Models\Actividad::EVENTO_SOPORTE => 'Ajuste de soporte técnico']),
+                    ->options(['created' => 'Creación', 'updated' => 'Edición', 'deleted' => 'Eliminación', 'consulted' => 'Consulta de informe']),
                 Tables\Filters\Filter::make('fecha')->form([
                     Forms\Components\DatePicker::make('desde')->label('Desde'),
                     Forms\Components\DatePicker::make('hasta')->label('Hasta'),

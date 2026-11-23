@@ -11,7 +11,7 @@ class Actividad extends Activity
 
     public function save(array $options = []): bool
     {
-        if (!$this->exists && $this->causer instanceof User && $this->causer->hasRole('super_admin')) {
+        if (!$this->exists && Bitacora::esSoporte($this)) {
             return $this->guardarProtegida($options);
         }
 

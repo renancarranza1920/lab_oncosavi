@@ -12,6 +12,11 @@ use Filament\Forms\Components\Tabs\Tab;
 
 class RoleResource extends ShieldRoleResource
 {
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return \App\Support\AccesoSoporte::rolesVisibles(parent::getEloquentQuery(), auth()->user());
+    }
+
     public static function getShieldFormComponents(): Component
     {
         $sections = [];

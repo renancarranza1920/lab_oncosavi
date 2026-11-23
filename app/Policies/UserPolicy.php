@@ -27,9 +27,9 @@ class UserPolicy
      * @param  \App\Models\User  $user
      * @return bool
      */
-    public function view(User $user): bool
+    public function view(User $user, ?User $target = null): bool
     {
-        return $user->can('view_user');
+        return $user->can('view_user') && (!\App\Support\AccesoSoporte::esCuentaReservada($target) || \App\Support\AccesoSoporte::autorizado($user));
     }
 
     /**
@@ -51,7 +51,7 @@ class UserPolicy
      */
     public function update(User $user, ?User $target = null): bool
     {
-        return $user->can('update_user') && (!$target?->hasRole('super_admin') || \App\Support\AccesoSoporte::autorizado($user));
+        return $user->can('update_user') && (!\App\Support\AccesoSoporte::esCuentaReservada($target) || \App\Support\AccesoSoporte::autorizado($user));
     }
 
     /**
@@ -62,7 +62,7 @@ class UserPolicy
      */
     public function delete(User $user, ?User $target = null): bool
     {
-        return $user->can('delete_user') && (!$target?->hasRole('super_admin') || \App\Support\AccesoSoporte::autorizado($user));
+        return $user->can('delete_user') && (!\App\Support\AccesoSoporte::esCuentaReservada($target) || \App\Support\AccesoSoporte::autorizado($user));
     }
 
     /**

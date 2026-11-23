@@ -37,7 +37,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Activity::class, ActivityPolicy::class);
         \Spatie\Permission\Models\Role::saving(function ($role): void {
             if (!app()->runningInConsole()
-                && ($role->name === 'super_admin' || $role->getOriginal('name') === 'super_admin')
+                && (\App\Support\AccesoSoporte::rolReservado($role->name) || \App\Support\AccesoSoporte::rolReservado($role->getOriginal('name')))
                 && !\App\Support\AccesoSoporte::autorizado(auth()->user())) {
                 abort(403);
             }

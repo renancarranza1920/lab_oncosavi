@@ -24,6 +24,7 @@ class ActivityPolicy
     public function view(User $user, Activity $activity): bool
     {
         return $this->viewAny($user) && $user->can('view_activity::log')
+            && !\App\Support\Bitacora::esSoporte($activity)
             && ($user->can('ver_bitacora_completa') || $activity->subject_type === \App\Models\Resultado::class);
     }
 
